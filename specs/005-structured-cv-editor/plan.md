@@ -99,7 +99,7 @@ apps/api/
     │   ├── services/clarification.service.ts     # SKILLS scope content (categories)
     │   └── clarification/answer-patch.ts         # SKILLS patch applies per category
     └── ai/
-        ├── skill-categories.ts                   # NEW: thin typed accessor over the shared catalogue JSON
+        ├── catalogue/skill-categories.ts         # NEW: thin typed accessor (names) over the shared catalogue JSON
         ├── schemas/llm-cv-output.schema.ts       # skillCategories with category enum
         ├── schemas/answer-patch.schema.ts        # skills patch = additions per category
         └── prompts/{cv-draft,answer-patch}.prompt.ts   # v3 / skills scope

@@ -28,6 +28,7 @@
     "typecheck": "pnpm run prisma:generate && tsc --noEmit"
   },
   "dependencies": {
+    "@ai-cv-builder/skill-catalogue": "workspace:*",
     "@anthropic-ai/sdk": "^0.131.0",
     "@fastify/cookie": "^11.1.2",
     "@fastify/multipart": "^10.1.2",
