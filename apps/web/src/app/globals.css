@@ -59,3 +59,10 @@ body {
   color: var(--color-ink);
   font-family: var(--font-sans);
 }
+
+/* A focused field scrolls into view above the phone's sticky "Preview CV" bar (about 76 px). */
+@media (max-width: 1023px) {
+  html {
+    scroll-padding-bottom: 7rem;
+  }
+}

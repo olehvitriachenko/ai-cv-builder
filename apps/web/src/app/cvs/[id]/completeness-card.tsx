@@ -4,6 +4,18 @@ import { useEffect, useState } from "react";
 import { computeCompleteness } from "@/lib/cv/completeness";
 import type { DraftFormValues } from "@/lib/cv/draft-form";
 
+/** What to do for a missing item, as the phone layout lists it ("+10% · Add phone number"). */
+function actionLabel(item: { id: string; label: string }): string {
+  switch (item.id) {
+    case "linkedin":
+      return "Add LinkedIn URL";
+    case "skills":
+      return "Add at least 5 skills";
+    default:
+      return `Add ${item.label.toLowerCase()}`;
+  }
+}
+
 /** How long the score must stay unchanged before it is announced (no chatter while typing). */
 const ANNOUNCE_AFTER_MS = 1200;
 
@@ -25,8 +37,36 @@ export function CompletenessCard({ values }: { values: DraftFormValues }) {
   }, [summary]);
 
   return (
-    <section aria-label="CV completeness" className="flex flex-col gap-2.5 rounded-xl border border-line bg-surface px-4 py-3">
-      <div className="flex items-center justify-between gap-3">
+    <section aria-label="CV completeness" className="flex flex-col gap-2.5 rounded-xl border border-line bg-surface p-4 sm:px-4 sm:py-3">
+      {/* Phone (Figma 05.2): the status badge, the percentage, and the missing items as a list. */}
+      <div className="flex flex-col gap-2.5 sm:hidden">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-2">
+            <p className="text-sm leading-[normal] font-semibold text-ink">CV completeness</p>
+            <span
+              className={`rounded-full px-2 py-[3px] text-[10px] leading-[normal] font-semibold whitespace-nowrap ${
+                left === 0 ? "bg-success-tint text-success" : "bg-accent-tint text-accent"
+              }`}
+            >
+              {left === 0 ? "Complete" : "In progress"}
+            </span>
+          </div>
+          <p className="shrink-0 text-sm leading-[normal] font-bold text-accent">{percent}%</p>
+        </div>
+        <div role="progressbar" aria-label="CV completeness" aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent} className="h-1.5 w-full rounded-full bg-stage">
+          <div className="h-1.5 rounded-full bg-accent" style={{ width: `${percent}%` }} />
+        </div>
+        {left > 0 ? (
+          <ul aria-label="Missing details" className="flex flex-col gap-1">
+            {missing.map((item) => (
+              <li key={item.id} className="flex items-center gap-1.5 text-[11px] leading-[normal] text-muted">
+                <span aria-hidden className="size-[5px] shrink-0 rounded-full bg-[#f79009]" />+{item.gain}% · {actionLabel(item)}
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </div>
+      <div className="hidden items-center justify-between gap-3 sm:flex">
         <div className="flex min-w-0 items-center gap-2">
           <p className="text-xs leading-[normal] font-semibold text-ink">CV completeness</p>
           {left > 0 ? (
@@ -47,12 +87,12 @@ export function CompletenessCard({ values }: { values: DraftFormValues }) {
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={percent}
-        className="h-1 w-full rounded-full bg-stage"
+        className="hidden h-1 w-full rounded-full bg-stage sm:block"
       >
         <div className="h-1 rounded-full bg-accent" style={{ width: `${percent}%` }} />
       </div>
       {left > 0 ? (
-        <ul aria-label="Missing details" className="flex flex-wrap gap-1.5">
+        <ul aria-label="Missing details" className="hidden flex-wrap gap-1.5 sm:flex">
           {missing.map((item) => (
             <li
               key={item.id}

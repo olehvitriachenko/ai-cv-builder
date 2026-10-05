@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FormProvider } from "react-hook-form";
 import type { CvResult } from "@/lib/api/cvs";
 import { prepareDownload } from "@/lib/cv/download-flow";
@@ -12,6 +12,7 @@ import { EditorMenu } from "./editor-menu";
 import { EditorNav } from "./editor-nav";
 import { FullscreenPreview } from "./fullscreen-preview";
 import { PreviewPanel } from "./preview-panel";
+import { keyboardOpen, stickyAction, type MobileView } from "@/lib/cv/mobile-view";
 import { saveView } from "@/lib/cv/save-view";
 import { ConflictReview } from "./conflict-review";
 import { SaveIndicator } from "./save-indicator";
@@ -22,8 +23,6 @@ import { PersonalDetails } from "./sections/personal-details";
 import { Skills } from "./sections/skills";
 import { Summary } from "./sections/summary";
 import { useCvEditor } from "./use-cv-editor";
-
-type MobileView = "editor" | "preview";
 
 /**
  * The structured editor: sticky navigation, then every section always open in the left column
@@ -74,6 +73,12 @@ export function EditorWorkspace({
               <DownloadPdfButton
                 cvId={cvId}
                 size="regular"
+                label={
+                  <>
+                    <span className="hidden sm:inline">Download PDF</span>
+                    <span className="sm:hidden">PDF</span>
+                  </>
+                }
                 onMessage={setDownloadMessage}
                 beforeDownload={() =>
                   prepareDownload({
@@ -87,8 +92,15 @@ export function EditorWorkspace({
           }
         />
 
-        <main className="mx-auto flex w-full max-w-[1440px] flex-1 flex-col gap-4 px-4 py-5 sm:px-8 lg:flex-row lg:items-start lg:gap-8 lg:py-8">
-          <div role="tablist" aria-label="View" className="flex gap-2 lg:hidden">
+        <main className="mx-auto flex w-full max-w-[1440px] flex-1 flex-col gap-4 px-4 pt-4 pb-28 sm:px-8 lg:flex-row lg:items-start lg:gap-8 lg:py-8">
+          {/* Phone: the intro, then Edit / Preview as a pair of 44 px buttons (Figma 05.2). */}
+            <div className="flex flex-col gap-1.5 lg:hidden">
+              <h2 className="text-2xl leading-[normal] font-semibold text-ink">Make it yours</h2>
+              <p className="text-xs leading-normal text-muted">
+                {saveView(saveState, invalid).intro}
+              </p>
+            </div>
+          <div role="tablist" aria-label="View" className="grid grid-cols-2 gap-2 lg:hidden">
             {(["editor", "preview"] as const).map((tab) => (
               <button
                 key={tab}
@@ -96,17 +108,17 @@ export function EditorWorkspace({
                 role="tab"
                 aria-selected={view === tab}
                 onClick={() => setView(tab)}
-                className={`h-10 rounded-[10px] border px-4 text-[13px] font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
+                className={`h-11 rounded-lg border text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
                   view === tab ? "border-accent bg-accent text-white" : "border-line bg-surface text-accent"
                 }`}
               >
-                {tab === "editor" ? "Editor" : "Preview"}
+                {tab === "editor" ? "Edit" : "Preview"}
               </button>
             ))}
           </div>
 
           <div className={`${editorPane} min-w-0 flex-col gap-4 lg:w-[584px] lg:shrink-0`}>
-            <div className="flex flex-col gap-1.5">
+            <div className="hidden flex-col gap-1.5 lg:flex">
               <h2 className="text-[22px] leading-[normal] font-semibold text-ink">Make it yours</h2>
               <p className="text-xs leading-normal text-muted">
                 {saveView(saveState, invalid).intro}
@@ -169,6 +181,7 @@ export function EditorWorkspace({
           </div>
         </main>
       </div>
+      <PreviewBar view={view} onSwitch={setView} />
       {editor.review ? (
         <ConflictReview
           local={{ targetRole, draft }}
@@ -199,5 +212,43 @@ export function EditorWorkspace({
         />
       ) : null}
     </FormProvider>
+  );
+}
+
+/**
+ * The phone's sticky action (Figma 05.2, 11.2): "Preview CV" while editing, "Edit CV" while
+ * previewing. Its bottom padding is 16 px plus the safe-area inset, and it hides while the on-screen
+ * keyboard is open so the field being typed in stays above the keyboard.
+ */
+function PreviewBar({ view, onSwitch }: { view: MobileView; onSwitch: (view: MobileView) => void }) {
+  const [typing, setTyping] = useState(false);
+  const action = stickyAction(view);
+
+  useEffect(() => {
+    const viewport = window.visualViewport;
+    if (viewport === null) {
+      return;
+    }
+    const update = () => setTyping(keyboardOpen(window.innerHeight, viewport.height));
+    viewport.addEventListener("resize", update);
+    return () => viewport.removeEventListener("resize", update);
+  }, []);
+
+  if (typing) {
+    return null;
+  }
+  return (
+    <div className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-surface p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] lg:hidden">
+      <button
+        type="button"
+        onClick={() => {
+          onSwitch(action.next);
+          window.scrollTo({ top: 0 });
+        }}
+        className="h-11 w-full rounded-lg border border-accent bg-accent text-sm font-semibold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+      >
+        {action.label}
+      </button>
+    </div>
   );
 }

@@ -43,7 +43,7 @@ export function SkillGroup({
           aria-label={`Edit ${category.name}`}
           aria-current={active ? "true" : undefined}
           onClick={onActivate}
-          className={`min-w-0 rounded text-left text-[11px] leading-[normal] font-semibold [overflow-wrap:anywhere] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
+          className={`relative min-w-0 rounded text-left text-[11px] leading-[normal] font-semibold [overflow-wrap:anywhere] before:absolute before:inset-x-0 before:-inset-y-4 before:content-[''] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
             empty ? "text-muted" : "text-accent"
           }`}
         >

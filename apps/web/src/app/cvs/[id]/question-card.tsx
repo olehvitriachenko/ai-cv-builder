@@ -1,6 +1,7 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Download } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { TextareaField } from "@/components/ui/field";
@@ -242,17 +243,17 @@ export function QuestionCard({
       ) : null}
 
       <div className="flex flex-wrap items-center gap-2">
-        <Button type="button" stretch={false} disabled={!applyEnabled} onClick={() => void apply()}>
-          {applying ? "Applying…" : "Apply to CV"}
-        </Button>
         <Button
           type="button"
-          variant="secondary"
+          variant={applyEnabled ? "primary" : "secondary"}
           stretch={false}
-          className="text-accent!"
-          disabled={busy}
-          onClick={() => dismiss.mutate()}
+          disabled={!applyEnabled}
+          onClick={() => void apply()}
         >
+          {!applyEnabled && !applying ? <Download aria-hidden className="size-4" strokeWidth={1.75} /> : null}
+          {applying ? "Applying…" : "Apply to CV"}
+        </Button>
+        <Button type="button" variant="text" stretch={false} disabled={busy} onClick={() => dismiss.mutate()}>
           {dismiss.isPending ? "Dismissing…" : "Dismiss"}
         </Button>
         {saveState === "error" ? (

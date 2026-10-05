@@ -153,3 +153,17 @@ Figma: `09.1` (saving), `09.2` (save error and conflict), `09.3` to `09.5` (conf
 | Browser (Playwright script, throwaway account, the save request delayed, aborted, and a newer revision written to the database): Saving… in the navigation, the supporting line and the preview caption while a save is held; after the abort "Couldn't save · Retry" as a button, the notice, "Last saved version" caption, the typed text kept, Retry connection saves the same text; after a revision written by "another device" the editing person gets "Conflict · Review versions", the notice, the review with both documents and the differing sections marked, Cancel keeps the draft and saves nothing, Keep my version saves the local draft, Use saved version shows the saved text and drops the local edit | pass |
 | Phone: the review is full screen at 390 and 320 px, no horizontal scroll, every button 44 px high | pass |
 
+## Iteration 6 (US6): phone layout (T078 to T084)
+
+Figma: `05.2` (390), `05.3` (320), `10.3` and `10.4` (full-screen preview), `11.2` (mobile safe area and keyboard contract).
+
+| Check | Result |
+|-------|--------|
+| Unit: `mobile-view.test.ts` (the sticky action per view, the keyboard threshold) | pass; web suite 23 files |
+| Gates: web `tsc --noEmit`, `lint` | clean |
+| Browser (Playwright, throwaway account) at 390 and 320 px: navigation 112 px (row 44, title row 28), Edit and Preview 44 px, no horizontal scroll, Preview CV switches to the preview and becomes Edit CV, the form keeps its text | pass |
+| 320 px with long unbroken strings in the role, name, summary and company: no horizontal scroll in the editor or the preview, the navigation title stays on one line, the navigation stays 112 px | pass |
+| The sticky bar hides when the visual viewport shrinks (keyboard) and returns; the last section's action ("+ Add education") ends above the bar | pass |
+
+Not run: a real on-screen keyboard (a phone or the iOS Simulator); the keyboard rule is checked by resizing the visual viewport.
+

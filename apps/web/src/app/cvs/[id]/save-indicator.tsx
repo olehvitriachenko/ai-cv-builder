@@ -32,8 +32,8 @@ export function SaveIndicator({
   const content = (
     <>
       {icon}
-      <span className="hidden sm:inline">{view.label}</span>
-      <span className="sm:hidden">{view.shortLabel}</span>
+      <span className="hidden min-[380px]:inline">{view.label}</span>
+      <span className="min-[380px]:hidden">{view.shortLabel}</span>
     </>
   );
 
