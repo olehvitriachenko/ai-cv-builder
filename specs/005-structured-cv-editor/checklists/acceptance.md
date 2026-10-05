@@ -137,8 +137,19 @@ Figma: `07.1` (answered), `07.2` (applied), `07.3` (state matrix) and the assist
 
 | Check | Result |
 |-------|--------|
-| Unit: `question-form.test.ts` (unresolved count and the supporting line, the answer save labels, when Apply to CV is allowed, when an answer needs saving, the helper text, the "Section / Name" context) and `apply-flow.test.ts` (each failure code to its message, kind and recovery actions) | pass; web suite 218 tests before this change, 233 after |
+| Unit: `question-form.test.ts` (unresolved count and the supporting line, the answer save labels, when Apply to CV is allowed, when an answer needs saving, the helper text, the "Section / Name" context) and `apply-flow.test.ts` (each failure code to its message, kind and recovery actions) | pass; web suite 218 tests before this change, 230 after |
 | Browser (Playwright script, throwaway account, apply responses stubbed so no AI call is made): Apply disabled while unanswered and while the answer is unsaved; typing saves by itself and shows Saved and Answered; Apply enabled; the four failures show their message, their actions and "Retained answer … Target: Experience / Kilona."; Retry later hides the notice; Dismiss collapses the question and the header reads 0 unresolved and "All resolved" | pass |
 
 Not run here: an apply that reaches the real model, and the answer-save failure state with a real network failure (the code path is covered by the save error branch of the mutation).
+
+## Iteration 4 (US4): save state, failure notice and conflict review (T065 to T071)
+
+Figma: `09.1` (saving), `09.2` (save error and conflict), `09.3` to `09.5` (conflict review at 1440, 390 and 320), `11.1` and `11.2` (state register and header contract).
+
+| Check | Result |
+|-------|--------|
+| Unit: `conflict-review.test.ts` (identical versions, blank versus empty, one differing section with what differs on each side, several fields, order-only skill changes, an entry in one version only, no merged text, the summary line), `save-view.test.ts` (labels, actions, intro line per state), `preview-zoom.test.ts` (local draft while saving) | pass; web suite 22 files, 250 tests |
+| Gates: web `tsc --noEmit`, `lint` | clean |
+| Browser (Playwright script, throwaway account, the save request delayed, aborted, and a newer revision written to the database): Saving… in the navigation, the supporting line and the preview caption while a save is held; after the abort "Couldn't save · Retry" as a button, the notice, "Last saved version" caption, the typed text kept, Retry connection saves the same text; after a revision written by "another device" the editing person gets "Conflict · Review versions", the notice, the review with both documents and the differing sections marked, Cancel keeps the draft and saves nothing, Keep my version saves the local draft, Use saved version shows the saved text and drops the local edit | pass |
+| Phone: the review is full screen at 390 and 320 px, no horizontal scroll, every button 44 px high | pass |
 

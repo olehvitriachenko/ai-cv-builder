@@ -62,9 +62,14 @@ export interface PreviewStatus {
 
 /**
  * The preview always renders the current form, but the downloaded PDF is built from the saved
- * draft. So it is "up to date" only when nothing is waiting to be saved.
+ * draft. While a save is running it reads "Current local draft · Saving to your account…"; it is
+ * "up to date" when everything is saved, and otherwise (failed save, conflict, invalid form) the
+ * caption says the editor holds more than the saved version.
  */
 export function previewStatus({ saveStatus, invalid }: { saveStatus: SaveStatus; invalid: boolean }): PreviewStatus {
+  if (!invalid && (saveStatus === "saving" || saveStatus === "dirty")) {
+    return { upToDate: false, short: "Current local draft", detail: "Saving to your account…" };
+  }
   const upToDate = !invalid && (saveStatus === "idle" || saveStatus === "saved");
   return upToDate
     ? { upToDate, short: "Up to date", detail: "Ready to download" }

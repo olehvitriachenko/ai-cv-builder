@@ -12,8 +12,10 @@ import { EditorMenu } from "./editor-menu";
 import { EditorNav } from "./editor-nav";
 import { FullscreenPreview } from "./fullscreen-preview";
 import { PreviewPanel } from "./preview-panel";
+import { saveView } from "@/lib/cv/save-view";
+import { ConflictReview } from "./conflict-review";
 import { SaveIndicator } from "./save-indicator";
-import { ConflictBanner, SaveErrorMessage } from "./save-problems";
+import { ConflictNotice, SaveErrorNotice } from "./save-problems";
 import { Education } from "./sections/education";
 import { Experience } from "./sections/experience";
 import { PersonalDetails } from "./sections/personal-details";
@@ -59,7 +61,14 @@ export function EditorWorkspace({
         <EditorNav
           title={targetRole}
           owner={`${name ?? "Untitled CV"} · Personal CV`}
-          status={<SaveIndicator state={saveState} invalid={invalid} />}
+          status={
+            <SaveIndicator
+              state={saveState}
+              invalid={invalid}
+              onRetry={() => autosaver.retry()}
+              onReview={() => void editor.openReview()}
+            />
+          }
           actions={
             <>
               <DownloadPdfButton
@@ -100,7 +109,7 @@ export function EditorWorkspace({
             <div className="flex flex-col gap-1.5">
               <h2 className="text-[22px] leading-[normal] font-semibold text-ink">Make it yours</h2>
               <p className="text-xs leading-normal text-muted">
-                Edit your details. The document preview follows your changes.
+                {saveView(saveState, invalid).intro}
               </p>
             </div>
 
@@ -110,14 +119,13 @@ export function EditorWorkspace({
                 {downloadMessage}
               </p>
             ) : null}
-            {saveState.status === "error" ? <SaveErrorMessage onRetry={() => autosaver.retry()} /> : null}
+            {saveState.status === "error" ? <SaveErrorNotice onRetry={() => autosaver.retry()} /> : null}
             {saveState.status === "conflict" && saveState.failure ? (
-              <ConflictBanner
+              <ConflictNotice
                 failure={saveState.failure}
                 busy={editor.conflictBusy}
                 error={editor.conflictError}
-                onLoadLatest={() => void editor.resolveConflict(false)}
-                onKeepMine={() => void editor.resolveConflict(true)}
+                onReview={() => void editor.openReview()}
               />
             ) : null}
             {notice ? (
@@ -161,6 +169,15 @@ export function EditorWorkspace({
           </div>
         </main>
       </div>
+      {editor.review ? (
+        <ConflictReview
+          local={{ targetRole, draft }}
+          saved={{ targetRole: editor.review.targetRole, draft: editor.review.draft }}
+          onKeepMine={editor.keepMine}
+          onUseSaved={editor.useSaved}
+          onClose={editor.closeReview}
+        />
+      ) : null}
       {fullscreen ? (
         <FullscreenPreview
           cvId={cvId}

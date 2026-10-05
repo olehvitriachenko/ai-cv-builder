@@ -23,6 +23,7 @@
   /* The completeness card's "Needs details" badge (05.1). */
   --color-warning: #b54708;
   --color-warning-tint: #fff7ed;
+  --color-warning-line: #f5dcc0;
   /* The rejected-file row (03.4): a softer wash and rule than the danger tint. */
   --color-danger-wash: #fcf5f3;
   --color-danger-wash-line: #ebd7d2;

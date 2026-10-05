@@ -54,6 +54,8 @@ export function useCvEditor({
   const watched = useWatch({ control: form.control });
   const [conflictBusy, setConflictBusy] = useState(false);
   const [conflictError, setConflictError] = useState<string | null>(null);
+  /** The latest saved version while the person reviews both versions, otherwise null. */
+  const [review, setReview] = useState<CvResult | null>(null);
   const [applying, setApplying] = useState(false);
 
   // The last payload handed to the autosaver. It starts as the form's own reading of the server's
@@ -135,16 +137,12 @@ export function useCvEditor({
     onReplace(await fetchLatest(), "Loaded the latest saved version. Review it, then apply the answer again if it still fits.");
   }
 
-  async function resolveConflict(keepMine: boolean) {
+  /** "Review both versions": load the latest saved version and open the comparison. Nothing is changed yet. */
+  async function openReview() {
     setConflictBusy(true);
     setConflictError(null);
     try {
-      const latest = await fetchLatest();
-      if (keepMine) {
-        autosaver.resolveConflict(latest.revision, { keepPending: true });
-      } else {
-        onReplace(latest);
-      }
+      setReview(await fetchLatest());
     } catch (error) {
       setConflictError(
         isApiError(error, 404)
@@ -153,6 +151,26 @@ export function useCvEditor({
       );
     } finally {
       setConflictBusy(false);
+    }
+  }
+
+  /** Cancel, Close or Escape: the draft stays as it is and autosave stays stopped. */
+  function closeReview() {
+    setReview(null);
+  }
+
+  /** "Keep my version": the local draft is saved on top of the latest saved revision. */
+  function keepMine() {
+    if (review !== null) {
+      autosaver.resolveConflict(review.revision, { keepPending: true });
+      setReview(null);
+    }
+  }
+
+  /** "Use saved version": the editor shows the saved version; the local edits are discarded. */
+  function useSaved() {
+    if (review !== null) {
+      onReplace(review);
     }
   }
 
@@ -169,6 +187,10 @@ export function useCvEditor({
     reviewLatest,
     conflictBusy,
     conflictError,
-    resolveConflict,
+    review,
+    openReview,
+    closeReview,
+    keepMine,
+    useSaved,
   };
 }

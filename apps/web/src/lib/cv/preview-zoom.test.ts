@@ -112,8 +112,15 @@ describe("preview status", () => {
     expect(statusLine({ saveStatus: "saved", invalid: false })).toBe("Up to date · Ready to download");
   });
 
-  it("says the preview shows the last saved version while edits are unsaved, failed or blocked", () => {
-    for (const saveStatus of ["dirty", "saving", "error", "conflict"] as const) {
+  it("says the preview shows the current local draft while it is being saved", () => {
+    for (const saveStatus of ["dirty", "saving"] as const) {
+      expect(statusLine({ saveStatus, invalid: false })).toBe("Current local draft · Saving to your account…");
+      expect(previewStatus({ saveStatus, invalid: false }).upToDate).toBe(false);
+    }
+  });
+
+  it("says the preview shows the last saved version when the save failed or is blocked", () => {
+    for (const saveStatus of ["error", "conflict"] as const) {
       expect(statusLine({ saveStatus, invalid: false })).toBe(
         "Last saved version · Current edits remain in the editor",
       );
