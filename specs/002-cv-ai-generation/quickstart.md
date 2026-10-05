@@ -24,6 +24,8 @@ pnpm --filter api prisma:generate
 pnpm --filter api prisma:migrate:deploy
 ```
 
+The API scripts `build`, `start`, `start:dev`, `start:debug`, `lint`, `test`, `test:watch`, `test:cov`, `test:debug`, `test:e2e` and `typecheck` run `prisma:generate` first, so a fresh clone or a changed schema never fails on a stale generated client (the explicit `prisma:generate` above is therefore optional). Migrations are deliberately **not** automatic: `prisma:migrate:deploy` stays an explicit step so migration problems are never hidden.
+
 ## 1. Automated checks (no key needed)
 
 ```bash
@@ -77,6 +79,7 @@ curl -i -b a.jar -F targetRole='Backend Engineer' -F 'file=@fake.pdf;type=applic
 # Both sources at once: expect 400, error key "source"
 curl -i -b a.jar -F targetRole='Backend Engineer' -F sourceText="$TEXT" -F 'file=@cv.pdf;type=application/pdf' $API/cvs/upload
 
+# A PDF with more than 50 pages: expect 422 PDF_EXTRACTION_FAILED and no CV created
 # A file over 5 MB: expect 400 on `file`
 head -c 6000000 /dev/zero > big.pdf
 curl -i -b a.jar -F targetRole='Backend Engineer' -F 'file=@big.pdf;type=application/pdf' $API/cvs/upload
