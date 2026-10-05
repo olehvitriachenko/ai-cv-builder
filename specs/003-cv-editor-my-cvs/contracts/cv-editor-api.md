@@ -81,7 +81,7 @@ Validation: the existing draft schema and its caps, plus unique entry ids and a 
 
 | Status | `code` | When |
 |--------|--------|------|
-| `400` | `VALIDATION_ERROR` | Invalid body. `fieldErrors` keys are dotted draft paths, for example `contact.email`, `experience.0.bullets.2`, `skills.5` |
+| `400` | `VALIDATION_ERROR` | Invalid body. `fieldErrors` keys are the full dotted path in the body, for example `draft.contact.email`, `draft.experience.0.bullets.2`, `draft.skills.5`, `revision` |
 | `404` | `CV_NOT_FOUND` | Missing or foreign |
 | `409` | `CV_NOT_EDITABLE` | The CV is not `COMPLETED` |
 | `409` | `REVISION_CONFLICT` | `revision` is not the current revision. Nothing is stored. The client re-reads `GET .../result` to learn the latest revision and content |

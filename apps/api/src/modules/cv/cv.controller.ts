@@ -1,11 +1,13 @@
-import { Body, Controller, Delete, Get, HttpCode, Param, Post, Req } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Param, Post, Put, Req } from '@nestjs/common';
 import type { FastifyRequest } from 'fastify';
 import { ZodValidationPipe } from '../../common/http/zod-validation.pipe.js';
 import type { AuthUser } from '../auth/auth.types.js';
 import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
 import { createCvSchema, cvIdSchema, type CreateCvInput } from './schemas/cv.schemas.js';
+import { cvDraftEditBodySchema, type CvDraftEditBody } from './schemas/draft-edit.schema.js';
 import { readPdfUpload } from './upload/cv-upload.js';
 import type { CvListItem } from './list/cv-list.query.js';
+import { CvEditorService, type DraftSaveResponse } from './services/cv-editor.service.js';
 import { CvService, type CvResultResponse, type CvStatusResponse } from './services/cv.service.js';
 
 /**
@@ -14,7 +16,10 @@ import { CvService, type CvResultResponse, type CvStatusResponse } from './servi
  */
 @Controller('cvs')
 export class CvController {
-  constructor(private readonly cvs: CvService) {}
+  constructor(
+    private readonly cvs: CvService,
+    private readonly editor: CvEditorService,
+  ) {}
 
   /** My CVs: the caller's CVs only, newest update first. No paging, no query parameters. */
   @Get()
@@ -60,6 +65,19 @@ export class CvController {
     @Param('id', new ZodValidationPipe(cvIdSchema)) id: string,
   ): Promise<CvResultResponse> {
     return this.cvs.getResult(user.id, id);
+  }
+
+  /**
+   * Replace the draft of a COMPLETED CV. `revision` is the one the edit is based on; a stale one is
+   * a 409 and nothing is stored.
+   */
+  @Put(':id/draft')
+  saveDraft(
+    @CurrentUser() user: AuthUser,
+    @Param('id', new ZodValidationPipe(cvIdSchema)) id: string,
+    @Body(new ZodValidationPipe(cvDraftEditBodySchema)) body: CvDraftEditBody,
+  ): Promise<DraftSaveResponse> {
+    return this.editor.updateDraft(user.id, id, body);
   }
 
   /** Delete a COMPLETED or FAILED CV and its questions; 409 while it is generating. */
