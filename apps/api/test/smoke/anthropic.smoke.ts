@@ -1,5 +1,6 @@
 import { AnthropicCvGenerator } from '../../src/modules/ai/anthropic-cv-generator.js';
 import { llmCvOutputSchema } from '../../src/modules/ai/llm-cv-output.schema.js';
+import { validateEnv } from '../../src/config/env.js';
 import {
   formatIssue,
   validateGeneration,
@@ -7,15 +8,12 @@ import {
 
 /**
  * Manual smoke test against the real Anthropic API:
- *   ANTHROPIC_API_KEY=... pnpm --filter api test:smoke
+ *   pnpm --filter api test:smoke
  *
  * It exercises the real adapter and prompt, then the same validation the pipeline uses, with the
  * same single bounded retry. It needs no database and is never run by the automated suites. It
  * prints only counts and rule ids, never the source or the generated content.
  */
-const apiKey = process.env.ANTHROPIC_API_KEY;
-const model = process.env.ANTHROPIC_MODEL ?? 'claude-opus-5-5';
-
 const COMPLETE_SOURCE = `Ada Lovelace
 ada@example.com | +44 20 7946 0958 | https://github.com/ada-l
 Senior backend engineer with ten years of experience.
@@ -72,9 +70,15 @@ describe('Anthropic smoke (real API)', () => {
   let generator: AnthropicCvGenerator;
 
   beforeAll(() => {
+    // Parse with the same schema as app startup, without requiring unrelated settings such as
+    // DATABASE_URL for this database-free test.
+    const { ANTHROPIC_API_KEY: apiKey, ANTHROPIC_MODEL: model } = validateEnv({
+      ...process.env,
+      DATABASE_URL: process.env.DATABASE_URL || 'smoke-test-no-database',
+    });
     if (!apiKey) {
       throw new Error(
-        'ANTHROPIC_API_KEY is required for the smoke test; it is never run without one',
+        'ANTHROPIC_API_KEY is required for the smoke test; add it to apps/api/.env',
       );
     }
     generator = new AnthropicCvGenerator({ apiKey, model, timeoutMs: 120_000 });

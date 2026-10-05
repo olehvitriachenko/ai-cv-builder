@@ -13,7 +13,7 @@ const envSchema = z.object({
     .trim()
     .optional()
     .transform((value) => (value ? value : undefined)),
-  ANTHROPIC_MODEL: z.string().trim().min(1).default('claude-opus-5-5'),
+  ANTHROPIC_MODEL: z.string().trim().min(1).default('claude-sonnet-5-5'),
   // Per-request SDK timeout. Two attempts (one retry) must fit inside GENERATION_TIMEOUT_MS.
   ANTHROPIC_TIMEOUT_MS: z.coerce.number().int().positive().default(120_000),
 

@@ -10,7 +10,7 @@ A run-and-verify guide for this feature once implemented. Behavior is defined in
 | Variable | Default | Purpose |
 |----------|---------|---------|
 | `ANTHROPIC_API_KEY` | none | Needed only for real generation. Absent or empty is allowed |
-| `ANTHROPIC_MODEL` | `claude-opus-5-5` | Model id |
+| `ANTHROPIC_MODEL` | `claude-sonnet-5-5` | Model id |
 | `GENERATION_TIMEOUT_MS` | `300000` | Maximum time a generation may stay `PROCESSING` |
 | `GENERATION_CONCURRENCY` | `2` | Jobs processed at once |
 | `GENERATION_AUTORUN` | `true` | Set `false` only in tests (disables timers and the post-create kick) |

@@ -8,6 +8,7 @@ export default defineConfig({
     globals: true,
     root: './',
     include: ['test/smoke/**/*.smoke.ts'],
+    setupFiles: ['./test/smoke/setup-smoke.ts'],
     testTimeout: 5 * 60_000,
     hookTimeout: 30_000,
   },

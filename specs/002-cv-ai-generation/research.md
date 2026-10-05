@@ -61,7 +61,7 @@ All technical-context unknowns are resolved below. No `NEEDS CLARIFICATION` rema
   - A small port (`CvGenerator`) is the only thing the generation pipeline sees. `AnthropicCvGenerator` is the only code that imports the SDK. It receives the SDK client through a DI token, so tests inject a fake client.
   - Structured output uses `output_config.format` built with the SDK's `zodOutputFormat(schema)` helper, passed to `messages.create` (the SDK documents that it can be passed to `.create()` without auto-parsing). The adapter reads the text block, `JSON.parse`s it into `unknown`, and returns it to the pipeline, which runs **our own** Zod validation. We deliberately do not use `messages.parse()`: its automatic parsing would hide the boundary the constitution requires us to own.
   - The client is created with `maxRetries: 0` and a per-request timeout; the pipeline owns the single bounded retry (the SDK's default of 2 hidden retries would break "at most one retry").
-  - Default model `claude-opus-5-5`, overridable with `ANTHROPIC_MODEL`.
+  - Default model `claude-sonnet-5-5`, overridable with `ANTHROPIC_MODEL`.
 - **Constraints taken from the current API (checked against the bundled documentation, not recalled)**:
   - Forced `tool_choice` (`any`/`tool`) returns 400 on Claude Opus 5.5 / Sonnet 5.5 / Fable 5.1, so the usual "force a JSON tool" trick is **not** viable; structured output through `output_config.format` is the supported route.
   - Sampling parameters (`temperature`, `top_p`, `top_k`) are rejected on these models, so determinism is pursued by prompt design and a validator, not by temperature 0.
@@ -115,7 +115,7 @@ All technical-context unknowns are resolved below. No `NEEDS CLARIFICATION` rema
 
 ### D-12 Configuration
 
-- **Decision**: extend the Zod env schema: `ANTHROPIC_API_KEY` (optional; empty string treated as absent), `ANTHROPIC_MODEL` (default `claude-opus-5-5`), `GENERATION_TIMEOUT_MS` (default 300000), `GENERATION_CONCURRENCY` (default 2), and `GENERATION_AUTORUN` (default true; tests set it false to drive the runner deterministically). A missing key does **not** stop the app (spec edge case): the generation ends `FAILED` / `PROVIDER_NOT_CONFIGURED`.
+- **Decision**: extend the Zod env schema: `ANTHROPIC_API_KEY` (optional; empty string treated as absent), `ANTHROPIC_MODEL` (default `claude-sonnet-5-5`), `GENERATION_TIMEOUT_MS` (default 300000), `GENERATION_CONCURRENCY` (default 2), and `GENERATION_AUTORUN` (default true; tests set it false to drive the runner deterministically). A missing key does **not** stop the app (spec edge case): the generation ends `FAILED` / `PROVIDER_NOT_CONFIGURED`.
 - **Rationale**: matches the spec assumption and SC-008 ("the suite passes with no AI credential configured"); the e2e setup explicitly unsets the key to prove it.
 
 ### D-13 Test approach

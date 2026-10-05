@@ -7,7 +7,7 @@ describe('validateEnv', () => {
     const env = validateEnv(base);
 
     expect(env.ANTHROPIC_API_KEY).toBeUndefined();
-    expect(env.ANTHROPIC_MODEL).toBe('claude-opus-5-5');
+    expect(env.ANTHROPIC_MODEL).toBe('claude-sonnet-5-5');
     expect(env.ANTHROPIC_TIMEOUT_MS).toBe(120_000);
     expect(env.GENERATION_TIMEOUT_MS).toBe(300_000);
     expect(env.GENERATION_CONCURRENCY).toBe(2);
