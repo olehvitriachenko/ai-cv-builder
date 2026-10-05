@@ -1,9 +1,9 @@
 "use client";
 
-import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";
 import { FieldFrame } from "@/components/ui/field";
+import { RemoveButton } from "./remove-button";
 import { CATEGORY_COMBOBOX } from "./skill-category-card";
 
 /**
@@ -33,14 +33,7 @@ export function NewCategoryCard({
         {...CATEGORY_COMBOBOX}
         onSelect={onChoose}
         trailing={
-          <button
-            type="button"
-            aria-label="Remove empty category"
-            onClick={onDismiss}
-            className="flex size-11 shrink-0 items-center justify-center rounded-lg border border-line bg-surface text-muted hover:border-danger hover:bg-danger-tint hover:text-danger focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-          >
-            <Trash2 aria-hidden className="size-[18px]" strokeWidth={1.75} />
-          </button>
+          <RemoveButton label="Remove empty category" onClick={onDismiss} />
         }
       />
       {message ? (

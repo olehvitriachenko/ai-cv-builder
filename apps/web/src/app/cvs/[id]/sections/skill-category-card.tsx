@@ -1,6 +1,5 @@
 "use client";
 
-import { Trash2 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";
@@ -18,6 +17,7 @@ import {
   skillCount,
   suggestionStates,
 } from "@/lib/cv/skills-form";
+import { RemoveButton } from "./remove-button";
 import { SkillChip } from "./skill-chip";
 import { SkillSuggestions } from "./skill-suggestions";
 
@@ -98,14 +98,7 @@ export function SkillCategoryCard({
         {...CATEGORY_COMBOBOX}
         onSelect={rename}
         trailing={
-          <button
-            type="button"
-            aria-label={`Remove category ${category.name}`}
-            onClick={onRemove}
-            className="flex size-11 shrink-0 items-center justify-center rounded-lg border border-line bg-surface text-muted hover:border-danger hover:bg-danger-tint hover:text-danger focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-          >
-            <Trash2 aria-hidden className="size-[18px]" strokeWidth={1.75} />
-          </button>
+          <RemoveButton label={`Remove category ${category.name}`} onClick={onRemove} />
         }
       />
       {nameMessage ? (

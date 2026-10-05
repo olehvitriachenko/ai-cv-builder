@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { TextField } from "@/components/ui/field";
 import type { DraftFormValues } from "@/lib/cv/draft-form";
 import { MAX_LINKS } from "@/lib/cv/links";
+import { RemoveButton } from "./remove-button";
 import { SectionCard } from "./section-card";
 
 // The design's placeholders use the muted ink (06.2: "placeholder replacement is existing Muted").
@@ -13,12 +14,17 @@ const PLACEHOLDER = "placeholder:text-muted!";
 /** Personal details: target role, name, contact, LinkedIn, portfolio and further links (05.1). */
 export function PersonalDetails() {
   const { control, register, formState } = useFormContext<DraftFormValues>();
-  const { fields, append, remove } = useFieldArray({ control, name: "contact.extraLinks" });
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: "contact.extraLinks",
+  });
   const contact = useWatch({ control, name: "contact" });
   const errors = formState.errors;
   const contactErrors = errors.contact;
 
-  const filledLinks = [contact.linkedin, contact.portfolio].filter((value) => value.trim() !== "").length;
+  const filledLinks = [contact.linkedin, contact.portfolio].filter(
+    (value) => value.trim() !== "",
+  ).length;
   const atLinkLimit = filledLinks + fields.length >= MAX_LINKS;
 
   return (
@@ -87,26 +93,25 @@ export function PersonalDetails() {
       />
       {fields.map((field, index) => (
         <div key={field.id} className="flex flex-col items-start gap-2">
-          <div className="w-full">
-            <TextField
-              label={`Link ${index + 1}`}
-              inputMode="url"
-              placeholder="Add URL"
-              autoComplete="off"
-              className={PLACEHOLDER}
-              error={contactErrors?.extraLinks?.[index]?.value?.message}
-              {...register(`contact.extraLinks.${index}.value`)}
-            />
+          <div className="flex w-full items-start gap-2">
+            <div className="min-w-0 flex-1">
+              <TextField
+                label={`Link ${index + 1}`}
+                inputMode="url"
+                placeholder="Add URL"
+                autoComplete="off"
+                className={PLACEHOLDER}
+                error={contactErrors?.extraLinks?.[index]?.value?.message}
+                {...register(`contact.extraLinks.${index}.value`)}
+              />
+            </div>
+            <div className="pt-6">
+              <RemoveButton
+                label={`Remove link ${index + 1}`}
+                onClick={() => remove(index)}
+              />
+            </div>
           </div>
-          <Button
-            type="button"
-            variant="text"
-            stretch={false}
-            className="text-danger! hover:bg-danger-tint!"
-            onClick={() => remove(index)}
-          >
-            Remove link
-          </Button>
         </div>
       ))}
       {contactErrors?.extraLinks?.message ? (

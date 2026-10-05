@@ -15,6 +15,7 @@ import {
 } from "@/lib/cv/draft-form";
 import { educationCount, educationHeading, studyLine } from "@/lib/cv/entry-labels";
 import { EmptySection } from "./empty-section";
+import { RemoveButton } from "./remove-button";
 import { SectionCard } from "./section-card";
 
 const MAX_ENTRIES = 10;
@@ -60,11 +61,12 @@ function EducationEntry({
 
   return (
     <div className="flex flex-col gap-4">
-      {showHeading ? (
-        <p className="text-[13px] leading-[normal] font-semibold text-ink [overflow-wrap:anywhere]">
-          {educationHeading(entry)}
+      <div className="flex items-center justify-between gap-3">
+        <p className="min-w-0 text-[13px] leading-[normal] font-semibold text-ink [overflow-wrap:anywhere]">
+          {showHeading ? educationHeading(entry) : ""}
         </p>
-      ) : null}
+        <RemoveButton label={`Remove ${educationHeading(entry)}`} onClick={onRemove} />
+      </div>
       <TextField
         label="Institution"
         placeholder="Enter institution"
@@ -124,15 +126,6 @@ function EducationEntry({
         )}
       </div>
       {studying ? <p className="text-xs leading-normal text-muted">{studyLine(entry.endDate)}</p> : null}
-      <Button
-        type="button"
-        variant="text"
-        stretch={false}
-        className="self-start text-danger! hover:bg-danger-tint!"
-        onClick={onRemove}
-      >
-        Remove
-      </Button>
     </div>
   );
 }

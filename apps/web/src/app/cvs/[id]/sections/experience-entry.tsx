@@ -1,11 +1,11 @@
 "use client";
 
 import { useFormContext, useWatch } from "react-hook-form";
-import { Button } from "@/components/ui/button";
 import { SelectField, TextField } from "@/components/ui/field";
 import { PRESENT, isPresent, type DraftFormValues } from "@/lib/cv/draft-form";
 import { experienceHeading } from "@/lib/cv/entry-labels";
 import { Highlights } from "./highlights";
+import { RemoveButton } from "./remove-button";
 
 const PLACEHOLDER = "placeholder:text-muted!";
 
@@ -31,11 +31,12 @@ export function ExperienceEntry({
 
   return (
     <div className="flex flex-col gap-4">
-      {showHeading || entry.employer.trim() !== "" ? (
-        <p className="text-[13px] leading-[normal] font-semibold text-ink [overflow-wrap:anywhere]">
-          {experienceHeading(entry)}
+      <div className="flex items-center justify-between gap-3">
+        <p className="min-w-0 text-[13px] leading-[normal] font-semibold text-ink [overflow-wrap:anywhere]">
+          {showHeading || entry.employer.trim() !== "" ? experienceHeading(entry) : ""}
         </p>
-      ) : null}
+        <RemoveButton label={`Remove ${experienceHeading(entry)}`} onClick={onRemove} />
+      </div>
       <TextField
         label="Title"
         placeholder="Enter job title"
@@ -86,15 +87,6 @@ export function ExperienceEntry({
         />
       )}
       <Highlights experienceIndex={index} />
-      <Button
-        type="button"
-        variant="text"
-        stretch={false}
-        className="self-start text-danger! hover:bg-danger-tint!"
-        onClick={onRemove}
-      >
-        Remove experience
-      </Button>
     </div>
   );
 }

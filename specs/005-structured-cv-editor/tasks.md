@@ -313,3 +313,6 @@ US2 to US5 depend on US1 (they fill its layout) but not on each other and can be
 - **MVP**: Phases 1 and 2 (data foundation, verified) plus US1. After that the product has the structured editor with categorised data underneath; US2 then makes categories editable (without it, skills show one editable list per category from T025).
 - **Incremental delivery**: one phase = one commit group and one verified slice; the app builds and the suites pass after each phase. Never start a user-story phase before the previous phase's verification task is recorded.
 - **Stop-and-report points**: T008 (catalogue wiring fails), T028/T029 (migration or CHECK problem), any task that needs a new external dependency or a change to the generation lifecycle.
+
+> **Removal controls (owner's request, after the design pass)**: an experience entry, an education entry, an extra link and a skill category are removed with a trash button (a 44 px square, `RemoveButton`) instead of a text action: at the right of the entry's heading row, beside the link field, beside the Category Name. A role that holds something and a category that holds skills still ask first; the rest are removed at once.
+
