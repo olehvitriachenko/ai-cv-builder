@@ -4,7 +4,7 @@ import { Sparkles } from "lucide-react";
 import { useCallback, useState } from "react";
 import { Card } from "@/components/ui/card";
 import type { ClarificationQuestion, CvDraft } from "@/lib/api/cvs";
-import { assistantSummary } from "@/lib/cv/question-form";
+import { assistantSummary, questionAlreadyFilled } from "@/lib/cv/question-form";
 import { QuestionCard } from "./question-card";
 
 /**
@@ -28,7 +28,8 @@ export function ClarificationPanel({
   applyDisabled: boolean;
 }) {
   const [questions, setQuestions] = useState(initialQuestions);
-  const summary = assistantSummary(questions);
+  const relevantQuestions = questions.filter((question) => !questionAlreadyFilled(question, draft));
+  const summary = assistantSummary(relevantQuestions);
   const [hiddenQuestions, setHiddenQuestions] = useState<string[]>([]);
   const hideResolved = useCallback((id: string) => {
     setHiddenQuestions((current) => [...current, id]);
@@ -47,22 +48,22 @@ export function ClarificationPanel({
           </span>
           <h3 className="text-sm leading-[normal] font-semibold text-ink">AI Assistant</h3>
         </div>
-        {questions.length > 0 ? (
+        {relevantQuestions.length > 0 ? (
           <p role="status" className="shrink-0 text-[11px] leading-[normal] font-semibold text-accent">
             {summary.count}
           </p>
         ) : null}
       </div>
 
-      {questions.length === 0 ? (
+      {relevantQuestions.length === 0 ? (
         <p className="rounded-lg bg-success-tint p-3 text-[13px] leading-normal text-success">
-          Nothing to clarify. Everything the draft needed was in your information.
+          Nothing to clarify. The requested details are already in your CV.
         </p>
       ) : (
         <>
           <p className="text-xs leading-normal text-muted">{summary.line}</p>
           <ul className="flex flex-col gap-4">
-            {questions.filter((question) => !hiddenQuestions.includes(question.id)).map((question) => (
+            {relevantQuestions.filter((question) => !hiddenQuestions.includes(question.id)).map((question) => (
               <QuestionCard
                 key={question.id}
                 cvId={cvId}

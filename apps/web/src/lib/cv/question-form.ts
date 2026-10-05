@@ -40,6 +40,19 @@ export function unresolvedCount(questions: readonly Pick<ClarificationQuestion, 
   return questions.filter((question) => !questionView(question).resolved).length;
 }
 
+/** A scalar contact question no longer asks for missing information once its target is filled. */
+export function questionAlreadyFilled(question: ClarificationQuestion, draft: CvDraft): boolean {
+  if (questionView(question).resolved || question.section !== "CONTACT" || question.itemId !== null) return false;
+  switch (question.field) {
+    case "CONTACT_FULL_NAME": return Boolean(draft.contact.fullName?.trim());
+    case "CONTACT_EMAIL": return Boolean(draft.contact.email?.trim());
+    case "CONTACT_PHONE": return Boolean(draft.contact.phone?.trim());
+    case "CONTACT_LOCATION": return Boolean(draft.contact.location?.trim());
+    // A link question can ask for an additional link; untyped questions cannot be inferred safely.
+    default: return false;
+  }
+}
+
 const SECTION_LABELS: Record<ClarificationQuestion["section"], string> = {
   CONTACT: "Contact",
   SUMMARY: "Summary",

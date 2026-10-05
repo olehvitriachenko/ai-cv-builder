@@ -78,6 +78,11 @@ export const clarificationQuestionSchema = z.object({
   id: z.string(),
   section: z.enum(["CONTACT", "SUMMARY", "EXPERIENCE", "EDUCATION", "SKILLS"]),
   itemId: z.string().nullable(),
+  field: z.enum([
+    "CONTACT_FULL_NAME", "CONTACT_EMAIL", "CONTACT_PHONE", "CONTACT_LOCATION", "CONTACT_LINK",
+    "EXPERIENCE_EMPLOYER", "EXPERIENCE_TITLE", "EXPERIENCE_LOCATION", "EXPERIENCE_START_DATE", "EXPERIENCE_END_DATE",
+    "EDUCATION_INSTITUTION", "EDUCATION_QUALIFICATION", "EDUCATION_START_DATE", "EDUCATION_END_DATE",
+  ]).nullable().optional(),
   missing: z.string(),
   question: z.string(),
   status: z.enum(["UNANSWERED", "ANSWERED", "APPLIED", "DISMISSED"]),

@@ -17,11 +17,12 @@ import { UNRESOLVED_STATUSES, canApply, type AnswerBody } from '../clarification
 import { cvDraftSchema, type CvDraft } from '../generation/draft.schema.js';
 import { CvService, type CvResultResponse } from './cv.service.js';
 
-/** A clarification question as the client sees it. The internal `field` target is never exposed. */
+/** A clarification question with its read-only target; clients cannot change the target. */
 export interface QuestionResponse {
   id: string;
   section: QuestionSection;
   itemId: string | null;
+  field: QuestionField | null;
   missing: string;
   question: string;
   status: QuestionStatus;
@@ -32,6 +33,7 @@ const QUESTION_SELECT = {
   id: true,
   section: true,
   itemId: true,
+  field: true,
   missing: true,
   question: true,
   status: true,

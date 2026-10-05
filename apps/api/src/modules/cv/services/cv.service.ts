@@ -4,6 +4,7 @@ import { MAX_PDF_PAGES, MAX_SOURCE_CHARS } from '../../../common/source-limits.j
 import type {
   FailureReason,
   GenerationStatus,
+  QuestionField,
   QuestionSection,
   QuestionStatus,
   SourceType,
@@ -88,6 +89,7 @@ export interface CvResultResponse {
     id: string;
     section: QuestionSection;
     itemId: string | null;
+    field: QuestionField | null;
     missing: string;
     question: string;
     status: QuestionStatus;
@@ -205,11 +207,12 @@ export class CvService {
         revision: true,
         questions: {
           orderBy: { position: 'asc' },
-          // `field` is internal (how an answer is applied) and is never returned.
+          // The read-only field target lets the editor identify questions already filled manually.
           select: {
             id: true,
             section: true,
             itemId: true,
+            field: true,
             missing: true,
             question: true,
             status: true,
