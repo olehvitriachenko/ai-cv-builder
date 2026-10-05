@@ -16,6 +16,28 @@ export const QUESTION_SECTIONS = [
   'SKILLS',
 ] as const;
 
+/**
+ * The single plain value a question's answer fills, when there is exactly one. A field lets the
+ * answer be applied deterministically (no AI call). Values are prefixed by the question section.
+ * Mirrors the Prisma `QuestionField` enum (a compile-time check in the mapper keeps them in step).
+ */
+export const QUESTION_FIELDS = [
+  'CONTACT_FULL_NAME',
+  'CONTACT_EMAIL',
+  'CONTACT_PHONE',
+  'CONTACT_LOCATION',
+  'CONTACT_LINK',
+  'EXPERIENCE_EMPLOYER',
+  'EXPERIENCE_TITLE',
+  'EXPERIENCE_LOCATION',
+  'EXPERIENCE_START_DATE',
+  'EXPERIENCE_END_DATE',
+  'EDUCATION_INSTITUTION',
+  'EDUCATION_QUALIFICATION',
+  'EDUCATION_START_DATE',
+  'EDUCATION_END_DATE',
+] as const;
+
 export const llmCvOutputSchema = z.object({
   contact: z.object({
     fullName: z.string().nullable(),
@@ -50,6 +72,9 @@ export const llmCvOutputSchema = z.object({
       section: z.enum(QUESTION_SECTIONS),
       // Zero-based position of the entry inside its section; null for section-level questions.
       itemIndex: z.number().int().nullable(),
+      // The one plain value the answer fills (see QUESTION_FIELDS); null when the answer is not a
+      // single value for exactly one field. Always present: structured output returns every key.
+      field: z.enum(QUESTION_FIELDS).nullable(),
       missing: z.string(),
       question: z.string(),
     }),
@@ -58,3 +83,4 @@ export const llmCvOutputSchema = z.object({
 
 export type LlmCvOutput = z.output<typeof llmCvOutputSchema>;
 export type QuestionSectionName = (typeof QUESTION_SECTIONS)[number];
+export type QuestionFieldName = (typeof QUESTION_FIELDS)[number];

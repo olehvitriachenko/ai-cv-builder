@@ -104,13 +104,13 @@ describe('Generation lifecycle', () => {
         questions: [
           {
             section: 'CONTACT',
-            itemIndex: null,
+            itemIndex: null, field: null,
             missing: 'Email address',
             question: 'What is your email address?',
           },
           {
             section: 'EXPERIENCE',
-            itemIndex: 0,
+            itemIndex: 0, field: null,
             missing: 'Job title and dates',
             question: 'What was your title at Acme Corp and when?',
           },
@@ -143,6 +143,48 @@ describe('Generation lifecycle', () => {
       orderBy: { position: 'asc' },
     });
     expect(rows.map((q) => q.position)).toEqual([0, 1]);
+  });
+
+  it('stores the question field with the question, and none for a question that needs wording', async () => {
+    generator.enqueueOutput(
+      validLlmOutput({
+        contact: { ...validLlmOutput().contact, email: null },
+        questions: [
+          { section: 'CONTACT', itemIndex: null, field: 'CONTACT_EMAIL', missing: 'Email', question: 'Your email?' },
+          { section: 'EXPERIENCE', itemIndex: 0, field: 'EXPERIENCE_END_DATE', missing: 'End date', question: 'When did you leave?' },
+          { section: 'SUMMARY', itemIndex: null, field: null, missing: 'Focus', question: 'Which focus?' },
+        ],
+      }),
+    );
+    const id = await createCvFromText(app, user.cookie);
+
+    await runner.runCv(id);
+
+    const rows = await prisma.clarificationQuestion.findMany({ where: { cvId: id }, orderBy: { position: 'asc' } });
+    expect(rows.map((row) => row.field)).toEqual(['CONTACT_EMAIL', 'EXPERIENCE_END_DATE', null]);
+    // The field is internal: it is never part of the result the client sees.
+    const body = (await result(id)).json();
+    expect(JSON.stringify(body.questions)).not.toContain('CONTACT_EMAIL');
+  });
+
+  it('rejects a field that does not belong to its question, then stores nothing after the retry also fails', async () => {
+    const bad = validLlmOutput({
+      questions: [
+        { section: 'CONTACT', itemIndex: null, field: 'EXPERIENCE_EMPLOYER', missing: 'x', question: 'y?' },
+      ],
+    });
+    generator.enqueueOutput(bad);
+    generator.enqueueOutput(bad);
+    const id = await createCvFromText(app, user.cookie);
+
+    await runner.runCv(id);
+
+    const row = await rowOf(id);
+    expect(row.generationStatus).toBe('FAILED');
+    expect(row.failureReason).toBe('INVALID_OUTPUT');
+    expect(row.draft).toBeNull();
+    expect(await prisma.clarificationQuestion.count({ where: { cvId: id } })).toBe(0);
+    expect(generator.calls).toHaveLength(2);
   });
 
   it('retries invalid output once, sending only rule ids and paths as feedback, then completes', async () => {

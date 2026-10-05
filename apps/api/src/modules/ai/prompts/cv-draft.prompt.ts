@@ -2,7 +2,7 @@
  * All prompt text for CV generation lives here (and nowhere else). Bump PROMPT_VERSION when the
  * wording changes in a way that can change output; it is stored with each draft.
  */
-export const PROMPT_VERSION = 'cv-draft-v1';
+export const PROMPT_VERSION = 'cv-draft-v2';
 
 const SOURCE_TAG = 'source_content';
 const ROLE_TAG = 'target_role';
@@ -34,6 +34,7 @@ Never invent or guess any of: employers, schools, job titles, dates, technologie
 - If a field is not supported by the source, set it to null (or an empty list) and ask a clarification question instead of filling it.
 - Ask a clarification question for every fact that is missing, vague or contradictory and that a CV normally needs (for example missing dates, an unclear role, no contact email, conflicting years).
 - Each question names the section it concerns. For a question about a specific experience or education entry, set itemIndex to the zero-based position of that entry in the array you output; otherwise set itemIndex to null.
+- "field" says which single plain value the person's answer will fill, so it can be placed without rewriting. Set it ONLY when the answer will be exactly one plain value for exactly that field: CONTACT_FULL_NAME, CONTACT_EMAIL, CONTACT_PHONE, CONTACT_LOCATION, CONTACT_LINK (one more link), EXPERIENCE_EMPLOYER, EXPERIENCE_TITLE, EXPERIENCE_LOCATION, EXPERIENCE_START_DATE, EXPERIENCE_END_DATE, EDUCATION_INSTITUTION, EDUCATION_QUALIFICATION, EDUCATION_START_DATE, EDUCATION_END_DATE. The field must belong to the question's section; EXPERIENCE_* and EDUCATION_* fields need itemIndex, CONTACT_* fields need itemIndex null. Otherwise set field to null (for example for questions about the summary, skills, bullet points or anything that needs wording).
 - "missing" states briefly what is missing or unclear; "question" is the question to show the person. Each is at most 300 characters.
 - Ask at most 10 questions. Do not ask about things you could already fill from the source.
 

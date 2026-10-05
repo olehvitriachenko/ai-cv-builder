@@ -4,7 +4,7 @@ const SOURCE = 'Ada worked at Acme Corp as an engineer.';
 
 describe('cv-draft prompt', () => {
   it('has a version', () => {
-    expect(PROMPT_VERSION).toBe('cv-draft-v1');
+    expect(PROMPT_VERSION).toBe('cv-draft-v2');
   });
 
   describe('system prompt', () => {
@@ -92,5 +92,14 @@ describe('cv-draft prompt', () => {
       expect(block).toContain('experience.0.employer.unsupported');
       expect(block).not.toContain(SOURCE);
     });
+  });
+
+  it('tells the model to set field only for a single plain value of exactly that field', () => {
+    const prompt = buildSystemPrompt();
+
+    expect(prompt).toContain('field');
+    expect(prompt).toContain('CONTACT_EMAIL');
+    expect(prompt).toContain('EXPERIENCE_END_DATE');
+    expect(prompt).toMatch(/otherwise (set )?field to null/i);
   });
 });
