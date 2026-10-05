@@ -40,7 +40,7 @@ const KIND_PILL = "rounded-full bg-accent-tint px-2 py-0.5 text-[10px] leading-[
 
 /**
  * One clarification question of the AI assistant (Figma 07.1 to 07.3). The answer saves by itself,
- * separately from the CV ("Answer ✓ Saved"); **Apply to CV** is the only thing that changes the CV
+ * separately from the CV; **Apply to CV** is the only thing that changes the CV
  * and **Dismiss** closes the question without changing it. Applied and dismissed questions
  * collapse to their question. Failures keep the answer and offer the recovery for their cause.
  */

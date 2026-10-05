@@ -1,24 +1,17 @@
-import { Check, CircleAlert, LoaderCircle, TriangleAlert } from "lucide-react";
+import { CircleAlert, LoaderCircle, TriangleAlert } from "lucide-react";
 import { answerSaveLabel, type AnswerSave } from "@/lib/cv/question-form";
 
 /**
- * "Answer ✓ Saved" (Figma 07.3 "Answer lifecycle"): the save of the answer, apart from applying
- * it. A failed save says so in words and an icon, and that the answer is retained.
+ * Shows pending or failed answer saves. Successful saves need no separate status row.
  */
 export function AnswerStatus({ save }: { save: AnswerSave }) {
   const label = answerSaveLabel(save);
-  if (label === null) {
+  if (label === null || save === "saved") {
     return null;
   }
   return (
     <p role="status" className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs leading-normal text-muted">
       <span>Answer</span>
-      {save === "saved" ? (
-        <span className="flex items-center gap-1.5">
-          <Check aria-hidden className="size-3.5" strokeWidth={1.75} />
-          {label}
-        </span>
-      ) : null}
       {save === "saving" ? (
         <span className="flex items-center gap-1.5">
           <LoaderCircle aria-hidden className="size-3.5 motion-safe:animate-spin" strokeWidth={1.75} />
