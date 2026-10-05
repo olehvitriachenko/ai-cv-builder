@@ -35,7 +35,7 @@ export default function MyCvsPage() {
     <div className="mx-auto flex w-full max-w-[1280px] flex-1 flex-col gap-8 px-6 pt-8 pb-12 sm:px-12 sm:pt-12 lg:px-24">
       <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
         <div className="flex min-w-0 flex-1 flex-col gap-2">
-          <h1 className="text-[28px] leading-tight font-semibold text-ink sm:text-[30px]">My CVs</h1>
+          <h1 className="text-[28px] leading-[1.21] font-semibold text-ink sm:text-[30px]">My CVs</h1>
           <p className="text-sm leading-normal text-muted">
             Your experience. Ready for the right opportunity.
           </p>

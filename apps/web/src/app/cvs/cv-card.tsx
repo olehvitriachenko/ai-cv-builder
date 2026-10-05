@@ -49,9 +49,9 @@ export function CvCard({ item }: { item: CvListItem }) {
       </div>
 
       <div className="flex min-w-0 flex-col gap-2 [overflow-wrap:anywhere]">
-        <p className="text-[13px] text-muted">{cardName(item)}</p>
+        <p className="text-[13px] leading-[normal] text-muted">{cardName(item)}</p>
         <h2 className="text-lg leading-[1.4] font-semibold text-ink">{item.targetRole}</h2>
-        <p className="text-xs text-muted">
+        <p className="text-xs leading-[normal] text-muted">
           Updated{" "}
           <time dateTime={item.updatedAt} suppressHydrationWarning>
             {formatUpdated(item.updatedAt)}
@@ -95,25 +95,23 @@ export function CvCard({ item }: { item: CvListItem }) {
               {retry.isPending ? "Restarting…" : "Try again"}
             </Button>
           ) : null}
-          {actions.downloadPdf === "disabled" ? (
-            <Button
-              type="button"
-              variant="secondary"
-              size="compact"
-              stretch={false}
-              disabled
-              title="PDF export is coming soon"
-            >
-              Download PDF
-            </Button>
-          ) : null}
+          <Button
+            type="button"
+            variant="secondary"
+            size="compact"
+            stretch={false}
+            disabled
+            title="PDF export is coming soon"
+          >
+            Download PDF
+          </Button>
           <button
             type="button"
             aria-label={`Delete CV: ${cardName(item)} · ${item.targetRole}`}
             title={actions.delete === "enabled" ? "Delete CV" : "A CV can’t be deleted while it is being generated"}
             disabled={actions.delete !== "enabled"}
             onClick={() => setConfirmingDelete(true)}
-            className="ml-auto flex size-9 shrink-0 items-center justify-center rounded-lg text-muted hover:bg-canvas hover:text-danger focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:text-placeholder disabled:opacity-60 disabled:hover:bg-transparent disabled:hover:text-placeholder"
+            className="-mr-2.5 ml-auto flex size-9 shrink-0 items-center justify-center rounded-lg text-muted hover:bg-canvas hover:text-danger focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:text-placeholder disabled:opacity-60 disabled:hover:bg-transparent disabled:hover:text-placeholder"
           >
             <Trash2 aria-hidden className="size-4" strokeWidth={1.75} />
           </button>

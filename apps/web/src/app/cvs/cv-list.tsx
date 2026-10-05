@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { ChevronDown } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -40,12 +41,16 @@ export function CvList({ initialItems }: { initialItems: CvListItem[] }) {
   }
 
   return (
-    <section aria-label="Your CVs" className="flex flex-col gap-4">
-      <div className="flex items-center justify-between gap-3 text-[13px] text-muted">
+    <section aria-label="Your CVs" className="flex flex-col gap-8">
+      <div className="flex items-center justify-between gap-3 text-[13px] leading-[normal] text-muted">
         <p className="font-medium">
           {items.length} {items.length === 1 ? "CV" : "CVs"}
         </p>
-        <p>Last updated</p>
+        {/* The list is always newest first; this is a label, not a control. */}
+        <p className="flex items-center gap-2 font-normal">
+          Last updated
+          <ChevronDown aria-hidden className="size-3.5" strokeWidth={1.75} />
+        </p>
       </div>
 
       {query.isError && !sessionExpired ? (
