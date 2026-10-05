@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import type { ClarificationQuestion, CvDraft } from "@/lib/api/cvs";
 import { assistantSummary, questionAlreadyFilled, questionView } from "@/lib/cv/question-form";
 import { QuestionCard } from "./question-card";
+import { useEditorMotion } from "@/lib/cv/use-editor-motion";
 
 /**
  * Figma "AI Assistant" (05.1, 07.1 to 07.3): the persisted clarification questions, secondary to
@@ -30,6 +31,7 @@ export function ClarificationPanel({
   onReviewLatest: () => Promise<void>;
   applyDisabled: boolean;
 }) {
+  const motionRef = useEditorMotion<HTMLUListElement>();
   const [questions, setQuestions] = useState(initialQuestions);
   const relevantQuestions = questions.filter((question) => !questionAlreadyFilled(question, draft));
   const summary = assistantSummary(relevantQuestions);
@@ -67,7 +69,7 @@ export function ClarificationPanel({
       ) : (
         <>
           <p className="text-xs leading-normal text-muted">{summary.line}</p>
-          <ul className="flex flex-col gap-4">
+          <ul ref={motionRef} className="flex flex-col gap-4">
             {relevantQuestions.filter((question) => !hiddenQuestions.includes(question.id)).map((question) => (
               <QuestionCard
                 key={question.id}

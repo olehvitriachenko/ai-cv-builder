@@ -3,6 +3,7 @@
 import { X } from "lucide-react";
 import { useEffect, useId, useRef, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
+import { closeEditorDialog } from "@/lib/cv/dialog-motion";
 
 /**
  * A destructive confirmation on the native `<dialog>` (Figma "Delete confirmation" pattern):
@@ -30,13 +31,14 @@ export function ConfirmDialog({
     ref.current?.showModal();
   }, []);
 
-  const requestClose = () => ref.current?.close();
+  const requestClose = () => closeEditorDialog(ref.current);
 
   return (
     <dialog
       ref={ref}
       aria-labelledby={titleId}
       onClose={onClose}
+      onCancel={(event) => { event.preventDefault(); requestClose(); }}
       className="m-auto w-[min(484px,calc(100vw-32px))] rounded-xl border border-line bg-surface p-0 text-ink backdrop:bg-ink/40"
     >
       <div className="relative flex flex-col gap-6 p-6">
@@ -54,10 +56,7 @@ export function ConfirmDialog({
             type="button"
             variant="destructive"
             stretch={false}
-            onClick={() => {
-              onConfirm();
-              requestClose();
-            }}
+            onClick={() => closeEditorDialog(ref.current, onConfirm)}
           >
             {confirmLabel}
           </Button>

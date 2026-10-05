@@ -75,7 +75,7 @@ export function EditorWorkspace({
 
   return (
     <FormProvider {...form}>
-      <div className="flex flex-1 flex-col">
+      <div className="cv-editor-motion flex flex-1 flex-col">
         <EditorNav
           title={targetRole}
           owner={`${name ?? "Untitled CV"} · Personal CV`}
@@ -136,7 +136,7 @@ export function EditorWorkspace({
             ))}
           </div>
 
-          <div className={`${editorPane} min-w-0 flex-col gap-4 lg:w-[584px] lg:shrink-0`}>
+          <div data-editor-pane data-active={view === "editor"} className={`${editorPane} min-w-0 flex-col gap-4 lg:w-[584px] lg:shrink-0`}>
             <div className="hidden flex-col gap-1.5 lg:flex">
               <h2 className="text-[22px] leading-[normal] font-semibold text-ink">Make it yours</h2>
               <p className="text-xs leading-normal text-muted">
@@ -193,7 +193,7 @@ export function EditorWorkspace({
           </div>
 
           {/* One vertical scroll container for the sticky preview, including tall documents. */}
-          <div className={`${previewPane} min-w-0 flex-1 flex-col lg:sticky lg:top-28 lg:max-h-[calc(100dvh-8rem)] lg:overflow-y-auto`}>
+          <div data-editor-pane data-active={view === "preview"} className={`${previewPane} min-w-0 flex-1 flex-col lg:sticky lg:top-28 lg:max-h-[calc(100dvh-8rem)] lg:overflow-y-auto`}>
             <PreviewPanel
               draft={draft}
               targetRole={targetRole}
@@ -262,7 +262,7 @@ function PreviewBar({ view, onSwitch }: { view: MobileView; onSwitch: (view: Mob
     return null;
   }
   return (
-    <div className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-surface p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] lg:hidden">
+    <div className="cv-editor-motion fixed inset-x-0 bottom-0 z-30 border-t border-line bg-surface p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] lg:hidden">
       <button
         type="button"
         onClick={() => {

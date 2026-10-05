@@ -14,6 +14,7 @@ import {
 } from "@/lib/cv/draft-form";
 import { educationCount, educationHeading, studyLine } from "@/lib/cv/entry-labels";
 import { maxEducationYear } from "@/lib/cv/dates";
+import { useEditorMotion } from "@/lib/cv/use-editor-motion";
 import { DateField } from "./date-field";
 import { EmptySection } from "./empty-section";
 import { RemoveButton } from "./remove-button";
@@ -47,6 +48,7 @@ function EducationEntry({
   const errors = formState.errors.education?.[index];
   const [status, setStatus] = useState<StudyStatus>(() => (isCurrentlyStudying(entry.endDate) ? "studying" : "completed"));
   const studying = status === "studying";
+  const dateMotionRef = useEditorMotion();
   const endField = `education.${index}.endDate` as const;
 
   function changeStatus(next: StudyStatus) {
@@ -88,7 +90,7 @@ function EducationEntry({
         <option value="completed">Completed</option>
         <option value="studying">Currently studying</option>
       </SelectField>
-      <div className={`grid grid-cols-1 gap-4 sm:gap-3 ${studying ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
+      <div ref={dateMotionRef} className={`grid grid-cols-1 gap-4 sm:gap-3 ${studying ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
         <DateField
           label="Start year"
           name={`education.${index}.startDate`}

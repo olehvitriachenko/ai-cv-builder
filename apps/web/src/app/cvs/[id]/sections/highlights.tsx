@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
+import { useLayoutEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 import { TextareaField } from "@/components/ui/field";
 import type { DraftFormValues } from "@/lib/cv/draft-form";
@@ -26,7 +26,7 @@ export function Highlights({ experienceIndex }: { experienceIndex: number }) {
   const error = errors?.message ?? itemMessage;
 
   // Auto-grow, and put the caret where an edit left it (setting the value moves it to the end).
-  useEffect(() => {
+  useLayoutEffect(() => {
     const element = ref.current;
     if (element === null) {
       return;

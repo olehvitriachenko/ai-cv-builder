@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useEditorMotion } from "@/lib/cv/use-editor-motion";
 import { Button } from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";
 import { FieldFrame, describedBy } from "@/components/ui/field";
@@ -56,6 +57,8 @@ export function SkillCategoryCard({
   onMove: (delta: -1 | 1) => void;
   onRemove: () => void;
 }) {
+  const cardMotionRef = useEditorMotion<HTMLElement>();
+  const chipsMotionRef = useEditorMotion();
   const [text, setText] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [nameMessage, setNameMessage] = useState<string | null>(null);
@@ -89,7 +92,7 @@ export function SkillCategoryCard({
   }
 
   return (
-    <section aria-label={category.name} className="flex flex-col gap-3 rounded-xl border border-line bg-surface p-4">
+    <section ref={cardMotionRef} aria-label={category.name} className="flex flex-col gap-3 rounded-xl border border-line bg-surface p-4">
       <Combobox
         label="Category Name"
         value={category.name}
@@ -140,10 +143,10 @@ export function SkillCategoryCard({
       <SkillSuggestions suggestions={suggestionStates(suggestionsFor(category.name), categories)} onAdd={(skill) => add(skill, false)} />
 
       {skills.length > 0 ? (
-        <div className="flex min-h-20 flex-wrap items-center justify-center gap-2 rounded-lg border border-dashed border-line bg-canvas p-3">
+        <div ref={chipsMotionRef} className="flex min-h-20 flex-wrap items-center justify-center gap-2 rounded-lg border border-dashed border-line bg-canvas p-3">
           {skills.map(({ skill, position }) => (
             <SkillChip
-              key={`${skill}-${position}`}
+              key={skill}
               skill={skill}
               onRemove={() => onUpdate(removeSkill(categories, category.id, position))}
             />

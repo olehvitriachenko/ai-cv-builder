@@ -60,6 +60,52 @@ body {
   font-family: var(--font-sans);
 }
 
+/* Editor motion uses opacity/colour and list translations; controls never scale or resize. */
+@media (prefers-reduced-motion: no-preference) {
+  .cv-editor-motion :where(button, a, input, textarea, select, [role="tab"]) {
+    transition-property: color, background-color, border-color, outline-color, box-shadow, opacity;
+    transition-duration: 160ms;
+    transition-timing-function: ease-out;
+  }
+
+  .cv-editor-motion [role="progressbar"] > div {
+    transition: width 280ms ease-out;
+  }
+
+  .cv-editor-motion :where([role="alert"], [role="status"]):not(.sr-only),
+  .cv-editor-motion [role="listbox"],
+  .cv-editor-motion dialog[open],
+  dialog.cv-editor-motion[open] {
+    animation: editor-fade-in 180ms ease-out;
+  }
+
+  .cv-editor-motion dialog[open]::backdrop,
+  dialog.cv-editor-motion[open]::backdrop {
+    animation: editor-fade-in 180ms ease-out;
+  }
+
+  .cv-editor-motion dialog[data-closing]::backdrop,
+  dialog.cv-editor-motion[data-closing]::backdrop {
+    animation: editor-fade-out 160ms ease-out forwards;
+  }
+
+  @media (max-width: 1023px) {
+    .cv-editor-motion [data-editor-pane][data-active="true"] {
+      animation: editor-fade-in 180ms ease-out;
+    }
+  }
+}
+
+@keyframes editor-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes editor-fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
 /* A focused field scrolls into view above the phone's sticky "Preview CV" bar (about 76 px). */
 @media (max-width: 1023px) {
   html {

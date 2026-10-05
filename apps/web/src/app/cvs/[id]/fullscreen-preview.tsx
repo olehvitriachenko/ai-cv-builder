@@ -3,6 +3,7 @@
 import { ChevronLeft, FileText, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { closeEditorDialog } from "@/lib/cv/dialog-motion";
 import type { CvDraft } from "@/lib/api/cvs";
 import type { SaveStatus } from "@/lib/cv/autosave";
 import {
@@ -100,8 +101,9 @@ export function FullscreenPreview({
       ref={dialogRef}
       aria-label="Fullscreen preview"
       onClose={onClose}
+      onCancel={(event) => { event.preventDefault(); closeEditorDialog(dialogRef.current); }}
       tabIndex={-1}
-      className="m-0 outline-none h-dvh max-h-none w-dvw max-w-none overflow-hidden bg-transparent p-0 text-ink backdrop:bg-[rgba(32,39,53,0.14)] backdrop:backdrop-blur-sm"
+      className="cv-editor-motion m-0 outline-none h-dvh max-h-none w-dvw max-w-none overflow-hidden bg-transparent p-0 text-ink backdrop:bg-[rgba(32,39,53,0.14)] backdrop:backdrop-blur-sm"
     >
       <div className="flex h-full flex-col">
         {/* Desktop navigation (10.2) */}
@@ -121,7 +123,7 @@ export function FullscreenPreview({
             <span aria-hidden className="text-[11px] text-muted">
               Esc
             </span>
-            <Button type="button" variant="text" stretch={false} onClick={() => dialogRef.current?.close()}>
+            <Button type="button" variant="text" stretch={false} onClick={() => closeEditorDialog(dialogRef.current)}>
               <X aria-hidden className="size-3.5" strokeWidth={2} />
               Close preview
             </Button>
@@ -136,7 +138,7 @@ export function FullscreenPreview({
           <button
             type="button"
             aria-label="Close preview"
-            onClick={() => dialogRef.current?.close()}
+            onClick={() => closeEditorDialog(dialogRef.current)}
             className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-canvas text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
           >
             <ChevronLeft aria-hidden className="size-5" strokeWidth={2} />

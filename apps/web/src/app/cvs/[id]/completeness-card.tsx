@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { computeCompleteness } from "@/lib/cv/completeness";
 import { revealMissingItem } from "./section-links";
 import type { DraftFormValues } from "@/lib/cv/draft-form";
+import { useEditorMotion } from "@/lib/cv/use-editor-motion";
 
 /** What to do for a missing item, as the phone layout lists it ("+10% · Add phone number"). */
 function actionLabel(item: { id: string; label: string }): string {
@@ -26,6 +27,8 @@ const ANNOUNCE_AFTER_MS = 1200;
  * region announces only a settled value.
  */
 export function CompletenessCard({ values }: { values: DraftFormValues }) {
+  const desktopMotionRef = useEditorMotion<HTMLUListElement>();
+  const mobileMotionRef = useEditorMotion<HTMLUListElement>();
   const { percent, missing } = computeCompleteness(values);
   const left = missing.length;
 
@@ -58,7 +61,7 @@ export function CompletenessCard({ values }: { values: DraftFormValues }) {
           <div className="h-1.5 rounded-full bg-accent" style={{ width: `${percent}%` }} />
         </div>
         {left > 0 ? (
-          <ul aria-label="Missing details" className="flex flex-col gap-1">
+          <ul ref={mobileMotionRef} aria-label="Missing details" className="flex flex-col gap-1">
             {missing.map((item) => (
               <li key={item.id}>
                 <button type="button" onClick={() => revealMissingItem(item.id)} className="flex min-h-11 w-full items-center gap-1.5 rounded-lg text-left text-[11px] leading-[normal] text-muted hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent motion-safe:transition-colors">
@@ -99,7 +102,7 @@ export function CompletenessCard({ values }: { values: DraftFormValues }) {
         <div className="h-1 rounded-full bg-accent" style={{ width: `${percent}%` }} />
       </div>
       {left > 0 ? (
-        <ul aria-label="Missing details" className="hidden flex-wrap gap-1.5 sm:flex">
+        <ul ref={desktopMotionRef} aria-label="Missing details" className="hidden flex-wrap gap-1.5 sm:flex">
           {missing.map((item) => (
             <li key={item.id}>
               <button type="button" onClick={() => revealMissingItem(item.id)} aria-label={actionLabel(item)} className="rounded-full border border-line bg-canvas px-2 py-0.5 text-[11px] leading-[normal] text-muted hover:border-accent-line hover:bg-accent-tint hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent motion-safe:transition-colors">

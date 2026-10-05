@@ -1,4 +1,5 @@
 import type { SuggestionState } from "@/lib/cv/skills-form";
+import { useEditorMotion } from "@/lib/cv/use-editor-motion";
 
 /**
  * The suggested skills of a category (Figma "Skills & Technical Competencies"): "+ Skill" buttons
@@ -12,6 +13,7 @@ export function SkillSuggestions({
   suggestions: readonly SuggestionState[];
   onAdd: (skill: string) => void;
 }) {
+  const motionRef = useEditorMotion<HTMLUListElement>();
   const open = suggestions.filter((suggestion) => !suggestion.added);
   if (open.length === 0) {
     return null;
@@ -19,7 +21,7 @@ export function SkillSuggestions({
   return (
     <div className="flex flex-col gap-2">
       <p className="text-[13px] leading-[normal] font-medium text-[#707887]">Suggested</p>
-      <ul className="flex flex-wrap gap-2">
+      <ul ref={motionRef} className="flex flex-wrap gap-2">
         {open.map(({ skill }) => (
           <li key={skill}>
             <button

@@ -3,6 +3,7 @@
 import { TriangleAlert, X } from "lucide-react";
 import { useEffect, useId, useRef } from "react";
 import { Button } from "@/components/ui/button";
+import { closeEditorDialog } from "@/lib/cv/dialog-motion";
 import {
   diffSections,
   reviewSummary,
@@ -106,14 +107,15 @@ export function ConflictReview({
     ref.current?.showModal();
   }, []);
 
-  const requestClose = () => ref.current?.close();
+  const requestClose = () => closeEditorDialog(ref.current);
 
   return (
     <dialog
       ref={ref}
       aria-labelledby={titleId}
       onClose={onClose}
-      className="m-0 h-dvh max-h-none w-full max-w-none overflow-hidden border-0 bg-canvas p-0 text-ink backdrop:bg-ink/40 open:flex open:flex-col sm:m-auto sm:h-auto sm:max-h-[calc(100dvh-48px)] sm:max-w-[1120px] sm:rounded-xl sm:border sm:border-line"
+      onCancel={(event) => { event.preventDefault(); requestClose(); }}
+      className="cv-editor-motion m-0 h-dvh max-h-none w-full max-w-none overflow-hidden border-0 bg-canvas p-0 text-ink backdrop:bg-ink/40 open:flex open:flex-col sm:m-auto sm:h-auto sm:max-h-[calc(100dvh-48px)] sm:max-w-[1120px] sm:rounded-xl sm:border sm:border-line"
     >
       <div className="relative flex shrink-0 flex-col gap-3 border-b border-line bg-surface p-4 pr-16 sm:p-6 sm:pr-20">
         <h2 id={titleId} className="text-xl leading-tight font-semibold text-ink sm:text-2xl">

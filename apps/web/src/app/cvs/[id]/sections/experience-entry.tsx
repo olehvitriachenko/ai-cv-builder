@@ -5,6 +5,7 @@ import { SelectField, TextField } from "@/components/ui/field";
 import { PRESENT, isPresent, type DraftFormValues } from "@/lib/cv/draft-form";
 import { experienceHeading } from "@/lib/cv/entry-labels";
 import { experienceDuration } from "@/lib/cv/dates";
+import { useEditorMotion } from "@/lib/cv/use-editor-motion";
 import { Highlights } from "./highlights";
 import { RemoveButton } from "./remove-button";
 import { DateField } from "./date-field";
@@ -31,10 +32,11 @@ export function ExperienceEntry({
   const errors = formState.errors.experience?.[index];
   const present = isPresent(entry.endDate);
   const duration = experienceDuration(entry.startDate, entry.endDate);
+  const motionRef = useEditorMotion();
   const setDate = (field: "startDate" | "endDate", value: string) => setValue(`experience.${index}.${field}`, value, { shouldDirty: true, shouldValidate: true });
 
   return (
-    <div className="flex flex-col gap-4">
+    <div ref={motionRef} className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-3">
         <p className="min-w-0 text-[13px] leading-[normal] font-semibold text-ink [overflow-wrap:anywhere]">
           {showHeading || entry.employer.trim() !== "" ? experienceHeading(entry) : ""}
