@@ -15,6 +15,7 @@ import {
   type PdfExtractionFailure,
 } from '../pdf/pdf-text-extractor.service.js';
 import type { CreateCvInput } from './cv.schemas.js';
+import { canRetryGeneration } from './retry-rule.js';
 import { cvDraftSchema, type CvDraft } from './generation/draft.schema.js';
 import { GenerationRunner } from './generation/generation-runner.service.js';
 import type { PdfUploadInput } from './cv-upload.js';
@@ -78,6 +79,8 @@ export function toStatusResponse(row: StatusRow): CvStatusResponse {
 export interface CvResultResponse {
   id: string;
   status: 'COMPLETED';
+  /** Send back with every draft save and apply (optimistic concurrency). */
+  revision: number;
   draft: CvDraft;
   questions: {
     id: string;
@@ -86,6 +89,7 @@ export interface CvResultResponse {
     missing: string;
     question: string;
     status: QuestionStatus;
+    answer: string | null;
   }[];
 }
 
@@ -190,8 +194,10 @@ export class CvService {
       select: {
         id: true,
         draft: true,
+        revision: true,
         questions: {
           orderBy: { position: 'asc' },
+          // `field` is internal (how an answer is applied) and is never returned.
           select: {
             id: true,
             section: true,
@@ -199,6 +205,7 @@ export class CvService {
             missing: true,
             question: true,
             status: true,
+            answer: true,
           },
         },
       },
@@ -212,6 +219,7 @@ export class CvService {
     return {
       id: cv.id,
       status: 'COMPLETED',
+      revision: cv.revision,
       draft: cvDraftSchema.parse(cv.draft),
       questions: cv.questions,
     };
@@ -230,7 +238,7 @@ export class CvService {
       'GENERATION_NOT_RETRYABLE',
       'Only the observed failed generation can be retried',
     );
-    if (observed.generationStatus !== 'FAILED') {
+    if (!canRetryGeneration(observed.generationStatus)) {
       throw notRetryable;
     }
 

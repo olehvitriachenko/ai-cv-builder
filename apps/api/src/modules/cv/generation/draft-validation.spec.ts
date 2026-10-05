@@ -73,7 +73,7 @@ describe('validateGeneration', () => {
           missing: 'Team size',
           question: 'How big was the team?',
           position: 0,
-          status: 'OPEN',
+          status: 'UNANSWERED',
         },
       ]);
     }

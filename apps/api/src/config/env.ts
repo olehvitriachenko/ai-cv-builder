@@ -16,6 +16,8 @@ const envSchema = z.object({
   ANTHROPIC_MODEL: z.string().trim().min(1).default('claude-sonnet-5-5'),
   // Per-request SDK timeout. Two attempts (one retry) must fit inside GENERATION_TIMEOUT_MS.
   ANTHROPIC_TIMEOUT_MS: z.coerce.number().int().positive().default(120_000),
+  // Per-attempt timeout of an AI-assisted clarification apply (synchronous, at most two attempts).
+  ANSWER_APPLY_TIMEOUT_MS: z.coerce.number().int().positive().default(20_000),
 
   GENERATION_TIMEOUT_MS: z.coerce.number().int().positive().default(300_000),
   GENERATION_CONCURRENCY: z.coerce.number().int().min(1).max(10).default(2),
