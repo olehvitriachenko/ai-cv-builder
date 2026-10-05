@@ -92,6 +92,14 @@ function questionIssues(output: LlmCvOutput): ValidationIssue[] {
   return issues;
 }
 
+/**
+ * Contact details alone are not a CV: it needs a summary or at least one entry. A draft without
+ * that is only acceptable when the model asked what is missing.
+ */
+function hasMeaningfulContent({ summary, experience, education, skills }: CvDraft): boolean {
+  return summary !== null || experience.length > 0 || education.length > 0 || skills.length > 0;
+}
+
 function sourceIssues(draft: CvDraft, source: SourceIndex): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
   const { contact } = draft;
@@ -132,12 +140,7 @@ export function validateGeneration(output: LlmCvOutput, sourceText: string): Gen
 
   if (structure.draft) {
     issues.push(...sourceIssues(structure.draft, indexSource(sourceText)));
-    // Contact details alone are not a CV: it needs a summary or at least one entry, or the
-    // model must have asked what is missing.
-    const { summary, experience, education, skills } = structure.draft;
-    const hasContent =
-      summary !== null || experience.length > 0 || education.length > 0 || skills.length > 0;
-    if (!hasContent && output.questions.length === 0) {
+    if (!hasMeaningfulContent(structure.draft) && output.questions.length === 0) {
       issues.push({ rule: 'empty_result', path: '' });
     }
   }

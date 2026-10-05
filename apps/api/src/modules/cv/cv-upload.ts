@@ -1,4 +1,5 @@
 import type { FastifyRequest } from 'fastify';
+import { errorCode } from '../../common/errors.js';
 import { ApiError, type FieldErrors } from '../../common/http/api-error.js';
 import { MAX_PDF_BYTES } from '../../common/source-limits.js';
 import { hasPdfSignature } from '../pdf/pdf-text-extractor.service.js';
@@ -15,13 +16,8 @@ function validationError(fieldErrors: FieldErrors): ApiError {
 
 /** Multipart failures from @fastify/multipart carry an `FST_*` code (too many files, fields, ...). */
 function multipartErrorCode(error: unknown): string | undefined {
-  return typeof error === 'object' &&
-    error !== null &&
-    'code' in error &&
-    typeof error.code === 'string' &&
-    error.code.startsWith('FST_')
-    ? error.code
-    : undefined;
+  const code = errorCode(error);
+  return code?.startsWith('FST_') ? code : undefined;
 }
 
 /**
