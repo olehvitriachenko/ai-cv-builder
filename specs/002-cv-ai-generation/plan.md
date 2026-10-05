@@ -325,3 +325,16 @@ Still worth knowing (no action needed): FR-036 collapses into the compare-and-se
 | Four small dependencies (`unpdf`, `@fastify/multipart`, `@tanstack/react-query`, `vitest`) | Each is the single, checked choice for its job | Hand-rolled PDF parsing, multipart parsing and polling are riskier and larger |
 | E2E test files run sequentially | Background work touches shared rows; scoped `runCv(id)` still leaves sweeps global | Per-file databases would add harness complexity for a few seconds saved |
 | Startup interruption sweep assumes one API instance | Gives an immediate, explicit outcome after a restart | A lease/heartbeat is the multi-instance answer and is listed as production hardening |
+
+## Project-level follow-ups before final delivery
+
+Recorded at the final review (T054); none of these belongs to this feature's code.
+
+1. **Real-Anthropic smoke test (T040)**: run `ANTHROPIC_API_KEY=... pnpm --filter api test:smoke` and record the outcome. It is the only evidence for the real model's compliance with "null plus a question", name preservation and the injection rule (AC-008, AC-010, SC-006), and for the real request shape.
+2. **README (constitution XVI)** must repeat this feature's trade-offs: no queue and a single-instance assumption; a restart marks in-flight work `INTERRUPTED` instead of resuming it; the limits of mechanical grounding checks (bullets, dates, titles and skills are not verified); original PDFs are not stored and text is extracted in-process; model cost and the 5-minute generation limit.
+3. **Full-stack `docker compose up` (constitution XV)** with `ANTHROPIC_API_KEY` from the environment is still outstanding (the compose file only runs PostgreSQL).
+4. **Spec wording**: FR-033 and US4 scenario 7 name "an abbreviation" as accepted reformatting, but abbreviation and acronym heuristics were removed; either amend the spec or bring a safe heuristic back.
+5. **Next features**: the document-first editor with manual editing, answering and applying clarification questions, PDF export, and a CV list. The completed view is read-only until then.
+
+The constitution was not amended.
+
