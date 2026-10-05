@@ -1,28 +1,148 @@
 import { Injectable } from '@nestjs/common';
 import { ApiError } from '../../common/http/api-error.js';
+import { MAX_SOURCE_CHARS } from '../../common/source-limits.js';
+import type {
+  FailureReason,
+  GenerationStatus,
+  QuestionSection,
+  QuestionStatus,
+  SourceType,
+} from '../../generated/prisma/enums.js';
 import { PrismaService } from '../../infrastructure/index.js';
+import {
+  PdfExtractionError,
+  PdfTextExtractor,
+  type PdfExtractionFailure,
+} from '../pdf/pdf-text-extractor.service.js';
 import type { CreateCvInput } from './cv.schemas.js';
+import { cvDraftSchema, type CvDraft } from './generation/draft.schema.js';
+import { GenerationRunner } from './generation/generation-runner.service.js';
+import type { PdfUploadInput } from './cv-upload.js';
 
-/** Public shape of a CV. Deliberately has no `userId`. */
-export interface CvResponse {
+/**
+ * Public status resource of a CV (the polling target). Deliberately has no `userId`,
+ * `sourceText` or `failureDetail`.
+ */
+export interface CvStatusResponse {
   id: string;
-  targetRole: string | null;
+  targetRole: string;
+  sourceType: SourceType;
+  status: GenerationStatus;
+  failureReason: FailureReason | null;
   createdAt: Date;
   updatedAt: Date;
+  startedAt: Date | null;
+  finishedAt: Date | null;
 }
 
-const CV_SELECT = { id: true, targetRole: true, createdAt: true, updatedAt: true } as const;
+const STATUS_SELECT = {
+  id: true,
+  targetRole: true,
+  sourceType: true,
+  generationStatus: true,
+  failureReason: true,
+  createdAt: true,
+  updatedAt: true,
+  processingStartedAt: true,
+  finishedAt: true,
+} as const;
+
+interface StatusRow {
+  id: string;
+  targetRole: string;
+  sourceType: SourceType;
+  generationStatus: GenerationStatus;
+  failureReason: FailureReason | null;
+  createdAt: Date;
+  updatedAt: Date;
+  processingStartedAt: Date | null;
+  finishedAt: Date | null;
+}
+
+export function toStatusResponse(row: StatusRow): CvStatusResponse {
+  return {
+    id: row.id,
+    targetRole: row.targetRole,
+    sourceType: row.sourceType,
+    status: row.generationStatus,
+    failureReason: row.failureReason,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+    startedAt: row.processingStartedAt,
+    finishedAt: row.finishedAt,
+  };
+}
+
+/** The draft with its clarification questions: the single result resource of a COMPLETED CV. */
+export interface CvResultResponse {
+  id: string;
+  status: 'COMPLETED';
+  draft: CvDraft;
+  questions: {
+    id: string;
+    section: QuestionSection;
+    itemId: string | null;
+    missing: string;
+    question: string;
+    status: QuestionStatus;
+  }[];
+}
+
+const EXTRACTION_MESSAGES: Record<PdfExtractionFailure, string> = {
+  unreadable: 'The PDF could not be read. It may be corrupt.',
+  encrypted: 'The PDF is password-protected. Upload an unprotected copy.',
+  empty:
+    'No readable text was found in the PDF. Scanned or image-only PDFs are not supported; upload a text-based PDF.',
+  too_long: `The PDF contains more than ${MAX_SOURCE_CHARS.toLocaleString('en-US')} characters of text, which is too long.`,
+};
 
 @Injectable()
 export class CvService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly pdf: PdfTextExtractor,
+    private readonly runner: GenerationRunner,
+  ) {}
 
-  /** The owner is always the authenticated user passed in, never a value from the request. */
-  create(userId: string, input: CreateCvInput): Promise<CvResponse> {
-    return this.prisma.cv.create({
-      data: { userId, targetRole: input.targetRole ?? null },
-      select: CV_SELECT,
+  /** Start a generation from free text. */
+  createFromText(userId: string, input: CreateCvInput): Promise<CvStatusResponse> {
+    return this.createPending(userId, input.targetRole, 'FREE_TEXT', input.sourceText);
+  }
+
+  /**
+   * Start a generation from a PDF. Only the extracted text is kept; the bytes are discarded when
+   * the request ends. Text that cannot be used is an ingestion failure (422): nothing is created.
+   */
+  async createFromPdf(userId: string, input: PdfUploadInput): Promise<CvStatusResponse> {
+    let sourceText: string;
+    try {
+      sourceText = await this.pdf.extract(input.buffer);
+    } catch (error) {
+      if (error instanceof PdfExtractionError) {
+        throw new ApiError(422, 'PDF_EXTRACTION_FAILED', EXTRACTION_MESSAGES[error.kind]);
+      }
+      throw error;
+    }
+    return this.createPending(userId, input.targetRole, 'PDF', sourceText);
+  }
+
+  /**
+   * Persists the CV and its source as PENDING before any AI work. The owner is always the
+   * authenticated user passed in, never a value from the request.
+   */
+  private async createPending(
+    userId: string,
+    targetRole: string,
+    sourceType: SourceType,
+    sourceText: string,
+  ): Promise<CvStatusResponse> {
+    const cv = await this.prisma.cv.create({
+      data: { userId, targetRole, sourceType, sourceText, generationStatus: 'PENDING' },
+      select: STATUS_SELECT,
     });
+    // Persisted first; the response does not wait for the generation.
+    this.runner.kick();
+    return toStatusResponse(cv);
   }
 
   /**
@@ -32,15 +152,94 @@ export class CvService {
    * All future read, update, delete, generation, clarification and export operations MUST load
    * the CV through this method (FR-031).
    */
-  async findOwnedOrThrow(userId: string, cvId: string): Promise<CvResponse> {
+  async findOwnedOrThrow(userId: string, cvId: string): Promise<CvStatusResponse> {
     const cv = await this.prisma.cv.findFirst({
       where: { id: cvId, userId },
-      select: CV_SELECT,
+      select: STATUS_SELECT,
     });
 
     if (!cv) {
       throw new ApiError(404, 'CV_NOT_FOUND', 'CV not found');
     }
-    return cv;
+    return toStatusResponse(cv);
+  }
+
+  /**
+   * The persisted draft and its clarification questions. Loaded through the ownership gate, so a
+   * foreign CV is the same 404 as a missing one; anything not COMPLETED has no draft (409).
+   */
+  async getResult(userId: string, cvId: string): Promise<CvResultResponse> {
+    const status = await this.findOwnedOrThrow(userId, cvId);
+    const notReady = new ApiError(
+      409,
+      'GENERATION_NOT_READY',
+      'The CV has not finished generating',
+    );
+    if (status.status !== 'COMPLETED') {
+      throw notReady;
+    }
+
+    const cv = await this.prisma.cv.findFirst({
+      where: { id: cvId, userId, generationStatus: 'COMPLETED' },
+      select: {
+        id: true,
+        draft: true,
+        questions: {
+          orderBy: { position: 'asc' },
+          select: {
+            id: true,
+            section: true,
+            itemId: true,
+            missing: true,
+            question: true,
+            status: true,
+          },
+        },
+      },
+    });
+    if (!cv) {
+      throw notReady;
+    }
+
+    // Database JSON is an external boundary: parse it again. A stored draft that no longer
+    // matches the schema is a server fault, answered by the generic 500 (nothing is echoed).
+    return {
+      id: cv.id,
+      status: 'COMPLETED',
+      draft: cvDraftSchema.parse(cv.draft),
+      questions: cv.questions,
+    };
+  }
+
+  /**
+   * Re-runs a FAILED generation on the stored source. The ownership gate answers a foreign or
+   * missing CV with the usual 404; the update itself is also constrained by owner and status, so
+   * two quick retries can only win once. `generationAttempts` is deliberately not reset: it is the
+   * fencing token that keeps a stale worker of the previous attempt from touching the new one.
+   */
+  async retry(userId: string, cvId: string): Promise<CvStatusResponse> {
+    await this.findOwnedOrThrow(userId, cvId);
+
+    const [retried] = await this.prisma.cv.updateManyAndReturn({
+      where: { id: cvId, userId, generationStatus: 'FAILED' },
+      data: {
+        generationStatus: 'PENDING',
+        failureReason: null,
+        failureDetail: null,
+        processingStartedAt: null,
+        finishedAt: null,
+      },
+      select: STATUS_SELECT,
+    });
+    if (!retried) {
+      throw new ApiError(
+        409,
+        'GENERATION_NOT_RETRYABLE',
+        'Only a failed generation can be retried',
+      );
+    }
+
+    this.runner.kick();
+    return toStatusResponse(retried);
   }
 }

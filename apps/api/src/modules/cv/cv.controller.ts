@@ -1,9 +1,11 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Param, Post, Req } from '@nestjs/common';
+import type { FastifyRequest } from 'fastify';
 import { ZodValidationPipe } from '../../common/http/zod-validation.pipe.js';
 import type { AuthUser } from '../auth/auth.types.js';
 import { CurrentUser } from '../auth/current-user.decorator.js';
 import { createCvSchema, cvIdSchema, type CreateCvInput } from './cv.schemas.js';
-import { CvService, type CvResponse } from './cv.service.js';
+import { readPdfUpload } from './cv-upload.js';
+import { CvService, type CvResultResponse, type CvStatusResponse } from './cv.service.js';
 
 /**
  * Protected by the global auth guard. Caller identity comes only from `@CurrentUser()`; no
@@ -13,19 +15,53 @@ import { CvService, type CvResponse } from './cv.service.js';
 export class CvController {
   constructor(private readonly cvs: CvService) {}
 
+  /** Start a generation from free text. 202: accepted, not completed. */
   @Post()
+  @HttpCode(202)
   create(
     @CurrentUser() user: AuthUser,
     @Body(new ZodValidationPipe(createCvSchema)) body: CreateCvInput,
-  ): Promise<CvResponse> {
-    return this.cvs.create(user.id, body);
+  ): Promise<CvStatusResponse> {
+    return this.cvs.createFromText(user.id, body);
+  }
+
+  /**
+   * Start a generation from a PDF (multipart). Authenticated by the global guard before the body
+   * is read; the multipart body is parsed and validated by `readPdfUpload`, not a body pipe.
+   */
+  @Post('upload')
+  @HttpCode(202)
+  async upload(
+    @CurrentUser() user: AuthUser,
+    @Req() request: FastifyRequest,
+  ): Promise<CvStatusResponse> {
+    return this.cvs.createFromPdf(user.id, await readPdfUpload(request));
   }
 
   @Get(':id')
-  get(
+  getStatus(
     @CurrentUser() user: AuthUser,
     @Param('id', new ZodValidationPipe(cvIdSchema)) id: string,
-  ): Promise<CvResponse> {
+  ): Promise<CvStatusResponse> {
     return this.cvs.findOwnedOrThrow(user.id, id);
+  }
+
+  /** The draft and its clarification questions; 409 until the CV is COMPLETED. */
+  @Get(':id/result')
+  getResult(
+    @CurrentUser() user: AuthUser,
+    @Param('id', new ZodValidationPipe(cvIdSchema)) id: string,
+  ): Promise<CvResultResponse> {
+    return this.cvs.getResult(user.id, id);
+  }
+
+  /** Re-run a FAILED generation. 202: accepted, PENDING again. */
+  @Post(':id/retry')
+  @HttpCode(202)
+  retry(
+    @CurrentUser() user: AuthUser,
+    @Param('id', new ZodValidationPipe(cvIdSchema)) id: string,
+  ): Promise<CvStatusResponse> {
+    return this.cvs.retry(user.id, id);
   }
 }
