@@ -64,3 +64,16 @@ Decisions that shape the plan. Items marked **verified** were checked with throw
 ## D-11. Safe filename
 
 - **Decision**: `<Candidate name>-<Target role>.pdf`, normalized: Unicode letters and digits kept, whitespace to `-`, everything else removed (path separators, quotes, control characters, emoji), repeated `-` collapsed, bounded to 80 characters, default `CV.pdf`. The header carries an ASCII `filename` fallback (non-ASCII letters transliterated or dropped) plus an RFC 5987 `filename*=UTF-8''...` so Cyrillic names survive in modern browsers. Pure function with its own unit tests.
+
+## D-12. Font objects are not reusable across documents (found while implementing)
+
+- **Finding (verified)**: after rendering a document that used Cyrillic, the *next* document came out with a corrupted text layer: "Ada" was extracted as `Ad\u0003`, a link as `htt\bs:/...`. The page looks right, but selecting, copying and searching break, and which document is hit depends on what was rendered before it.
+- **Cause**: the renderer's loaded font objects keep per-document state. `Font.reset()` does not help (it drops the loaded data but the cached load promise is never re-run, so the next layout crashes with `unitsPerEm` of null) and `Font.clear()` also removes the built-in Helvetica the renderer needs.
+- **Decision**: before every render, remove the two font families and register them again (fresh font objects), and render **one document at a time** (a small promise queue in `CvPdfRenderer`), because the font store is process-wide state. A render takes a few hundred milliseconds; queueing is the simplest correct choice at this scale.
+- **Guarded by tests**: documents rendered back to back (Cyrillic, Latin, Cyrillic, Latin) and rendered concurrently must read back exactly, with no control characters.
+
+## D-13. Unbreakable blocks must be shorter than a page (found while implementing)
+
+- **Finding (verified)**: `minPresenceAhead` does not guarantee that a section heading is not left alone at the bottom of a page. Wrapping the heading and its first block in a `wrap={false}` group does, **but** the renderer silently drops whatever does not fit when such a group is taller than a page: a 60-skill list lost its tail, and a header with five long links could do the same.
+- **Decision**: group a heading only with content whose size is bounded (the first experience head, one education entry, the profile at most 1200 characters, a skills list up to 600 characters). Unbounded content (a longer skills list, the document header) flows normally; the skills heading then only asks for room ahead, which is best effort. Tests assert no heading is the last line of a page and that the maximum-size draft is complete.
+- **Long unbreakable tokens**: the chunk length depends on the font size (`text column width / font size` characters, since a glyph is at most about 1 em wide), because a limit that is right for body text overflowed the 32 pt name.
