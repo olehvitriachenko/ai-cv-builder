@@ -1,4 +1,4 @@
-import type { LlmCvOutput } from '../../ai/llm-cv-output.schema.js';
+import type { LlmCvOutput } from '../../ai/schemas/llm-cv-output.schema.js';
 import {
   mapOutputToDraft,
   mapQuestions,
@@ -87,9 +87,27 @@ function questionIssues(output: LlmCvOutput): ValidationIssue[] {
         issues.push({ rule: 'invalid_item_index', path: `${base}.itemIndex` });
       }
     }
+
+    // A field names the one value the answer fills, so it must belong to the question's section
+    // (the prefix), and an entry field needs an entry while a contact field must not point at one.
+    if (question.field !== null) {
+      const inSection = question.field.startsWith(`${question.section}_`);
+      const needsEntry = hasEntry;
+      if (!inSection || needsEntry !== (question.itemIndex !== null)) {
+        issues.push({ rule: 'question_field_mismatch', path: `${base}.field` });
+      }
+    }
   });
 
   return issues;
+}
+
+/**
+ * Contact details alone are not a CV: it needs a summary or at least one entry. A draft without
+ * that is only acceptable when the model asked what is missing.
+ */
+function hasMeaningfulContent({ summary, experience, education, skills }: CvDraft): boolean {
+  return summary !== null || experience.length > 0 || education.length > 0 || skills.length > 0;
 }
 
 function sourceIssues(draft: CvDraft, source: SourceIndex): ValidationIssue[] {
@@ -132,12 +150,7 @@ export function validateGeneration(output: LlmCvOutput, sourceText: string): Gen
 
   if (structure.draft) {
     issues.push(...sourceIssues(structure.draft, indexSource(sourceText)));
-    // Contact details alone are not a CV: it needs a summary or at least one entry, or the
-    // model must have asked what is missing.
-    const { summary, experience, education, skills } = structure.draft;
-    const hasContent =
-      summary !== null || experience.length > 0 || education.length > 0 || skills.length > 0;
-    if (!hasContent && output.questions.length === 0) {
+    if (!hasMeaningfulContent(structure.draft) && output.questions.length === 0) {
       issues.push({ rule: 'empty_result', path: '' });
     }
   }

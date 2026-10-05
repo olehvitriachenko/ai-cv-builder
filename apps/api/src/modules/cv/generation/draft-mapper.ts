@@ -1,6 +1,11 @@
 import { randomUUID } from 'node:crypto';
 import type { z } from 'zod';
-import type { LlmCvOutput, QuestionSectionName } from '../../ai/llm-cv-output.schema.js';
+import type { QuestionField } from '../../../generated/prisma/enums.js';
+import type {
+  LlmCvOutput,
+  QuestionFieldName,
+  QuestionSectionName,
+} from '../../ai/schemas/llm-cv-output.schema.js';
 import type { CvDraft, cvDraftSchema } from './draft.schema.js';
 
 /** The draft shape before schema validation (strings not yet trimmed or checked). */
@@ -13,11 +18,17 @@ export interface QuestionRow {
   section: QuestionSectionName;
   /** Id of the experience/education entry it concerns; null for a section-level question. */
   itemId: string | null;
+  /** The single plain value the answer fills, or null (the answer then goes through the AI path). */
+  field: QuestionFieldName | null;
   missing: string;
   question: string;
   position: number;
-  status: 'OPEN';
+  status: 'UNANSWERED';
 }
+
+// Compile-time guard: the LLM contract's field list and the database enum are the same set.
+type AssertSameSet<A extends string, B extends string> = [A] extends [B] ? ([B] extends [A] ? true : never) : never;
+export const QUESTION_FIELDS_MATCH_DATABASE: AssertSameSet<QuestionFieldName, QuestionField> = true;
 
 /**
  * Pure structural conversion of model output into the persisted draft shape. Entry ids are
@@ -81,10 +92,11 @@ export function mapQuestions(questions: LlmQuestion[], draft: CvDraft): Question
     return {
       section: question.section,
       itemId: entry ? entry.id : null,
+      field: question.field,
       missing: question.missing,
       question: question.question,
       position,
-      status: 'OPEN',
+      status: 'UNANSWERED',
     };
   });
 }

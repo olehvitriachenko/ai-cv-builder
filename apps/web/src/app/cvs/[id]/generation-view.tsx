@@ -4,23 +4,18 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { ApiError } from "@/lib/api/fetcher";
-import { getCvResult, getCvStatus, retryCv, type CvStatus } from "@/lib/api/cvs";
+import { ApiError, isApiError } from "@/lib/api/fetcher";
+import { getCvStatus, retryCv, type CvStatus } from "@/lib/api/cvs";
 import { pollInterval } from "@/lib/cv/poll";
 import { CvNotFound } from "./cv-not-found";
 import { DraftSkeleton } from "./draft-skeleton";
 import { GenerationIntro, GenerationProgress } from "./generation-progress";
-import { ResultView } from "./result-view";
 
 const TITLES = {
   PENDING: "Getting your CV ready",
   PROCESSING: "Putting your experience into words",
   FAILED: "We couldn’t finish your draft",
 } as const;
-
-function isStatusError(error: unknown, status: number): boolean {
-  return error instanceof ApiError && error.status === status;
-}
 
 function retryErrorMessage(error: unknown): string {
   return error instanceof ApiError && error.code === "GENERATION_NOT_RETRYABLE"
@@ -45,17 +40,9 @@ export function GenerationView({ initialStatus }: { initialStatus: CvStatus }) {
     queryFn: () => getCvStatus(id),
     initialData: initialStatus,
     refetchInterval: (query) => pollInterval(query.state.data?.status),
-    retry: (count, error) => count < 3 && !isStatusError(error, 401) && !isStatusError(error, 404),
+    retry: (count, error) => count < 3 && !isApiError(error, 401) && !isApiError(error, 404),
   });
   const status = statusQuery.data;
-
-  const resultQuery = useQuery({
-    queryKey: ["cv", id, "result"] as const,
-    queryFn: () => getCvResult(id),
-    enabled: status.status === "COMPLETED",
-    staleTime: Infinity,
-    retry: 2,
-  });
 
   const retryMutation = useMutation({
     mutationFn: () => retryCv(id),
@@ -65,7 +52,7 @@ export function GenerationView({ initialStatus }: { initialStatus: CvStatus }) {
       void queryClient.invalidateQueries({ queryKey: statusKey });
     },
     onError: (error) => {
-      if (isStatusError(error, 401)) {
+      if (isApiError(error, 401)) {
         router.replace("/login");
         return;
       }
@@ -73,31 +60,41 @@ export function GenerationView({ initialStatus }: { initialStatus: CvStatus }) {
     },
   });
 
-  const sessionExpired = isStatusError(statusQuery.error, 401);
+  // The generation just finished: the server page renders the editor for a COMPLETED CV.
+  const completed = status.status === "COMPLETED";
+  useEffect(() => {
+    if (completed) {
+      router.refresh();
+    }
+  }, [completed, router]);
+
+  const sessionExpired = isApiError(statusQuery.error, 401);
   useEffect(() => {
     if (sessionExpired) {
       router.replace("/login");
     }
   }, [sessionExpired, router]);
 
-  if (isStatusError(statusQuery.error, 404)) {
+  if (isApiError(statusQuery.error, 404)) {
     return <CvNotFound />;
   }
 
   if (status.status === "COMPLETED") {
-    const state = resultQuery.data
-      ? ({ kind: "ready", result: resultQuery.data } as const)
-      : resultQuery.isError
-        ? ({ kind: "error", retry: () => void resultQuery.refetch() } as const)
-        : ({ kind: "loading" } as const);
-    return <ResultView status={status} state={state} />;
+    return (
+      <div className="mx-auto flex w-full max-w-[1120px] flex-col gap-4 px-4 py-8 sm:px-8 lg:px-12">
+        <p role="status" className="text-sm text-muted">
+          Your CV is ready. Opening the editor…
+        </p>
+        <DraftSkeleton caption="Your draft is ready" note="Opening the editor…" />
+      </div>
+    );
   }
 
   const failed = status.status === "FAILED";
   const connectionTrouble = statusQuery.isError && !failed;
 
   return (
-    <div className="mx-auto flex w-full max-w-[1120px] flex-col gap-8 px-4 py-8 sm:px-8 sm:py-14 lg:px-12">
+    <div className="mx-auto flex w-full max-w-[1008px] flex-col gap-6 px-6 pt-6 pb-8 sm:gap-8 sm:pt-14 sm:pb-16">
       <GenerationIntro
         badge={<StatusBadge status={status.status} />}
         title={TITLES[status.status]}
@@ -126,7 +123,7 @@ export function GenerationView({ initialStatus }: { initialStatus: CvStatus }) {
         <div className="hidden lg:block">
           <DraftSkeleton
             caption={failed ? "Draft not created yet" : "Your CV is taking shape"}
-            note={failed ? "Retry to build your draft." : "Your draft will appear here."}
+            note={failed ? "Retry to build your editable draft." : "You’ll be able to edit every section next."}
           />
         </div>
       </div>

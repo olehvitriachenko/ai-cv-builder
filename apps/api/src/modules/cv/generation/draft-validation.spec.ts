@@ -1,4 +1,4 @@
-import type { LlmCvOutput } from '../../ai/llm-cv-output.schema.js';
+import type { LlmCvOutput } from '../../ai/schemas/llm-cv-output.schema.js';
 import { formatIssue, validateGeneration, type GenerationValidation } from './draft-validation.js';
 
 const SOURCE = [
@@ -54,7 +54,7 @@ describe('validateGeneration', () => {
         questions: [
           {
             section: 'EXPERIENCE',
-            itemIndex: 0,
+            itemIndex: 0, field: null,
             missing: 'Team size',
             question: 'How big was the team?',
           },
@@ -69,11 +69,12 @@ describe('validateGeneration', () => {
       expect(result.questions).toEqual([
         {
           section: 'EXPERIENCE',
+          field: null,
           itemId: result.draft.experience[0]!.id,
           missing: 'Team size',
           question: 'How big was the team?',
           position: 0,
-          status: 'OPEN',
+          status: 'UNANSWERED',
         },
       ]);
     }
@@ -87,7 +88,7 @@ describe('validateGeneration', () => {
         experience: [],
         education: [],
         skills: [],
-        questions: [{ section: 'CONTACT', itemIndex: null, missing: 'Email', question: 'Email?' }],
+        questions: [{ section: 'CONTACT', itemIndex: null, field: null, missing: 'Email', question: 'Email?' }],
       }),
       SOURCE,
     );
@@ -148,7 +149,7 @@ describe('validateGeneration', () => {
         questions: [
           {
             section: 'EXPERIENCE',
-            itemIndex: null,
+            itemIndex: null, field: null,
             missing: 'No roles given',
             question: 'Where have you worked?',
           },
@@ -229,10 +230,75 @@ describe('validateGeneration', () => {
     });
   });
 
+  describe('question field', () => {
+    const fq = (overrides: Partial<LlmCvOutput['questions'][number]> = {}) => ({
+      section: 'CONTACT' as const,
+      itemIndex: null,
+      field: null,
+      missing: 'Phone is missing',
+      question: 'What is your phone number?',
+      ...overrides,
+    });
+    const run = (questions: LlmCvOutput['questions']) => validateGeneration(output({ questions }), SOURCE);
+
+    it('accepts a field that matches its section, with an entry index where one is needed', () => {
+      const result = run([
+        fq({ field: 'CONTACT_PHONE' }),
+        fq({ section: 'EXPERIENCE', itemIndex: 0, field: 'EXPERIENCE_END_DATE', question: 'End date?' }),
+        fq({ section: 'EDUCATION', itemIndex: 0, field: 'EDUCATION_QUALIFICATION', question: 'Degree?' }),
+        fq({ section: 'SKILLS', field: null, question: 'Any other skills?' }),
+      ]);
+
+      expect(result.ok).toBe(true);
+      expect(result.ok && result.questions.map((row) => row.field)).toEqual([
+        'CONTACT_PHONE',
+        'EXPERIENCE_END_DATE',
+        'EDUCATION_QUALIFICATION',
+        null,
+      ]);
+    });
+
+    it('rejects a field whose prefix is another section', () => {
+      const result = run([fq({ section: 'CONTACT', field: 'EXPERIENCE_EMPLOYER' })]);
+
+      expect(issuesOf(result)).toEqual(['questions.0.field: question_field_mismatch']);
+    });
+
+    it('rejects an entry field without an entry index', () => {
+      const result = run([fq({ section: 'EXPERIENCE', itemIndex: null, field: 'EXPERIENCE_START_DATE' })]);
+
+      expect(issuesOf(result)).toEqual(['questions.0.field: question_field_mismatch']);
+    });
+
+    it('rejects a contact field that points at an entry', () => {
+      const result = run([fq({ section: 'CONTACT', itemIndex: 0, field: 'CONTACT_EMAIL' })]);
+
+      expect(issuesOf(result)).toContain('questions.0.field: question_field_mismatch');
+    });
+
+    it('rejects a field on a summary or skills question (there is no single value to fill)', () => {
+      const result = run([
+        fq({ section: 'SUMMARY', field: 'CONTACT_FULL_NAME', question: 'a?' }),
+        fq({ section: 'SKILLS', field: 'CONTACT_LINK', question: 'b?' }),
+      ]);
+
+      expect(issuesOf(result)).toEqual([
+        'questions.0.field: question_field_mismatch',
+        'questions.1.field: question_field_mismatch',
+      ]);
+    });
+
+    it('reports only rule ids and paths, never the question text', () => {
+      const result = run([fq({ section: 'CONTACT', field: 'EXPERIENCE_EMPLOYER', question: 'SECRET QUESTION' })]);
+
+      expect(JSON.stringify(result)).not.toContain('SECRET QUESTION');
+    });
+  });
+
   describe('clarification questions', () => {
     const q = (overrides: Partial<LlmCvOutput['questions'][number]> = {}) => ({
       section: 'CONTACT' as const,
-      itemIndex: null,
+      itemIndex: null, field: null,
       missing: 'Email',
       question: 'What is your email?',
       ...overrides,
@@ -260,9 +326,9 @@ describe('validateGeneration', () => {
         output({
           questions: [
             q({ section: 'EXPERIENCE', itemIndex: 1 }),
-            q({ section: 'EDUCATION', itemIndex: -1, question: 'b?' }),
-            q({ section: 'CONTACT', itemIndex: 0, question: 'c?' }),
-            q({ section: 'EXPERIENCE', itemIndex: 0, question: 'd?' }),
+            q({ section: 'EDUCATION', itemIndex: -1, field: null, question: 'b?' }),
+            q({ section: 'CONTACT', itemIndex: 0, field: null, question: 'c?' }),
+            q({ section: 'EXPERIENCE', itemIndex: 0, field: null, question: 'd?' }),
           ],
         }),
         SOURCE,

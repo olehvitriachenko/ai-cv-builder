@@ -1,8 +1,9 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
+import { describeError } from '../../../common/errors.js';
 import type { FailureReason } from '../../../generated/prisma/enums.js';
 import { PrismaService } from '../../../infrastructure/index.js';
 import { CvGenerator, ProviderError } from '../../ai/cv-generator.js';
-import { llmCvOutputSchema } from '../../ai/llm-cv-output.schema.js';
+import { llmCvOutputSchema } from '../../ai/schemas/llm-cv-output.schema.js';
 import type { QuestionRow } from './draft-mapper.js';
 import { formatIssue, validateGeneration, type ValidationIssue } from './draft-validation.js';
 import type { CvDraft } from './draft.schema.js';
@@ -52,11 +53,6 @@ function sleep(ms: number, signal: AbortSignal): Promise<void> {
     const timer = setTimeout(finish, ms);
     signal.addEventListener('abort', finish, { once: true });
   });
-}
-
-/** Safe-to-store description of an unexpected error: its class name only, never its message. */
-function errorName(error: unknown): string {
-  return error instanceof Error ? error.constructor.name : typeof error;
 }
 
 @Injectable()
@@ -114,7 +110,7 @@ export class GenerationProcessor {
           return this.cancelled(signal);
         }
         if (!(error instanceof ProviderError)) {
-          return failed('UNKNOWN', errorName(error));
+          return failed('UNKNOWN', describeError(error));
         }
 
         const token = error.detail ? `${error.kind} ${error.detail}` : error.kind;
@@ -232,7 +228,7 @@ export class GenerationProcessor {
         return;
       }
       this.logger.error(
-        `event=generation_persist_failed cvId=${job.id} attempt=${job.attempt} error=${errorName(error)}`,
+        `event=generation_persist_failed cvId=${job.id} attempt=${job.attempt} error=${describeError(error)}`,
       );
       await this.fail(job, 'UNKNOWN', 'persist_failed');
     }

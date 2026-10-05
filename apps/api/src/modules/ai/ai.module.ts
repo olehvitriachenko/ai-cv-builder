@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { AnthropicCvGenerator } from './anthropic-cv-generator.js';
+import { AnthropicAnswerApplier } from './services/anthropic-answer-applier.js';
+import { AnthropicCvGenerator } from './services/anthropic-cv-generator.js';
+import { CvAnswerApplier } from './cv-answer-applier.js';
 import { CvGenerator } from './cv-generator.js';
 
 @Module({
@@ -16,7 +18,19 @@ import { CvGenerator } from './cv-generator.js';
           timeoutMs: config.getOrThrow<number>('ANTHROPIC_TIMEOUT_MS'),
         }),
     },
+    {
+      provide: CvAnswerApplier,
+      inject: [ConfigService],
+      // Same rules as the generator: no key still builds, apply() reports NOT_CONFIGURED. The short
+      // per-attempt timeout keeps a synchronous apply from hanging the request.
+      useFactory: (config: ConfigService): CvAnswerApplier =>
+        new AnthropicAnswerApplier({
+          apiKey: config.get<string | undefined>('ANTHROPIC_API_KEY'),
+          model: config.getOrThrow<string>('ANTHROPIC_MODEL'),
+          timeoutMs: config.getOrThrow<number>('ANSWER_APPLY_TIMEOUT_MS'),
+        }),
+    },
   ],
-  exports: [CvGenerator],
+  exports: [CvGenerator, CvAnswerApplier],
 })
 export class AiModule {}

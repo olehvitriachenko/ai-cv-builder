@@ -1,4 +1,4 @@
-import type { LlmCvOutput } from '../../ai/llm-cv-output.schema.js';
+import type { LlmCvOutput } from '../../ai/schemas/llm-cv-output.schema.js';
 import { cvDraftSchema } from './draft.schema.js';
 import { mapOutputToDraft, mapQuestions, normalizeQuestions } from './draft-mapper.js';
 
@@ -77,7 +77,7 @@ describe('mapOutputToDraft', () => {
 describe('normalizeQuestions', () => {
   const base = {
     section: 'CONTACT',
-    itemIndex: null,
+    itemIndex: null, field: null,
     missing: 'Email',
     question: 'What is your email?',
   } as const;
@@ -87,7 +87,7 @@ describe('normalizeQuestions', () => {
       { ...base, missing: '  Email ', question: ' What is your email? ' },
       { ...base },
       { ...base, question: 'what is   your EMAIL?' },
-      { section: 'SUMMARY', itemIndex: null, missing: 'Focus', question: 'Which focus?' },
+      { section: 'SUMMARY', itemIndex: null, field: null, missing: 'Focus', question: 'Which focus?' },
     ]);
 
     expect(result.map((q) => q.section)).toEqual(['CONTACT', 'SUMMARY']);
@@ -96,8 +96,8 @@ describe('normalizeQuestions', () => {
 
   it('keeps the same question when it concerns different entries', () => {
     const result = normalizeQuestions([
-      { section: 'EXPERIENCE', itemIndex: 0, missing: 'Dates', question: 'When?' },
-      { section: 'EXPERIENCE', itemIndex: 1, missing: 'Dates', question: 'When?' },
+      { section: 'EXPERIENCE', itemIndex: 0, field: null, missing: 'Dates', question: 'When?' },
+      { section: 'EXPERIENCE', itemIndex: 1, field: null, missing: 'Dates', question: 'When?' },
     ]);
 
     expect(result).toHaveLength(2);
@@ -110,8 +110,8 @@ describe('mapQuestions', () => {
 
     const rows = mapQuestions(
       [
-        { section: 'EXPERIENCE', itemIndex: 1, missing: 'Dates', question: 'When at Globex?' },
-        { section: 'EDUCATION', itemIndex: 0, missing: 'Degree', question: 'Which degree?' },
+        { section: 'EXPERIENCE', itemIndex: 1, field: null, missing: 'Dates', question: 'When at Globex?' },
+        { section: 'EDUCATION', itemIndex: 0, field: null, missing: 'Degree', question: 'Which degree?' },
       ],
       draft,
     );
@@ -124,18 +124,18 @@ describe('mapQuestions', () => {
     const draft = cvDraftSchema.parse(mapOutputToDraft(output()));
 
     const rows = mapQuestions(
-      [{ section: 'CONTACT', itemIndex: null, missing: 'Email', question: 'Email?' }],
+      [{ section: 'CONTACT', itemIndex: null, field: null, missing: 'Email', question: 'Email?' }],
       draft,
     );
 
-    expect(rows[0]).toMatchObject({ itemId: null, status: 'OPEN' });
+    expect(rows[0]).toMatchObject({ itemId: null, status: 'UNANSWERED' });
   });
 
   it('assigns positions in order', () => {
     const draft = cvDraftSchema.parse(mapOutputToDraft(output()));
     const questions = (['CONTACT', 'SUMMARY', 'SKILLS'] as const).map((section) => ({
       section,
-      itemIndex: null,
+      itemIndex: null, field: null,
       missing: section,
       question: `${section}?`,
     }));
@@ -144,5 +144,21 @@ describe('mapQuestions', () => {
 
     expect(rows.map((r) => r.position)).toEqual([0, 1, 2]);
     expect(rows.map((r) => r.section)).toEqual(['CONTACT', 'SUMMARY', 'SKILLS']);
+  });
+});
+
+describe('mapQuestions field', () => {
+  it('carries the field of each question into its stored row', () => {
+    const draft = cvDraftSchema.parse(mapOutputToDraft(output()));
+
+    const rows = mapQuestions(
+      [
+        { section: 'CONTACT', itemIndex: null, field: 'CONTACT_EMAIL', missing: 'Email', question: 'Email?' },
+        { section: 'SUMMARY', itemIndex: null, field: null, missing: 'Focus', question: 'Focus?' },
+      ],
+      draft,
+    );
+
+    expect(rows.map((row) => row.field)).toEqual(['CONTACT_EMAIL', null]);
   });
 });

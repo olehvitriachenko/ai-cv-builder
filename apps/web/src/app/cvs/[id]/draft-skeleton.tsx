@@ -16,7 +16,7 @@ function SectionPlaceholder() {
 export function DraftSkeleton({ caption, note }: { caption: string; note: string }) {
   return (
     <Card className="flex w-full flex-col gap-6 p-8 lg:w-[376px] lg:shrink-0">
-      <p className="text-xs font-medium tracking-wide text-muted uppercase">{caption}</p>
+      <p className="text-xs leading-[normal] font-medium text-muted uppercase">{caption}</p>
       <div className="flex flex-col gap-3">
         <Skeleton className="h-5 w-[190px]" />
         <Skeleton className="h-3 w-[230px] max-w-full" />

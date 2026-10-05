@@ -2,6 +2,8 @@
 
 REST over JSON, served under the global `/api` prefix. Everything from the authentication feature applies unchanged: session cookie authentication, the same error body shape, identity only from the session, a client `userId` ignored, and a foreign CV answered exactly like a missing one.
 
+> **Superseded in part by feature 003.** The shape of `GET /api/cvs/:id/result` (adds `revision`, per-question `answer`) and the clarification question states (`UNANSWERED`, `ANSWERED`, `APPLIED`, `DISMISSED` instead of `OPEN`, `RESOLVED`) are now defined in [`specs/003-cv-editor-my-cvs/contracts/cv-editor-api.md`](../../003-cv-editor-my-cvs/contracts/cv-editor-api.md), together with the list, edit, answer, dismiss, apply and delete operations.
+
 ## Changes to the previous contract
 
 | Operation | Before (001) | Now (002) |

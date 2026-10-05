@@ -7,8 +7,9 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { TextField } from "@/components/ui/field";
+import { PasswordField } from "@/components/ui/password-field";
 import { signIn } from "@/lib/api/auth";
-import { ApiError } from "@/lib/api/fetcher";
+import { isApiError } from "@/lib/api/fetcher";
 
 const loginFormSchema = z.object({
   email: z.string().trim().min(1, "Email is required"),
@@ -30,11 +31,11 @@ export function LoginForm() {
     setFormError(null);
     try {
       await signIn(values);
-      router.replace("/");
+      router.replace("/cvs");
       router.refresh();
     } catch (error) {
       // One message for every credential failure: it never says which part was wrong.
-      if (error instanceof ApiError && error.status === 401) {
+      if (isApiError(error, 401)) {
         setFormError("Invalid email or password.");
         return;
       }
@@ -46,19 +47,20 @@ export function LoginForm() {
     <form
       onSubmit={handleSubmit(onSubmit)}
       noValidate
-      className="flex flex-col gap-4"
+      className="flex flex-col gap-6 short:gap-4"
     >
       <TextField
-        label="Email"
+        label="Email address"
         type="email"
+        placeholder="you@example.com"
         autoComplete="email"
         inputMode="email"
         error={errors.email?.message}
         {...register("email")}
       />
-      <TextField
+      <PasswordField
         label="Password"
-        type="password"
+        placeholder="Enter your password"
         autoComplete="current-password"
         error={errors.password?.message}
         {...register("password")}
@@ -69,7 +71,7 @@ export function LoginForm() {
           {formError}
         </p>
       ) : null}
-      <Button type="submit" disabled={isSubmitting}>
+      <Button type="submit" stretch={false} className="w-full" disabled={isSubmitting}>
         {isSubmitting ? "Signing in…" : "Sign in"}
       </Button>
     </form>

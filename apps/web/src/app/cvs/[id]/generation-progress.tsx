@@ -13,13 +13,13 @@ function StageSymbol({ state }: { state: StageState }) {
     case "done":
       return (
         <span className={`${base} bg-canvas`}>
-          <Check aria-hidden className="size-4 text-success" strokeWidth={1.75} />
+          <Check aria-hidden className="size-4 text-success" strokeWidth={1.5} />
         </span>
       );
     case "active":
       return (
         <span className={`${base} bg-accent-tint`}>
-          <LoaderCircle aria-hidden className="size-4 text-accent motion-safe:animate-spin" strokeWidth={1.75} />
+          <LoaderCircle aria-hidden className="size-4 text-accent motion-safe:animate-spin" strokeWidth={1.5} />
         </span>
       );
     case "failed":
@@ -50,7 +50,7 @@ function Stage({
     <li className="flex items-start gap-3">
       <StageSymbol state={state} />
       <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-        <p className={`text-sm font-medium ${state === "waiting" ? "text-muted" : "text-ink"}`}>
+        <p className={`text-sm leading-[normal] font-medium ${state === "waiting" ? "text-muted" : "text-ink"}`}>
           {title}
           {state === "done" ? <span className="sr-only"> (done)</span> : null}
           {state === "active" ? <span className="sr-only"> (in progress)</span> : null}
@@ -64,17 +64,23 @@ function Stage({
   );
 }
 
-/** The honest, indeterminate bar: the API reports a state, not a percentage. */
-function ProgressBar({ waiting }: { waiting: boolean }) {
+/**
+ * The honest bar: the API reports a state, not a percentage, so the active bar is indeterminate and
+ * the stopped bar is a plain red rule (the failure is also stated in text, never by colour alone).
+ */
+function ProgressBar({ state }: { state: "waiting" | "active" | "failed" }) {
+  if (state === "failed") {
+    return <div aria-hidden className="h-1.5 w-full rounded-full bg-danger" />;
+  }
   return (
     <div
       role="progressbar"
-      aria-label={waiting ? "Waiting to start" : "Generation in progress"}
+      aria-label={state === "waiting" ? "Waiting to start" : "Generation in progress"}
       className="h-1.5 w-full overflow-hidden rounded-full bg-accent-tint"
     >
       <div
         className={`h-full rounded-full bg-accent ${
-          waiting ? "w-[6%]" : "w-1/3 motion-safe:animate-indeterminate"
+          state === "waiting" ? "w-[6%]" : "w-1/3 motion-safe:animate-indeterminate"
         }`}
       />
     </div>
@@ -105,14 +111,14 @@ export function GenerationProgress({ status, onRetry, retrying, retryError }: Ge
     <Card className="flex min-w-0 flex-1 flex-col gap-8 px-5 py-8 sm:p-8">
       <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between gap-3">
-          <h2 className="text-base font-semibold text-ink">
+          <h2 className="text-base leading-[normal] font-semibold text-ink">
             {failed ? "Generation stopped" : "Building your draft"}
           </h2>
-          <p className={`text-[13px] font-medium ${failed ? "text-danger" : "text-accent"}`}>
+          <p className={`text-[13px] leading-[normal] font-medium ${failed ? "text-danger" : "text-accent"}`}>
             {failed ? "Stopped" : processing ? "In progress" : "Waiting to start"}
           </p>
         </div>
-        {failed ? null : <ProgressBar waiting={!processing} />}
+        <ProgressBar state={failed ? "failed" : processing ? "active" : "waiting"} />
       </div>
 
       <ol className="flex flex-col gap-6">
@@ -131,20 +137,20 @@ export function GenerationProgress({ status, onRetry, retrying, retryError }: Ge
         <Stage
           state="waiting"
           title="Generating CV"
-          description={failed ? "Starts again when you retry." : "Up next: your first draft."}
+          description={failed ? "Starts again when you retry." : "Up next: your editable first draft."}
         />
       </ol>
 
       <hr className="border-line" />
 
       <div className="flex flex-col gap-3">
-        <p className="text-sm font-medium text-ink">
+        <p className="text-sm leading-[normal] font-medium text-ink">
           {failed ? "Your information is safe." : "Good work takes a moment."}
         </p>
         <p className="text-[13px] leading-[1.6] text-muted">
           {failed
-            ? "Your target role and source are saved. Retry generation, or start a new CV."
-            : "Generation continues even if you leave this page. Come back to this address any time and your draft will be here when it’s ready."}
+            ? `Your target role and ${status.sourceType === "PDF" ? "PDF" : "background"} are saved. Retry generation, or go back to change them.`
+            : "Generation continues even if you leave this page. You can check the progress in My CVs and open your draft when it’s ready."}
         </p>
       </div>
 
@@ -162,13 +168,13 @@ export function GenerationProgress({ status, onRetry, retrying, retryError }: Ge
               <RotateCw aria-hidden className="size-4" strokeWidth={1.75} />
               {retrying ? "Retrying…" : "Retry generation"}
             </Button>
-            <ButtonLink href="/cvs/new" variant="secondary">
-              Start a new CV
+            <ButtonLink href="/cvs" variant="secondary">
+              Back to My CVs
             </ButtonLink>
           </>
         ) : (
-          <ButtonLink href="/" variant="secondary">
-            Back to home
+          <ButtonLink href="/cvs" variant="secondary">
+            Back to My CVs
           </ButtonLink>
         )}
       </div>
@@ -188,7 +194,7 @@ export function GenerationIntro({
   return (
     <div className="flex min-w-0 max-w-full flex-col items-start gap-3">
       {badge}
-      <h1 className="max-w-full text-[26px] leading-tight font-semibold tracking-[-0.7px] text-ink sm:text-[30px]">
+      <h1 className="max-w-full text-[26px] leading-[normal] font-semibold text-ink sm:text-[30px]">
         {title}
       </h1>
       {/* `anywhere` also shrinks the min-content width, so a long unbroken role cannot widen the page. */}

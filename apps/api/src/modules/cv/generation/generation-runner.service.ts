@@ -5,6 +5,7 @@ import {
   type OnApplicationBootstrap,
   type OnModuleDestroy,
 } from '@nestjs/common';
+import { describeError } from '../../../common/errors.js';
 import { PrismaService } from '../../../infrastructure/index.js';
 import { GENERATION_OPTIONS, type GenerationOptions } from './generation.options.js';
 import {
@@ -18,10 +19,6 @@ const SWEEP_INTERVAL_MS = 30_000;
 
 /** Rolls back a claim if shutdown began while its database statement was in flight. */
 class ShutdownDuringClaim extends Error {}
-
-function describeError(error: unknown): string {
-  return error instanceof Error ? error.constructor.name : typeof error;
-}
 
 /**
  * Drives generations in the background, inside this process, from the database. The Cv row is the

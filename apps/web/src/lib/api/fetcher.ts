@@ -19,6 +19,11 @@ export class ApiError extends Error {
   }
 }
 
+/** True for an ApiError, optionally narrowed to one HTTP status. */
+export function isApiError(error: unknown, status?: number): error is ApiError {
+  return error instanceof ApiError && (status === undefined || error.status === status);
+}
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api';
 
 const errorBodySchema = z.object({

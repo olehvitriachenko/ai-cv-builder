@@ -7,12 +7,12 @@ import {
   registerSchema,
   type LoginInput,
   type RegisterInput,
-} from './auth.schemas.js';
+} from './schemas/auth.schemas.js';
 import type { AuthUser } from './auth.types.js';
-import { AuthService } from './auth.service.js';
-import { CurrentUser } from './current-user.decorator.js';
-import { Public } from './public.decorator.js';
-import { clearSessionCookie, readSessionCookie, setSessionCookie } from './session-cookie.js';
+import { AuthService } from './services/auth.service.js';
+import { CurrentUser } from './decorators/current-user.decorator.js';
+import { Public } from './decorators/public.decorator.js';
+import { clearSessionCookie, readSessionCookie, setSessionCookie } from './session/session-cookie.js';
 
 @Controller('auth')
 export class AuthController {

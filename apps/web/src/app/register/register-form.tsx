@@ -7,8 +7,9 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { TextField } from "@/components/ui/field";
+import { PasswordField } from "@/components/ui/password-field";
 import { registerAccount } from "@/lib/api/auth";
-import { ApiError } from "@/lib/api/fetcher";
+import { isApiError } from "@/lib/api/fetcher";
 
 // Mirrors the server rules for fast feedback; the server stays authoritative.
 const registerFormSchema = z.object({
@@ -42,16 +43,16 @@ export function RegisterForm() {
     setFormError(null);
     try {
       await registerAccount(values);
-      router.replace("/");
+      router.replace("/cvs");
       router.refresh();
     } catch (error) {
-      if (error instanceof ApiError && error.status === 409) {
+      if (isApiError(error, 409)) {
         setError("email", {
           message: "An account with this email is already registered.",
         });
         return;
       }
-      if (error instanceof ApiError && error.status === 400 && error.fieldErrors) {
+      if (isApiError(error, 400) && error.fieldErrors) {
         let mapped = false;
         for (const field of FIELDS) {
           const message = error.fieldErrors[field]?.[0];
@@ -72,19 +73,21 @@ export function RegisterForm() {
     <form
       onSubmit={handleSubmit(onSubmit)}
       noValidate
-      className="flex flex-col gap-4"
+      className="flex flex-col gap-6 short:gap-4"
     >
       <TextField
-        label="Email"
+        label="Email address"
         type="email"
+        placeholder="you@example.com"
         autoComplete="email"
         inputMode="email"
         error={errors.email?.message}
         {...register("email")}
       />
-      <TextField
+      <PasswordField
         label="Password"
-        type="password"
+        placeholder="Create a password"
+        hint="Use at least 8 characters."
         autoComplete="new-password"
         error={errors.password?.message}
         {...register("password")}
@@ -95,7 +98,7 @@ export function RegisterForm() {
           {formError}
         </p>
       ) : null}
-      <Button type="submit" disabled={isSubmitting}>
+      <Button type="submit" stretch={false} className="w-full" disabled={isSubmitting}>
         {isSubmitting ? "Creating account…" : "Create account"}
       </Button>
     </form>

@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
-import { ApiError } from "@/lib/api/fetcher";
-import { getCvStatusServer } from "@/lib/cv/server";
+import type { CvResult } from "@/lib/api/cvs";
+import { isApiError } from "@/lib/api/fetcher";
+import { getCvResultServer, getCvStatusServer } from "@/lib/cv/server";
+import { CvEditor } from "./cv-editor";
 import { GenerationView } from "./generation-view";
-import { QueryProvider } from "./query-provider";
 
 export const metadata: Metadata = { title: "Your CV · AI CV Builder" };
 
@@ -14,7 +15,7 @@ export default async function CvPage(props: PageProps<"/cvs/[id]">) {
   try {
     status = await getCvStatusServer(id);
   } catch (error) {
-    if (error instanceof ApiError) {
+    if (isApiError(error)) {
       if (error.status === 401) {
         redirect("/login");
       }
@@ -26,9 +27,27 @@ export default async function CvPage(props: PageProps<"/cvs/[id]">) {
     throw error;
   }
 
-  return (
-    <QueryProvider>
-      <GenerationView initialStatus={status} />
-    </QueryProvider>
-  );
+  let result: CvResult | null = null;
+  if (status.status === "COMPLETED") {
+    try {
+      result = await getCvResultServer(id);
+    } catch (error) {
+      if (isApiError(error, 401)) {
+        redirect("/login");
+      }
+      if (isApiError(error, 404)) {
+        notFound();
+      }
+      // A 409 means the CV left COMPLETED between the two reads: show the generation view.
+      if (!isApiError(error, 409)) {
+        throw error;
+      }
+    }
+  }
+
+  if (result) {
+    return <CvEditor cvId={id} targetRole={status.targetRole} initialResult={result} />;
+  }
+
+  return <GenerationView initialStatus={status} />;
 }

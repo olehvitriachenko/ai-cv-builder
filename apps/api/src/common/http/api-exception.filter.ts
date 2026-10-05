@@ -7,6 +7,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import type { FastifyReply } from 'fastify';
+import { describeError, errorCode } from '../errors.js';
 import { ApiError, type FieldErrors } from './api-error.js';
 
 interface ErrorBody {
@@ -33,12 +34,8 @@ function isBodyParseError(error: unknown): boolean {
 
 /** Safe-to-log description of an unexpected error: never its message, stack or payload. */
 function describeUnexpected(error: unknown): string {
-  const name = error instanceof Error ? error.constructor.name : typeof error;
-  const code =
-    typeof error === 'object' && error !== null && 'code' in error && typeof error.code === 'string'
-      ? ` code=${error.code}`
-      : '';
-  return `${name}${code}`;
+  const code = errorCode(error);
+  return code === undefined ? describeError(error) : `${describeError(error)} code=${code}`;
 }
 
 /**

@@ -21,7 +21,7 @@ interface FieldFrameProps {
 function FieldFrame({ label, controlId, hint, error, children }: FieldFrameProps) {
   return (
     <div className="flex flex-col gap-2">
-      <label htmlFor={controlId} className="text-[13px] font-medium text-ink">
+      <label htmlFor={controlId} className="text-[13px] leading-[normal] font-medium text-ink">
         {label}
       </label>
       {children}
@@ -46,25 +46,46 @@ function describedBy(controlId: string, hint?: string, error?: string): string |
   return hint ? `${controlId}-hint` : undefined;
 }
 
-interface TextFieldProps extends InputHTMLAttributes<HTMLInputElement> {
+export interface TextFieldProps extends InputHTMLAttributes<HTMLInputElement> {
   label: string;
   hint?: string;
   error?: string;
+  /** Rendered over the right edge of the control (e.g. a show/hide button). Add `pr-*` via `className`. */
+  adornment?: ReactNode;
 }
 
-export function TextField({ label, hint, error, id, className = "", ...props }: TextFieldProps) {
+export function TextField({
+  label,
+  hint,
+  error,
+  adornment,
+  id,
+  className = "",
+  ...props
+}: TextFieldProps) {
   const generatedId = useId();
   const controlId = id ?? generatedId;
 
+  const input = (
+    <input
+      id={controlId}
+      aria-invalid={error ? true : undefined}
+      aria-describedby={describedBy(controlId, hint, error)}
+      className={`${CONTROL} h-11 px-3 ${controlBorder(error)} ${className}`}
+      {...props}
+    />
+  );
+
   return (
     <FieldFrame label={label} controlId={controlId} hint={hint} error={error}>
-      <input
-        id={controlId}
-        aria-invalid={error ? true : undefined}
-        aria-describedby={describedBy(controlId, hint, error)}
-        className={`${CONTROL} h-11 px-3 ${controlBorder(error)} ${className}`}
-        {...props}
-      />
+      {adornment ? (
+        <div className="relative">
+          {input}
+          {adornment}
+        </div>
+      ) : (
+        input
+      )}
     </FieldFrame>
   );
 }

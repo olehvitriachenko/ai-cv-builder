@@ -9,6 +9,7 @@ describe('validateEnv', () => {
     expect(env.ANTHROPIC_API_KEY).toBeUndefined();
     expect(env.ANTHROPIC_MODEL).toBe('claude-sonnet-5-5');
     expect(env.ANTHROPIC_TIMEOUT_MS).toBe(120_000);
+    expect(env.ANSWER_APPLY_TIMEOUT_MS).toBe(20_000);
     expect(env.GENERATION_TIMEOUT_MS).toBe(300_000);
     expect(env.GENERATION_CONCURRENCY).toBe(2);
     expect(env.GENERATION_AUTORUN).toBe(true);
@@ -26,10 +27,12 @@ describe('validateEnv', () => {
     const env = validateEnv({
       ...base,
       GENERATION_TIMEOUT_MS: '60000',
+      ANSWER_APPLY_TIMEOUT_MS: '5000',
       GENERATION_CONCURRENCY: '4',
     });
 
     expect(env.GENERATION_TIMEOUT_MS).toBe(60_000);
+    expect(env.ANSWER_APPLY_TIMEOUT_MS).toBe(5_000);
     expect(env.GENERATION_CONCURRENCY).toBe(4);
   });
 
@@ -37,6 +40,8 @@ describe('validateEnv', () => {
     expect(() => validateEnv({ ...base, GENERATION_TIMEOUT_MS: '0' })).toThrow();
     expect(() => validateEnv({ ...base, GENERATION_TIMEOUT_MS: '-5' })).toThrow();
     expect(() => validateEnv({ ...base, ANTHROPIC_TIMEOUT_MS: '0' })).toThrow();
+    expect(() => validateEnv({ ...base, ANSWER_APPLY_TIMEOUT_MS: '0' })).toThrow();
+    expect(() => validateEnv({ ...base, ANSWER_APPLY_TIMEOUT_MS: '-1' })).toThrow();
   });
 
   it('rejects concurrency outside 1..10', () => {

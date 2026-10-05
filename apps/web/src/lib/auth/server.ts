@@ -1,6 +1,6 @@
 import { cookies } from 'next/headers';
 import { userSchema, type User } from '@/lib/api/auth';
-import { ApiError, apiFetch } from '@/lib/api/fetcher';
+import { apiFetch, isApiError } from '@/lib/api/fetcher';
 
 /**
  * Server-side only. Asks the API who the current user is by forwarding the incoming session
@@ -17,7 +17,7 @@ export async function getCurrentUser(): Promise<User | null> {
   try {
     return await apiFetch('/auth/me', { schema: userSchema, cookie });
   } catch (error) {
-    if (error instanceof ApiError && error.status === 401) {
+    if (isApiError(error, 401)) {
       return null;
     }
     throw error;

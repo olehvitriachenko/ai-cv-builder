@@ -62,10 +62,13 @@ describe('GET /api/cvs/:id/result', () => {
       itemId: 'exp-1',
       missing: 'Team size',
       question: 'How big was the team?',
-      status: 'OPEN',
+      status: 'UNANSWERED',
+      answer: null,
     });
+    expect(body.revision).toBe(0);
     expect(typeof body.questions[0].id).toBe('string');
     expect(Object.keys(body.questions[0]).sort((a, b) => a.localeCompare(b))).toEqual([
+      'answer',
       'id',
       'itemId',
       'missing',

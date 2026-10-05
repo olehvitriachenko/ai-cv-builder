@@ -1,4 +1,4 @@
-import type { LlmCvOutput } from '../../src/modules/ai/llm-cv-output.schema.js';
+import type { LlmCvOutput } from '../../src/modules/ai/schemas/llm-cv-output.schema.js';
 
 /**
  * Model output that is valid for `VALID_SOURCE_TEXT` in helpers/cvs.ts: every email, employer and

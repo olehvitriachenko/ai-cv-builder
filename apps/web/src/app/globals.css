@@ -4,6 +4,9 @@
  * Design tokens from the Figma "Forma" UI kit (07.1 Foundations): light neutral canvas, Inter,
  * one restrained accent, 1px rules, 8px controls, 12px cards, 44px form controls.
  */
+/* Short viewports (small laptops, landscape phones): screens use a compact vertical rhythm. */
+@custom-variant short (@media (max-height: 780px));
+
 @theme inline {
   --color-canvas: #f7f8fa;
   --color-surface: #ffffff;
@@ -17,6 +20,9 @@
   --color-success-tint: #edf7f1;
   --color-danger: #b42318;
   --color-danger-tint: #fef3f2;
+  /* The rejected-file row (03.4): a softer wash and rule than the danger tint. */
+  --color-danger-wash: #fcf5f3;
+  --color-danger-wash-line: #ebd7d2;
   --color-placeholder: #98a2b3;
   --color-skeleton: #eaecf0;
   --color-stage: #eef0f3;

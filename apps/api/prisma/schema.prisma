@@ -59,9 +59,32 @@ enum QuestionSection {
   SKILLS
 }
 
+/// UNANSWERED and ANSWERED are unresolved; APPLIED (the answer modified the CV) and DISMISSED
+/// (explicitly closed without modifying the CV) are resolved and read-only.
 enum QuestionStatus {
-  OPEN
-  RESOLVED
+  UNANSWERED
+  ANSWERED
+  APPLIED
+  DISMISSED
+}
+
+/// The single plain value an answer fills. Values are prefixed by the question section, which a
+/// CHECK constraint enforces. Questions without a field are applied through a scoped AI patch.
+enum QuestionField {
+  CONTACT_FULL_NAME
+  CONTACT_EMAIL
+  CONTACT_PHONE
+  CONTACT_LOCATION
+  CONTACT_LINK
+  EXPERIENCE_EMPLOYER
+  EXPERIENCE_TITLE
+  EXPERIENCE_LOCATION
+  EXPERIENCE_START_DATE
+  EXPERIENCE_END_DATE
+  EDUCATION_INSTITUTION
+  EDUCATION_QUALIFICATION
+  EDUCATION_START_DATE
+  EDUCATION_END_DATE
 }
 
 /// The Cv row is also the generation job: its status moves only through compare-and-set updates
@@ -87,6 +110,9 @@ model Cv {
 
   /// The validated CvDraft document; set exactly when the status is COMPLETED.
   draft         Json?
+  /// Advances by 1 only when the draft content changes (manual edit, clarification apply): the
+  /// optimistic-concurrency token. Answering, dismissing, generation and retry never advance it.
+  revision      Int     @default(0)
   promptVersion String?
   aiModel       String?
 
@@ -108,7 +134,10 @@ model ClarificationQuestion {
   itemId    String?
   missing   String
   question  String
-  status    QuestionStatus  @default(OPEN)
+  field     QuestionField?
+  /// The user's answer; set exactly when status is ANSWERED (a dismissed question keeps one).
+  answer    String?
+  status    QuestionStatus  @default(UNANSWERED)
   position  Int
   cv        Cv              @relation(fields: [cvId], references: [id], onDelete: Cascade)
   createdAt DateTime        @default(now())

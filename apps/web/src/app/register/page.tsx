@@ -1,20 +1,20 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { AuthShell } from "@/components/auth-shell";
 import { RegisterForm } from "./register-form";
 
 export const metadata: Metadata = { title: "Create account · AI CV Builder" };
 
 export default function RegisterPage() {
   return (
-    <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center gap-6 px-4 py-10">
-      <h1 className="text-2xl font-semibold">Create your account</h1>
+    <AuthShell
+      title="Create your account"
+      description="A clearer CV. A confident next step. Start with your experience; we’ll help with the structure."
+      switchPrompt="Already have an account?"
+      switchLabel="Sign in"
+      switchHref="/login"
+      note="By creating an account, you agree to our Terms of Service and Privacy Policy."
+    >
       <RegisterForm />
-      <p className="text-sm">
-        Already have an account?{" "}
-        <Link href="/login" className="font-medium underline">
-          Sign in
-        </Link>
-      </p>
-    </main>
+    </AuthShell>
   );
 }

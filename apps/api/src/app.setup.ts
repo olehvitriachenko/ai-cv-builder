@@ -18,6 +18,13 @@ export async function configureApp(app: NestFastifyApplication): Promise<void> {
     limits: { fileSize: MAX_PDF_BYTES, files: 1, fields: 4 },
     throwFileSizeLimit: false,
   });
-  app.enableCors({ origin: config.getOrThrow<string>('WEB_ORIGIN'), credentials: true });
+  // The browser calls the API cross-origin with credentials. @fastify/cors only allows
+  // GET, HEAD and POST by default, so PUT (draft, answer) and DELETE (CV) must be listed or their
+  // preflights fail in a real browser while inject()-based tests still pass.
+  app.enableCors({
+    origin: config.getOrThrow<string>('WEB_ORIGIN'),
+    credentials: true,
+    methods: ['GET', 'HEAD', 'POST', 'PUT', 'DELETE'],
+  });
   app.useGlobalFilters(new ApiExceptionFilter());
 }

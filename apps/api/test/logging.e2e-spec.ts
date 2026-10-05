@@ -1,7 +1,7 @@
 import { ConsoleLogger, Logger, type LoggerService } from '@nestjs/common';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { PrismaService } from '../src/infrastructure/index.js';
-import { hashSessionToken } from '../src/modules/auth/session-token.js';
+import { hashSessionToken } from '../src/modules/auth/session/session-token.js';
 import { createTestApp } from './helpers/create-test-app.js';
 import { loginUser, registerUser, uniqueEmail } from './helpers/users.js';
 
