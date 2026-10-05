@@ -106,8 +106,8 @@ export function getCvStatus(id: string, cookie?: string): Promise<CvStatus> {
 }
 
 /** `GET /api/cvs/:id/result`: the draft with its clarification questions; 409 until COMPLETED. */
-export function getCvResult(id: string): Promise<CvResult> {
-  return apiFetch(`/cvs/${encodeURIComponent(id)}/result`, { schema: cvResultSchema });
+export function getCvResult(id: string, cookie?: string): Promise<CvResult> {
+  return apiFetch(`/cvs/${encodeURIComponent(id)}/result`, { schema: cvResultSchema, cookie });
 }
 
 /** `POST /api/cvs/:id/retry`: only for a FAILED CV; 409 `GENERATION_NOT_RETRYABLE` otherwise. */
@@ -144,4 +144,17 @@ export function listCvs(cookie?: string): Promise<CvList> {
 /** `DELETE /api/cvs/:id`: 204. 409 `CV_GENERATION_ACTIVE` while generating; 404 when missing. */
 export function deleteCv(id: string): Promise<void> {
   return apiFetch(`/cvs/${encodeURIComponent(id)}`, { method: "DELETE" });
+}
+
+export const draftSaveSchema = z.object({
+  revision: z.number().int().nonnegative(),
+  updatedAt: z.string(),
+});
+
+/**
+ * `PUT /api/cvs/:id/draft`: replaces the draft of a COMPLETED CV. `revision` is the one the edit is
+ * based on; a stale one is `409 REVISION_CONFLICT` and nothing is stored.
+ */
+export function saveDraft(id: string, input: { revision: number; draft: CvDraft }): Promise<{ revision: number }> {
+  return apiFetch(`/cvs/${encodeURIComponent(id)}/draft`, { method: "PUT", body: input, schema: draftSaveSchema });
 }

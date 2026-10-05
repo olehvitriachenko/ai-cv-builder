@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { getCvStatus, listCvs, type CvList, type CvStatus } from "@/lib/api/cvs";
+import { getCvResult, getCvStatus, listCvs, type CvList, type CvResult, type CvStatus } from "@/lib/api/cvs";
 
 /**
  * Server-side only: the first status for the CV page, loaded with the visitor's session cookie.
@@ -14,4 +14,10 @@ export async function getCvStatusServer(id: string): Promise<CvStatus> {
 export async function listCvsServer(): Promise<CvList> {
   const cookie = (await cookies()).toString();
   return listCvs(cookie);
+}
+
+/** Server-side only: the draft, revision and questions of a COMPLETED CV for the editor. */
+export async function getCvResultServer(id: string): Promise<CvResult> {
+  const cookie = (await cookies()).toString();
+  return getCvResult(id, cookie);
 }

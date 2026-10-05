@@ -5,12 +5,11 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { ApiError, isApiError } from "@/lib/api/fetcher";
-import { getCvResult, getCvStatus, retryCv, type CvStatus } from "@/lib/api/cvs";
+import { getCvStatus, retryCv, type CvStatus } from "@/lib/api/cvs";
 import { pollInterval } from "@/lib/cv/poll";
 import { CvNotFound } from "./cv-not-found";
 import { DraftSkeleton } from "./draft-skeleton";
 import { GenerationIntro, GenerationProgress } from "./generation-progress";
-import { ResultView } from "./result-view";
 
 const TITLES = {
   PENDING: "Getting your CV ready",
@@ -45,14 +44,6 @@ export function GenerationView({ initialStatus }: { initialStatus: CvStatus }) {
   });
   const status = statusQuery.data;
 
-  const resultQuery = useQuery({
-    queryKey: ["cv", id, "result"] as const,
-    queryFn: () => getCvResult(id),
-    enabled: status.status === "COMPLETED",
-    staleTime: Infinity,
-    retry: 2,
-  });
-
   const retryMutation = useMutation({
     mutationFn: () => retryCv(id),
     onSuccess: (next) => {
@@ -69,6 +60,14 @@ export function GenerationView({ initialStatus }: { initialStatus: CvStatus }) {
     },
   });
 
+  // The generation just finished: the server page renders the editor for a COMPLETED CV.
+  const completed = status.status === "COMPLETED";
+  useEffect(() => {
+    if (completed) {
+      router.refresh();
+    }
+  }, [completed, router]);
+
   const sessionExpired = isApiError(statusQuery.error, 401);
   useEffect(() => {
     if (sessionExpired) {
@@ -81,12 +80,14 @@ export function GenerationView({ initialStatus }: { initialStatus: CvStatus }) {
   }
 
   if (status.status === "COMPLETED") {
-    const state = resultQuery.data
-      ? ({ kind: "ready", result: resultQuery.data } as const)
-      : resultQuery.isError
-        ? ({ kind: "error", retry: () => void resultQuery.refetch() } as const)
-        : ({ kind: "loading" } as const);
-    return <ResultView status={status} state={state} />;
+    return (
+      <div className="mx-auto flex w-full max-w-[1120px] flex-col gap-4 px-4 py-8 sm:px-8 lg:px-12">
+        <p role="status" className="text-sm text-muted">
+          Your CV is ready. Opening the editor…
+        </p>
+        <DraftSkeleton caption="Your draft is ready" note="Opening the editor…" />
+      </div>
+    );
   }
 
   const failed = status.status === "FAILED";
