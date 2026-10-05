@@ -130,3 +130,15 @@ Figma: `08.1` (skills editing), `08.2` (state matrix: combobox, category cards a
 | 320 px: the open list stays inside the viewport (236 px wide, 288 px high, scrolls inside), a 60-character unbroken skill wraps, no horizontal scroll | pass |
 
 Deviations from the frames, on purpose: see the "Built as" note under Phase 4 in `tasks.md` (one editor model for every width, order and removal controls on the edited category, the custom option beside matches).
+
+## Iteration 3 (US3): AI assistant states (T060 to T064)
+
+Figma: `07.1` (answered), `07.2` (applied), `07.3` (state matrix) and the assistant card of `05.1`.
+
+| Check | Result |
+|-------|--------|
+| Unit: `question-form.test.ts` (unresolved count and the supporting line, the answer save labels, when Apply to CV is allowed, when an answer needs saving, the helper text, the "Section / Name" context) and `apply-flow.test.ts` (each failure code to its message, kind and recovery actions) | pass; web suite 218 tests before this change, 233 after |
+| Browser (Playwright script, throwaway account, apply responses stubbed so no AI call is made): Apply disabled while unanswered and while the answer is unsaved; typing saves by itself and shows Saved and Answered; Apply enabled; the four failures show their message, their actions and "Retained answer … Target: Experience / Kilona."; Retry later hides the notice; Dismiss collapses the question and the header reads 0 unresolved and "All resolved" | pass |
+
+Not run here: an apply that reaches the real model, and the answer-save failure state with a real network failure (the code path is covered by the save error branch of the mutation).
+

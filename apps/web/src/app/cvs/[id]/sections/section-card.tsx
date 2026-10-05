@@ -5,11 +5,14 @@ import type { ReactNode } from "react";
  * semibold heading and an optional 11px count line. No accordion: every section is visible.
  */
 export function SectionCard({
+  id,
   title,
   count,
   aside,
   children,
 }: {
+  /** The anchor the AI assistant's "Review section" actions scroll to. */
+  id?: string;
   title: string;
   count?: string | null;
   /** A short note at the right end of the title row (for example "6 skills · By category"). */
@@ -17,7 +20,7 @@ export function SectionCard({
   children: ReactNode;
 }) {
   return (
-    <section aria-label={title} className="flex flex-col gap-4 rounded-xl border border-line bg-surface p-4">
+    <section id={id} aria-label={title} className="flex scroll-mt-24 flex-col gap-4 rounded-xl border border-line bg-surface p-4">
       <header className="flex flex-col gap-2">
         {aside ? (
           <div className="flex items-baseline justify-between gap-3">

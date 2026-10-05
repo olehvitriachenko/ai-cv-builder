@@ -113,7 +113,7 @@ export function Skills() {
   const hint = needsMoreSkills(total) ? "It is suggested to add at least 5 skills" : undefined;
 
   return (
-    <SectionCard title="Skills & Technical Competencies" aside={`${total} ${skillWord(total)} · By category`}>
+    <SectionCard id="cv-section-skills" title="Skills & Technical Competencies" aside={`${total} ${skillWord(total)} · By category`}>
       <p className="text-xs leading-normal text-muted">Choose a category, then add the skills you can support.</p>
 
       <Combobox

@@ -22,7 +22,7 @@ export function PersonalDetails() {
   const atLinkLimit = filledLinks + fields.length >= MAX_LINKS;
 
   return (
-    <SectionCard title="Personal details">
+    <SectionCard id="cv-section-contact" title="Personal details">
       <TextField
         label="Target role"
         placeholder="Enter target role"

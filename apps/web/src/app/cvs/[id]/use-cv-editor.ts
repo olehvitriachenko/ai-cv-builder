@@ -5,7 +5,8 @@ import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { applyQuestion, saveDraft, type ClarificationQuestion, type CvResult } from "@/lib/api/cvs";
 import { isApiError } from "@/lib/api/fetcher";
-import { ApplyBlockedError, applyAnswer, applyErrorOutcome } from "@/lib/cv/apply-flow";
+import { ApplyBlockedError, ApplyFailureError, applyAnswer, applyErrorOutcome } from "@/lib/cv/apply-flow";
+import { questionTargetName, sectionLabel } from "@/lib/cv/question-form";
 import { DraftAutosaver, type SavePayload } from "@/lib/cv/autosave";
 import {
   cvFormSchema,
@@ -114,7 +115,7 @@ export function useCvEditor({
       if (error instanceof ApplyBlockedError) {
         throw error;
       }
-      const outcome = applyErrorOutcome(error);
+      const outcome = applyErrorOutcome(error, questionTargetName(question, payload.draft) ?? sectionLabel(question.section));
       if (outcome.reload) {
         try {
           onReplace(await fetchLatest(), outcome.message);
@@ -123,10 +124,15 @@ export function useCvEditor({
           // Could not reload either: fall through and show the message on the card.
         }
       }
-      throw new Error(outcome.message);
+      throw new ApplyFailureError(outcome);
     } finally {
       setApplying(false);
     }
+  }
+
+  /** "Review latest" on a failed apply: load the saved version so the person can compare it with their draft. */
+  async function reviewLatest(): Promise<void> {
+    onReplace(await fetchLatest(), "Loaded the latest saved version. Review it, then apply the answer again if it still fits.");
   }
 
   async function resolveConflict(keepMine: boolean) {
@@ -160,6 +166,7 @@ export function useCvEditor({
     invalid,
     applying,
     handleApply,
+    reviewLatest,
     conflictBusy,
     conflictError,
     resolveConflict,

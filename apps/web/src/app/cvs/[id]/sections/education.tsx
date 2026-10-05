@@ -165,7 +165,7 @@ export function Education() {
   );
 
   return (
-    <SectionCard title="Education" count={educationCount(entries)}>
+    <SectionCard id="cv-section-education" title="Education" count={educationCount(entries)}>
       {fields.length === 0 ? (
         <EmptySection
           icon={GraduationCap}

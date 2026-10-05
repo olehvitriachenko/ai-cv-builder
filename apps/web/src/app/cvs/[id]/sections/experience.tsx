@@ -38,7 +38,7 @@ export function Experience() {
   );
 
   return (
-    <SectionCard title="Professional experience" count={experienceCount(fields.length)}>
+    <SectionCard id="cv-section-experience" title="Professional experience" count={experienceCount(fields.length)}>
       {fields.length === 0 ? (
         <EmptySection
           icon={BriefcaseBusiness}

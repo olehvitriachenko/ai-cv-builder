@@ -10,7 +10,7 @@ export function Summary() {
   const { register, formState } = useFormContext<DraftFormValues>();
 
   return (
-    <SectionCard title="Professional summary">
+    <SectionCard id="cv-section-summary" title="Professional summary">
       <TextareaField
         label="Professional summary"
         labelHidden

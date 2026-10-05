@@ -132,6 +132,7 @@ export function EditorWorkspace({
               initialQuestions={result.questions}
               draft={draft}
               onApply={editor.handleApply}
+              onReviewLatest={editor.reviewLatest}
               applyDisabled={editor.applying}
             />
             {/* While an apply runs the form is read-only, so nothing is typed over the server's result. */}

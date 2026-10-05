@@ -1,10 +1,10 @@
 import { ChevronDown, TriangleAlert } from "lucide-react";
 import {
   useId,
+  type ComponentProps,
   type InputHTMLAttributes,
   type ReactNode,
   type SelectHTMLAttributes,
-  type TextareaHTMLAttributes,
 } from "react";
 
 // "Forma / Input", "Forma / Textarea" and "Forma / Select": 13px medium label, 8px radius, 44px
@@ -108,7 +108,7 @@ export function TextField({
   );
 }
 
-interface TextareaFieldProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
+interface TextareaFieldProps extends ComponentProps<"textarea"> {
   label: string;
   labelHidden?: boolean;
   hint?: string;

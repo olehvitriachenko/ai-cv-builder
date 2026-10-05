@@ -1,15 +1,29 @@
 "use client";
 
-import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { TextareaField } from "@/components/ui/field";
 import { answerQuestion, dismissQuestion, type ClarificationQuestion, type CvDraft } from "@/lib/api/cvs";
 import { isApiError } from "@/lib/api/fetcher";
+import { ApplyBlockedError, ApplyFailureError, type ApplyAction, type ApplyFailure } from "@/lib/cv/apply-flow";
 import { CVS_QUERY_KEY } from "@/lib/cv/query-keys";
-import { answerFormSchema, questionContext, questionView, type AnswerFormValues } from "@/lib/cv/question-form";
+import {
+  MAX_ANSWER_CHARS,
+  answerHelper,
+  answerNeedsSaving,
+  canApplyAnswer,
+  questionContext,
+  questionView,
+  sectionLabel,
+  type AnswerSave,
+} from "@/lib/cv/question-form";
+import { AnswerStatus } from "./answer-status";
+import { ApplyFailureNotice } from "./apply-failure";
+import { revealSection } from "./section-links";
+
+/** How long typing pauses before the answer is saved on its own (not part of the CV's own save). */
+const ANSWER_SAVE_DELAY_MS = 800;
 
 function failureMessage(error: unknown): string {
   if (isApiError(error, 409)) {
@@ -21,17 +35,13 @@ function failureMessage(error: unknown): string {
   return "We couldn’t save that. Your answer is still here; try again.";
 }
 
-const STATE_STYLES = {
-  Unanswered: { card: "border-accent-line bg-surface", label: "text-accent" },
-  Answered: { card: "border-accent-line bg-surface", label: "text-accent" },
-  Applied: { card: "border-[#d7e9e1] bg-[#f7fbf9]", label: "text-success" },
-  Dismissed: { card: "border-line bg-canvas", label: "text-muted" },
-} as const;
+const KIND_PILL = "rounded-full bg-accent-tint px-2 py-0.5 text-[10px] leading-[normal] font-semibold text-accent";
 
 /**
- * Figma "Factual clarification" card in its four states. Answering saves the answer on the
- * server and does not change the CV; dismissing closes the question without changing it either.
- * Both are explicit buttons: nothing is ever dismissed or applied automatically.
+ * One clarification question of the AI assistant (Figma 07.1 to 07.3). The answer saves by itself,
+ * separately from the CV ("Answer ✓ Saved"); **Apply to CV** is the only thing that changes the CV
+ * and **Dismiss** closes the question without changing it. Applied and dismissed questions
+ * collapse to their question. Failures keep the answer and offer the recovery for their cause.
  */
 export function QuestionCard({
   cvId,
@@ -39,6 +49,7 @@ export function QuestionCard({
   draft,
   onChange,
   onApply,
+  onReviewLatest,
   applyDisabled,
 }: {
   cvId: string;
@@ -47,21 +58,23 @@ export function QuestionCard({
   onChange: (question: ClarificationQuestion) => void;
   /** Applies this question to the CV (saving pending edits first). Rejects with the reason shown here. */
   onApply: (question: ClarificationQuestion) => Promise<void>;
+  /** Loads the latest saved version of the CV into the editor. */
+  onReviewLatest: () => Promise<void>;
   /** Another apply is running or the editor is busy. */
   applyDisabled: boolean;
 }) {
   const queryClient = useQueryClient();
   const view = questionView(question);
-  const style = STATE_STYLES[view.label];
-  const { register, handleSubmit, formState } = useForm<AnswerFormValues>({
-    defaultValues: { answer: question.answer ?? "" },
-    resolver: zodResolver(answerFormSchema),
-  });
+  const context = questionContext(question, draft);
+  const answerRef = useRef<HTMLTextAreaElement>(null);
+  const [text, setText] = useState(question.answer ?? "");
+  const [applying, setApplying] = useState(false);
+  const [failure, setFailure] = useState<ApplyFailure | null>(null);
+  const [blocked, setBlocked] = useState<string | null>(null);
 
   const refreshList = () => void queryClient.invalidateQueries({ queryKey: CVS_QUERY_KEY });
-
   const save = useMutation({
-    mutationFn: (values: AnswerFormValues) => answerQuestion(cvId, question.id, values.answer),
+    mutationFn: (answer: string) => answerQuestion(cvId, question.id, answer.trim()),
     onSuccess: (next) => {
       onChange(next);
       refreshList();
@@ -74,87 +87,199 @@ export function QuestionCard({
       refreshList();
     },
   });
-  const [applying, setApplying] = useState(false);
-  const [applyProblem, setApplyProblem] = useState<string | null>(null);
-  const busy = save.isPending || dismiss.isPending || applying || applyDisabled;
-  const problem =
-    applyProblem ?? (save.isError ? failureMessage(save.error) : dismiss.isError ? failureMessage(dismiss.error) : null);
+
+  // Typing saves the answer after a pause. One save runs at a time; a failed save is retried only
+  // by the person (Retry answer save), never in a loop.
+  const saving = save.isPending;
+  const saveFailed = save.isError && save.variables === text;
+  useEffect(() => {
+    if (!view.canAnswer || saving || saveFailed || !answerNeedsSaving(text, question.answer)) {
+      return;
+    }
+    const timer = setTimeout(() => save.mutate(text), ANSWER_SAVE_DELAY_MS);
+    return () => clearTimeout(timer);
+    // `save` is stable enough; the inputs that decide whether to save are listed.
+  }, [text, question.answer, view.canAnswer, saving, saveFailed, save]);
+
+  // Auto-grow: the field starts one line high, like the design, and follows the text.
+  useEffect(() => {
+    const element = answerRef.current;
+    if (element) {
+      element.style.height = "auto";
+      element.style.height = `${element.scrollHeight}px`;
+    }
+  }, [text]);
+
+  const saveState: AnswerSave = saving
+    ? "saving"
+    : saveFailed
+      ? "error"
+      : question.status === "ANSWERED" && !answerNeedsSaving(text, question.answer)
+        ? "saved"
+        : "idle";
+  const applyEnabled = canApplyAnswer({
+    status: question.status,
+    text,
+    serverAnswer: question.answer,
+    save: saveState,
+    applying,
+    otherApplyRunning: applyDisabled,
+  });
+  const busy = applying || dismiss.isPending;
+  const problem = dismiss.isError ? failureMessage(dismiss.error) : null;
 
   async function apply() {
     setApplying(true);
-    setApplyProblem(null);
+    setFailure(null);
+    setBlocked(null);
     try {
       await onApply(question);
     } catch (error) {
-      setApplyProblem(error instanceof Error ? error.message : "We couldn’t apply that answer. Nothing was changed; try again.");
+      if (error instanceof ApplyFailureError) {
+        setFailure(error.failure);
+      } else if (error instanceof ApplyBlockedError) {
+        setBlocked(error.message);
+      } else {
+        setBlocked("We couldn’t apply that answer. Nothing was changed; try again.");
+      }
     } finally {
       setApplying(false);
     }
   }
 
-  return (
-    <li className={`flex flex-col gap-2 rounded-[10px] border p-3 ${style.card}`}>
-      <div className="flex items-center justify-between gap-3">
-        <p className="min-w-0 text-[11px] break-words text-muted">{questionContext(question, draft)}</p>
-        <span className={`shrink-0 text-[10px] font-semibold ${style.label}`}>{view.label}</span>
-      </div>
+  function recover(action: ApplyAction) {
+    switch (action) {
+      case "retry_later":
+        setFailure(null);
+        break;
+      case "edit_manually":
+      case "review_section":
+        revealSection(question.section);
+        break;
+      case "re_answer":
+        setFailure(null);
+        answerRef.current?.focus();
+        break;
+      case "dismiss":
+        dismiss.mutate();
+        break;
+      case "review_latest":
+        void onReviewLatest();
+        break;
+      case "retry_after_review":
+        void apply();
+        break;
+    }
+  }
 
-      <p className="text-[13px] leading-[1.4] font-semibold break-words text-ink">{question.question}</p>
-      <p className="text-[11px] leading-normal break-words text-muted">{question.missing}</p>
-
-      {view.canAnswer ? (
-        <form
-          noValidate
-          onSubmit={handleSubmit((values) => save.mutate(values))}
-          className="flex flex-col gap-2"
-        >
-          <TextareaField
-            label="Your answer"
-            rows={2}
-            placeholder="e.g. Code reviews, pairing or onboarding"
-            error={formState.errors.answer?.message}
-            {...register("answer")}
-          />
-          <div className="flex flex-wrap items-center gap-3">
-            {view.canApply ? (
-              <Button type="button" size="compact" stretch={false} disabled={busy} onClick={() => void apply()}>
-                {applying ? "Applying…" : "Apply answer"}
-              </Button>
-            ) : null}
+  if (view.resolved) {
+    const applied = question.status === "APPLIED";
+    return (
+      <li
+        className={`flex flex-col gap-2 rounded-[10px] border p-3 ${
+          applied ? "border-[#d7e9e1] bg-[#f7fbf9]" : "border-line bg-surface"
+        }`}
+      >
+        <div className="flex flex-wrap items-center gap-2">
+          <span className={applied ? "rounded-full bg-success-tint px-2 py-0.5 text-[10px] leading-[normal] font-semibold text-success" : KIND_PILL}>
+            {view.label}
+          </span>
+          <p className="min-w-0 text-[11px] leading-[normal] break-words text-muted">{context}</p>
+        </div>
+        <p className="text-[13px] leading-[1.4] font-medium break-words text-ink">{question.question}</p>
+        {applied ? (
+          <div>
             <Button
-              type="submit"
-              variant={view.canApply ? "secondary" : "primary"}
-              size="compact"
+              type="button"
+              variant="secondary"
               stretch={false}
-              disabled={busy}
+              className="text-accent!"
+              onClick={() => revealSection(question.section)}
             >
-              {save.isPending ? "Saving…" : question.status === "ANSWERED" ? "Update answer" : "Save answer"}
-            </Button>
-            <Button type="button" variant="text" size="compact" stretch={false} disabled={busy} onClick={() => dismiss.mutate()}>
-              {dismiss.isPending ? "Dismissing…" : "Dismiss"}
+              Review in {sectionLabel(question.section).toLowerCase()}
             </Button>
           </div>
-          {question.status === "ANSWERED" ? (
-            <p className="text-[11px] leading-normal text-muted">
-              Answer saved. Your CV hasn’t changed yet; apply it when you’re ready.
-            </p>
-          ) : (
-            <p className="text-[11px] leading-normal text-muted">
-              Saving an answer doesn’t change your CV. You choose when it is applied.
-            </p>
-          )}
-        </form>
-      ) : question.status === "APPLIED" ? (
-        <p className="text-[13px] leading-[1.4] font-semibold break-words text-ink">
-          Your confirmed answer: “{question.answer}”
-        </p>
-      ) : (
-        <p className="text-[12px] leading-normal text-muted">
-          Dismissed. This question no longer counts as open and your CV was not changed.
-          {question.answer ? ` Your saved answer was “${question.answer}”.` : null}
-        </p>
-      )}
+        ) : null}
+      </li>
+    );
+  }
 
+  const helperId = `${question.id}-helper`;
+  return (
+    <li className="flex flex-col gap-2">
+      <div className="flex flex-col gap-2 rounded-[10px] border border-accent-line bg-surface p-3">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <span className={KIND_PILL}>Factual</span>
+            <p className="min-w-0 text-[11px] leading-[normal] break-words text-muted">{context}</p>
+          </div>
+          <span className="shrink-0 text-[10px] leading-[normal] font-semibold text-accent">{view.label}</span>
+        </div>
+        <p className="text-[13px] leading-[1.4] font-semibold break-words text-ink">{question.question}</p>
+        <TextareaField
+          ref={answerRef}
+          label="Your answer"
+          labelHidden
+          rows={1}
+          maxLength={MAX_ANSWER_CHARS}
+          placeholder="Your confirmed answer…"
+          aria-describedby={helperId}
+          className="min-h-11! overflow-hidden py-[11px]"
+          value={text}
+          onChange={(event) => setText(event.target.value)}
+        />
+      </div>
+
+      <AnswerStatus save={saveState} />
+
+      {applying ? (
+        <div className="flex flex-col gap-2">
+          <p className="text-xs leading-normal text-accent">Applying to {context}…</p>
+          <div className="h-1 overflow-hidden rounded-full bg-accent-line">
+            <div className="h-full w-1/3 rounded-full bg-accent motion-safe:animate-indeterminate" />
+          </div>
+        </div>
+      ) : null}
+
+      <div className="flex flex-wrap items-center gap-2">
+        <Button type="button" stretch={false} disabled={!applyEnabled} onClick={() => void apply()}>
+          {applying ? "Applying…" : "Apply to CV"}
+        </Button>
+        <Button
+          type="button"
+          variant="secondary"
+          stretch={false}
+          className="text-accent!"
+          disabled={busy}
+          onClick={() => dismiss.mutate()}
+        >
+          {dismiss.isPending ? "Dismissing…" : "Dismiss"}
+        </Button>
+        {saveState === "error" ? (
+          <Button
+            type="button"
+            variant="secondary"
+            stretch={false}
+            className="text-accent!"
+            onClick={() => save.mutate(text)}
+          >
+            Retry answer save
+          </Button>
+        ) : null}
+      </div>
+      <p id={helperId} className="text-xs leading-normal text-muted">
+        {answerHelper(question.status)}
+      </p>
+
+      {failure ? (
+        <ApplyFailureNotice failure={failure} retainedAnswer={question.answer} target={context} onAction={recover} />
+      ) : null}
+      {blocked ? (
+        <p role="alert" className="rounded-lg bg-danger-tint p-2 text-xs text-danger">
+          <span className="font-medium">Error: </span>
+          {blocked}
+        </p>
+      ) : null}
       {problem ? (
         <p role="alert" className="rounded-lg bg-danger-tint p-2 text-xs text-danger">
           <span className="font-medium">Error: </span>
