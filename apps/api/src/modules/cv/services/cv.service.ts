@@ -232,6 +232,29 @@ export class CvService {
   }
 
   /**
+   * Deletes a finished CV (COMPLETED or FAILED) with its clarification questions (FK cascade).
+   * One conditional statement: the status is part of the `WHERE`, so a delete can never interleave
+   * with the generation claim or a retry. A foreign or missing CV is the usual 404; an active
+   * generation (PENDING or PROCESSING) is a 409 and nothing is deleted.
+   */
+  async remove(userId: string, cvId: string): Promise<void> {
+    const { count } = await this.prisma.cv.deleteMany({
+      where: { id: cvId, userId, generationStatus: { in: ['COMPLETED', 'FAILED'] } },
+    });
+    if (count === 1) {
+      return;
+    }
+
+    // Nothing was deleted: either the CV is not the caller's (404, same as missing) or it is active.
+    await this.findOwnedRowOrThrow(userId, cvId);
+    throw new ApiError(
+      409,
+      'CV_GENERATION_ACTIVE',
+      'The CV is still being generated and cannot be deleted yet',
+    );
+  }
+
+  /**
    * Re-runs a FAILED generation on the stored source. The ownership gate answers a foreign or
    * missing CV with the usual 404; the update itself is also constrained by owner and status, so
    * two quick retries can only win once. `generationAttempts` is deliberately not reset: it is the

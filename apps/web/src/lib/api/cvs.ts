@@ -140,3 +140,8 @@ export type CvList = z.infer<typeof cvListSchema>;
 export function listCvs(cookie?: string): Promise<CvList> {
   return apiFetch("/cvs", { schema: cvListSchema, cookie });
 }
+
+/** `DELETE /api/cvs/:id`: 204. 409 `CV_GENERATION_ACTIVE` while generating; 404 when missing. */
+export function deleteCv(id: string): Promise<void> {
+  return apiFetch(`/cvs/${encodeURIComponent(id)}`, { method: "DELETE" });
+}

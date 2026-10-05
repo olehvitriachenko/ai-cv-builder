@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, Param, Post, Req } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Param, Post, Req } from '@nestjs/common';
 import type { FastifyRequest } from 'fastify';
 import { ZodValidationPipe } from '../../common/http/zod-validation.pipe.js';
 import type { AuthUser } from '../auth/auth.types.js';
@@ -60,6 +60,16 @@ export class CvController {
     @Param('id', new ZodValidationPipe(cvIdSchema)) id: string,
   ): Promise<CvResultResponse> {
     return this.cvs.getResult(user.id, id);
+  }
+
+  /** Delete a COMPLETED or FAILED CV and its questions; 409 while it is generating. */
+  @Delete(':id')
+  @HttpCode(204)
+  remove(
+    @CurrentUser() user: AuthUser,
+    @Param('id', new ZodValidationPipe(cvIdSchema)) id: string,
+  ): Promise<void> {
+    return this.cvs.remove(user.id, id);
   }
 
   /** Re-run a FAILED generation. 202: accepted, PENDING again. */

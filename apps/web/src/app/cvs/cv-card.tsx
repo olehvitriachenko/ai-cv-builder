@@ -1,7 +1,8 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { FileText } from "lucide-react";
+import { FileText, Trash2 } from "lucide-react";
+import { useState } from "react";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { DisplayStatusBadge } from "@/components/ui/status-badge";
@@ -9,6 +10,7 @@ import { retryCv, type CvListItem } from "@/lib/api/cvs";
 import { isApiError } from "@/lib/api/fetcher";
 import { cardActions, cardMessage, cardName, formatUpdated } from "@/lib/cv/card-copy";
 import { CVS_QUERY_KEY } from "@/lib/cv/query-keys";
+import { DeleteCvDialog } from "./delete-cv-dialog";
 
 const MESSAGE_TONE: Record<CvListItem["displayStatus"], string> = {
   DRAFT: "text-accent",
@@ -27,6 +29,7 @@ function retryErrorMessage(error: unknown): string {
 /** Figma "CV card": document symbol, status badge, name, role, time, message and actions. */
 export function CvCard({ item }: { item: CvListItem }) {
   const queryClient = useQueryClient();
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const actions = cardActions(item);
   const href = `/cvs/${encodeURIComponent(item.id)}`;
 
@@ -104,8 +107,22 @@ export function CvCard({ item }: { item: CvListItem }) {
               Download PDF
             </Button>
           ) : null}
+          <button
+            type="button"
+            aria-label={`Delete CV: ${cardName(item)} · ${item.targetRole}`}
+            title={actions.delete === "enabled" ? "Delete CV" : "A CV can’t be deleted while it is being generated"}
+            disabled={actions.delete !== "enabled"}
+            onClick={() => setConfirmingDelete(true)}
+            className="ml-auto flex size-9 shrink-0 items-center justify-center rounded-lg text-muted hover:bg-canvas hover:text-danger focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:text-placeholder disabled:opacity-60 disabled:hover:bg-transparent disabled:hover:text-placeholder"
+          >
+            <Trash2 aria-hidden className="size-4" strokeWidth={1.75} />
+          </button>
         </div>
       </div>
+
+      {confirmingDelete ? (
+        <DeleteCvDialog item={item} onClose={() => setConfirmingDelete(false)} />
+      ) : null}
     </Card>
   );
 }
