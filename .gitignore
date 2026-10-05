@@ -1,3 +1,21 @@
-node_modules
-*.tsbuildinfodist
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+.next/
 *.tsbuildinfo
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Prisma generated client
+apps/api/src/generated/prisma/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
