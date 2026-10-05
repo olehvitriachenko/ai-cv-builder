@@ -1,6 +1,6 @@
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { PrismaService } from '../src/infrastructure/index.js';
-import { generateSessionToken } from '../src/modules/auth/session-token.js';
+import { generateSessionToken } from '../src/modules/auth/session/session-token.js';
 import { createTestApp } from './helpers/create-test-app.js';
 import { registerUser } from './helpers/users.js';
 

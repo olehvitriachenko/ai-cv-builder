@@ -2,7 +2,7 @@ import { Body, Controller, Get, HttpCode, Param, Post, Req } from '@nestjs/commo
 import type { FastifyRequest } from 'fastify';
 import { ZodValidationPipe } from '../../common/http/zod-validation.pipe.js';
 import type { AuthUser } from '../auth/auth.types.js';
-import { CurrentUser } from '../auth/current-user.decorator.js';
+import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
 import { createCvSchema, cvIdSchema, type CreateCvInput } from './cv.schemas.js';
 import { readPdfUpload } from './cv-upload.js';
 import { CvService, type CvResultResponse, type CvStatusResponse } from './cv.service.js';

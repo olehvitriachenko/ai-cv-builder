@@ -1,10 +1,10 @@
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import type { FastifyRequest } from 'fastify';
-import { ApiError } from '../../common/http/api-error.js';
-import { IS_PUBLIC_KEY } from './public.decorator.js';
-import { readSessionCookie } from './session-cookie.js';
-import { SessionService } from './session.service.js';
+import { ApiError } from '../../../common/http/api-error.js';
+import { IS_PUBLIC_KEY } from '../decorators/public.decorator.js';
+import { readSessionCookie } from '../session/session-cookie.js';
+import { SessionService } from '../services/session.service.js';
 
 /**
  * Global, default-deny guard: every route requires a valid session unless it is marked

@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../../infrastructure/index.js';
-import type { AuthUser } from './auth.types.js';
-import { generateSessionToken, hashSessionToken } from './session-token.js';
+import { PrismaService } from '../../../infrastructure/index.js';
+import type { AuthUser } from '../auth.types.js';
+import { generateSessionToken, hashSessionToken } from '../session/session-token.js';
 
 /** `createdAt + 7 days`, fixed (no renewal). */
 export const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;

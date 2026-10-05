@@ -1,7 +1,7 @@
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
 import type { FastifyRequest } from 'fastify';
-import { ApiError } from '../../common/http/api-error.js';
-import type { AuthUser } from './auth.types.js';
+import { ApiError } from '../../../common/http/api-error.js';
+import type { AuthUser } from '../auth.types.js';
 
 /** The authenticated user, as set by the auth guard. The only source of caller identity. */
 export const CurrentUser = createParamDecorator(

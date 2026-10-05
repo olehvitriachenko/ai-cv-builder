@@ -1,7 +1,7 @@
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { PrismaService } from '../src/infrastructure/index.js';
 import { cvIdSchema } from '../src/modules/cv/cv.schemas.js';
-import { generateSessionToken } from '../src/modules/auth/session-token.js';
+import { generateSessionToken } from '../src/modules/auth/session/session-token.js';
 import { createTestApp } from './helpers/create-test-app.js';
 import { VALID_SOURCE_TEXT, VALID_TARGET_ROLE, getStatus, postCv } from './helpers/cvs.js';
 import { buildMultipart } from './helpers/multipart.js';

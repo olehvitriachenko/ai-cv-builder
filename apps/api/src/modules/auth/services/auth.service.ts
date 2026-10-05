@@ -1,9 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { ApiError } from '../../common/http/api-error.js';
-import { Prisma } from '../../generated/prisma/client.js';
-import { PrismaService } from '../../infrastructure/index.js';
-import type { LoginInput, RegisterInput } from './auth.schemas.js';
-import type { AuthUser } from './auth.types.js';
+import { ApiError } from '../../../common/http/api-error.js';
+import { Prisma } from '../../../generated/prisma/client.js';
+import { PrismaService } from '../../../infrastructure/index.js';
+import type { LoginInput, RegisterInput } from '../schemas/auth.schemas.js';
+import type { AuthUser } from '../auth.types.js';
 import { PasswordService } from './password.service.js';
 import { SessionService } from './session.service.js';
 
