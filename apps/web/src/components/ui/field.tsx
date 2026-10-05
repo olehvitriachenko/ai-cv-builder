@@ -133,7 +133,7 @@ export function TextareaField({
         id={controlId}
         aria-invalid={error ? true : undefined}
         aria-describedby={describedBy(controlId, hint, error)}
-        className={`${CONTROL} min-h-[88px] resize-y p-3 leading-normal ${controlBorder(error)} ${className}`}
+        className={`${CONTROL} min-h-[88px] resize-none p-3 leading-normal ${controlBorder(error)} ${className}`}
         {...props}
       />
     </FieldFrame>

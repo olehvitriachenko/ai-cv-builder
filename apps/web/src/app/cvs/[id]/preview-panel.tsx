@@ -4,8 +4,16 @@ import { Maximize2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import type { CvDraft } from "@/lib/api/cvs";
 import type { SaveStatus } from "@/lib/cv/autosave";
-import { estimatePages, fitScale, previewStatus, zoomIn, zoomOut } from "@/lib/cv/preview-zoom";
-import { PAGE_HEIGHT, ScaledSheet, SHEET_WIDTH } from "./scaled-sheet";
+import {
+  A4_WIDTH_PX,
+  DESIGN_ZOOM,
+  estimatePages,
+  fitScale,
+  previewStatus,
+  zoomIn,
+  zoomOut,
+} from "@/lib/cv/preview-zoom";
+import { PAGE_HEIGHT, ScaledSheet } from "./scaled-sheet";
 import { ZoomControls } from "./zoom-controls";
 
 /**
@@ -46,7 +54,7 @@ export function PreviewPanel({
     return () => observer.disconnect();
   }, []);
 
-  const zoom = manualZoom ?? fitScale(stageWidth, SHEET_WIDTH);
+  const zoom = manualZoom ?? Math.min(DESIGN_ZOOM, fitScale(stageWidth, A4_WIDTH_PX));
   const pages = estimatePages(height, PAGE_HEIGHT);
   const status = previewStatus({ saveStatus, invalid });
   const onHeight = useCallback((next: number) => setHeight(next), []);

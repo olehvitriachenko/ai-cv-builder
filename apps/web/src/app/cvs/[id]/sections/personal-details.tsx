@@ -1,6 +1,5 @@
 "use client";
 
-import { Plus } from "lucide-react";
 import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { TextField } from "@/components/ui/field";
@@ -123,8 +122,7 @@ export function PersonalDetails() {
         disabled={atLinkLimit}
         onClick={() => append({ value: "" })}
       >
-        <Plus aria-hidden className="size-3.5" strokeWidth={2} />
-        Add link
+        + Add link
       </Button>
     </SectionCard>
   );

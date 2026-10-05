@@ -72,7 +72,7 @@ export function ExperienceEntry({
           }
         >
           <option value="present">Present</option>
-          <option value="date">Specific date</option>
+          <option value="date">End date</option>
         </SelectField>
       </div>
       {present ? null : (

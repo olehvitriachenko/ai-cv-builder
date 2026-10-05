@@ -1,10 +1,18 @@
 "use client";
 
-import { GraduationCap, Plus } from "lucide-react";
+import { GraduationCap } from "lucide-react";
+import { useState } from "react";
 import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
 import { Button } from "@/components/ui/button";
-import { TextField } from "@/components/ui/field";
-import { isCurrentlyStudying, newEducationEntry, type DraftFormValues } from "@/lib/cv/draft-form";
+import { SelectField, TextField } from "@/components/ui/field";
+import {
+  PRESENT,
+  expectedGraduation,
+  isCurrentlyStudying,
+  isPresent,
+  newEducationEntry,
+  type DraftFormValues,
+} from "@/lib/cv/draft-form";
 import { educationCount, educationHeading, studyLine } from "@/lib/cv/entry-labels";
 import { EmptySection } from "./empty-section";
 import { SectionCard } from "./section-card";
@@ -12,11 +20,16 @@ import { SectionCard } from "./section-card";
 const MAX_ENTRIES = 10;
 const PLACEHOLDER = "placeholder:text-muted!";
 
+type StudyStatus = "completed" | "studying";
+
 /**
- * One education entry (05.1): institution, degree, start year and end year. The end year is
- * labelled "(expected)" and a "Currently studying" line appears while the study is ongoing, which
- * is derived from the stored end date (`Present` or a future year); nothing extra is stored. The
- * entry's details text stays in the draft untouched (the design has no field for it).
+ * One education entry (05.1, 06.2): institution, degree, **Education status**, start year and the
+ * end of the study. "Currently studying" disables the end year ("Not applicable") and asks for an
+ * optional expected graduation; nothing extra is stored: the draft's end date is `Present` or the
+ * expected graduation while studying, and the end year otherwise. The status starts from that stored
+ * end date and is then the person's choice (kept locally, so typing "203" into the expected
+ * graduation does not flip it). The entry's details text stays in the draft untouched (the design
+ * has no field for it).
  */
 function EducationEntry({
   index,
@@ -27,10 +40,23 @@ function EducationEntry({
   showHeading: boolean;
   onRemove: () => void;
 }) {
-  const { control, register, formState } = useFormContext<DraftFormValues>();
+  const { control, register, formState, setValue } = useFormContext<DraftFormValues>();
   const entry = useWatch({ control, name: `education.${index}` });
   const errors = formState.errors.education?.[index];
-  const studying = isCurrentlyStudying(entry.endDate);
+  const [status, setStatus] = useState<StudyStatus>(() => (isCurrentlyStudying(entry.endDate) ? "studying" : "completed"));
+  const studying = status === "studying";
+  const endField = `education.${index}.endDate` as const;
+
+  function changeStatus(next: StudyStatus) {
+    setStatus(next);
+    const options = { shouldDirty: true, shouldValidate: true };
+    if (next === "studying") {
+      // An expected graduation already typed (a future year) is kept; anything else becomes Present.
+      setValue(endField, isCurrentlyStudying(entry.endDate) ? entry.endDate : PRESENT, options);
+    } else if (isPresent(entry.endDate)) {
+      setValue(endField, "", options);
+    }
+  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -55,7 +81,11 @@ function EducationEntry({
         error={errors?.qualification?.message}
         {...register(`education.${index}.qualification`)}
       />
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-3">
+      <SelectField label="Education status" value={status} onChange={(event) => changeStatus(event.target.value as StudyStatus)}>
+        <option value="completed">Completed</option>
+        <option value="studying">Currently studying</option>
+      </SelectField>
+      <div className={`grid grid-cols-1 gap-4 sm:gap-3 ${studying ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
         <TextField
           label="Start year"
           placeholder="e.g. 2025"
@@ -64,14 +94,34 @@ function EducationEntry({
           error={errors?.startDate?.message}
           {...register(`education.${index}.startDate`)}
         />
-        <TextField
-          label={studying ? "End year (expected)" : "End year"}
-          placeholder="e.g. 2029"
-          autoComplete="off"
-          className={PLACEHOLDER}
-          error={errors?.endDate?.message}
-          {...register(`education.${index}.endDate`)}
-        />
+        {studying ? (
+          <>
+            <TextField label="End year" placeholder="Not applicable" disabled value="" readOnly />
+            <TextField
+              label="Expected graduation (optional)"
+              placeholder="e.g. 2029"
+              autoComplete="off"
+              className={PLACEHOLDER}
+              error={errors?.endDate?.message}
+              value={expectedGraduation(entry.endDate)}
+              onChange={(event) =>
+                setValue(endField, event.target.value.trim() === "" ? PRESENT : event.target.value, {
+                  shouldDirty: true,
+                  shouldValidate: true,
+                })
+              }
+            />
+          </>
+        ) : (
+          <TextField
+            label="End year"
+            placeholder="e.g. 2024"
+            autoComplete="off"
+            className={PLACEHOLDER}
+            error={errors?.endDate?.message}
+            {...register(endField)}
+          />
+        )}
       </div>
       {studying ? <p className="text-xs leading-normal text-muted">{studyLine(entry.endDate)}</p> : null}
       <Button
@@ -110,8 +160,7 @@ export function Education() {
       disabled={fields.length >= MAX_ENTRIES}
       onClick={addEntry}
     >
-      <Plus aria-hidden className="size-3.5" strokeWidth={2} />
-      Add education
+      + Add education
     </Button>
   );
 

@@ -2,10 +2,10 @@
 
 import { useEffect, useRef } from "react";
 import type { CvDraft } from "@/lib/api/cvs";
+import { SHEET_WIDTH_PX, sheetScale } from "@/lib/cv/preview-zoom";
 import { CvDocument } from "./cv-document";
 
-/** The A4 sheet at 100%: 660 px wide, 933 px tall (the ratio the preview is drawn at). */
-export const SHEET_WIDTH = 660;
+/** The layout sheet: 660 px wide and 933 px tall, the ratio of A4 (Figma "A4 CV page"). */
 export const PAGE_HEIGHT = 933;
 
 /**
@@ -46,17 +46,30 @@ export function ScaledSheet({
     return () => observer.disconnect();
   }, []);
 
-  const factor = zoom / 100;
+  const factor = sheetScale(zoom);
   const guides = Math.max(0, Math.ceil((height - 2) / PAGE_HEIGHT) - 1);
+  const owner = draft.contact.fullName?.toUpperCase() ?? "";
 
   return (
-    <div className="relative shrink-0" style={{ width: SHEET_WIDTH * factor, height: height * factor }}>
+    <div className="relative shrink-0" style={{ width: SHEET_WIDTH_PX * factor, height: height * factor }}>
       <div
         ref={sheetRef}
         className="relative origin-top-left"
-        style={{ width: SHEET_WIDTH, transform: `scale(${factor})` }}
+        style={{ width: SHEET_WIDTH_PX, transform: `scale(${factor})` }}
       >
         <CvDocument draft={draft} targetRole={targetRole} fixed />
+        {/* "Document footer": the name and the page number, 29 px above the bottom of every A4 page. */}
+        {Array.from({ length: guides + 1 }, (_, index) => (
+          <div
+            key={`footer-${index}`}
+            aria-hidden
+            className="pointer-events-none absolute right-[54px] left-[54px] flex justify-between text-[8px] leading-[normal] text-paper-muted"
+            style={{ top: PAGE_HEIGHT * (index + 1) - 29 - 10 }}
+          >
+            <span>{owner}</span>
+            <span>{index + 1}</span>
+          </div>
+        ))}
         {Array.from({ length: guides }, (_, index) => (
           <div
             key={index}

@@ -1,7 +1,19 @@
 import type { SaveStatus } from "./autosave";
 
 // Zoom, fit and page-count rules of the document preview (inline panel and full-screen view). Pure
-// numbers and text, so they are tested without a DOM. Zoom is a whole percentage of the A4 sheet.
+// numbers and text, so they are tested without a DOM. Zoom is a whole percentage of an A4 sheet at
+// 96 dpi (794 px wide), as in the design: the 660 px sheet the document is laid out at reads as 83%
+// and a phone-wide sheet reads as 45%.
+
+export const A4_WIDTH_PX = 794;
+export const A4_HEIGHT_PX = 1123;
+/** The width the document is laid out at (Figma "A4 CV page"). */
+export const SHEET_WIDTH_PX = 660;
+/** The label of the sheet at its design size; the inline preview never starts larger. */
+export const DESIGN_ZOOM = 83;
+
+/** The CSS scale to draw the 660 px layout at a zoom label. */
+export const sheetScale = (zoom: number): number => (zoom / 100) * (A4_WIDTH_PX / SHEET_WIDTH_PX);
 
 export const MIN_ZOOM = 50;
 export const MAX_ZOOM = 150;

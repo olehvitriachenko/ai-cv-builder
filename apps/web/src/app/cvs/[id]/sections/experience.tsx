@@ -1,6 +1,6 @@
 "use client";
 
-import { BriefcaseBusiness, Plus } from "lucide-react";
+import { BriefcaseBusiness } from "lucide-react";
 import { useFieldArray, useFormContext } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { experienceCount } from "@/lib/cv/entry-labels";
@@ -33,8 +33,7 @@ export function Experience() {
       disabled={fields.length >= MAX_ROLES}
       onClick={addRole}
     >
-      <Plus aria-hidden className="size-3.5" strokeWidth={2} />
-      {fields.length === 0 ? "Add experience" : "Add professional experience"}
+      {fields.length === 0 ? "+ Add experience" : "+ Add professional experience"}
     </Button>
   );
 

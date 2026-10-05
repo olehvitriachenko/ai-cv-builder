@@ -26,7 +26,8 @@
   /* The rejected-file row (03.4): a softer wash and rule than the danger tint. */
   --color-danger-wash: #fcf5f3;
   --color-danger-wash-line: #ebd7d2;
-  --color-placeholder: #98a2b3;
+  /* Muted #667085: 4.97:1 on white; the lighter #98a2b3 fails 4.5:1 (11.2 contrast note). */
+  --color-placeholder: #667085;
   --color-skeleton: #eaecf0;
   --color-stage: #eef0f3;
   /* The A4 document surface (05.1 "A4 CV page"). */

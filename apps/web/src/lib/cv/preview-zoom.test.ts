@@ -3,7 +3,10 @@ import {
   canZoomIn,
   canZoomOut,
   estimatePages,
+  A4_WIDTH_PX,
+  SHEET_WIDTH_PX,
   fitScale,
+  sheetScale,
   MAX_ZOOM,
   MIN_ZOOM,
   previewStatus,
@@ -44,6 +47,18 @@ describe("zoom steps", () => {
   it("labels the zoom as a whole percentage", () => {
     expect(zoomLabel(83)).toBe("83%");
     expect(zoomLabel(100)).toBe("100%");
+  });
+});
+
+describe("sheet scale", () => {
+  it("reads the 660 px design sheet as 83% and a full A4 as 100%", () => {
+    expect(sheetScale(83) * SHEET_WIDTH_PX).toBeCloseTo(659, 0);
+    expect(sheetScale(100) * SHEET_WIDTH_PX).toBeCloseTo(A4_WIDTH_PX, 5);
+    expect(Math.round(sheetScale(45) * SHEET_WIDTH_PX)).toBe(357);
+  });
+
+  it("fits a phone: a 358 px stage gives 45%", () => {
+    expect(fitScale(358, A4_WIDTH_PX)).toBe(45);
   });
 });
 

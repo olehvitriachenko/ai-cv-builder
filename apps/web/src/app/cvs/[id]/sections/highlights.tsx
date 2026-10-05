@@ -1,6 +1,5 @@
 "use client";
 
-import { Plus, X } from "lucide-react";
 import { useId, useState } from "react";
 import { useFieldArray, useFormContext } from "react-hook-form";
 import { Button } from "@/components/ui/button";
@@ -37,7 +36,9 @@ function HighlightRow({
           onClick={onRemove}
           className="flex size-11 shrink-0 items-center justify-center rounded-lg text-accent hover:bg-accent-tint focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         >
-          <X aria-hidden className="size-4" strokeWidth={2} />
+          <span aria-hidden className="text-sm leading-none font-semibold">
+            ×
+          </span>
         </button>
       </div>
       <TextareaField
@@ -89,8 +90,7 @@ export function Highlights({ experienceIndex }: { experienceIndex: number }) {
           disabled={atLimit}
           onClick={() => append({ value: "" })}
         >
-          <Plus aria-hidden className="size-3.5" strokeWidth={2} />
-          Add bullet
+          + Add bullet
         </Button>
         {atLimit ? (
           <p className="text-xs leading-normal text-muted">Maximum of {MAX_HIGHLIGHTS} highlights reached.</p>

@@ -5,9 +5,17 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import type { CvDraft } from "@/lib/api/cvs";
 import type { SaveStatus } from "@/lib/cv/autosave";
-import { estimatePages, fitScale, previewStatus, zoomIn, zoomOut } from "@/lib/cv/preview-zoom";
+import {
+  A4_HEIGHT_PX,
+  A4_WIDTH_PX,
+  estimatePages,
+  fitScale,
+  previewStatus,
+  zoomIn,
+  zoomOut,
+} from "@/lib/cv/preview-zoom";
 import { DownloadPdfButton } from "../download-pdf-button";
-import { PAGE_HEIGHT, ScaledSheet, SHEET_WIDTH } from "./scaled-sheet";
+import { PAGE_HEIGHT, ScaledSheet } from "./scaled-sheet";
 import { ZoomControls } from "./zoom-controls";
 
 /**
@@ -65,7 +73,7 @@ export function FullscreenPreview({
   }, []);
 
   // "Fit page" shows the whole page: the smaller of the width fit and the height fit.
-  const fit = Math.min(fitScale(area.width - 32, SHEET_WIDTH), fitScale(area.height - 24, PAGE_HEIGHT));
+  const fit = Math.min(fitScale(area.width - 32, A4_WIDTH_PX), fitScale(area.height - 24, A4_HEIGHT_PX));
   const zoom = manualZoom ?? fit;
   const pages = estimatePages(height, PAGE_HEIGHT);
   const status = previewStatus({ saveStatus, invalid });

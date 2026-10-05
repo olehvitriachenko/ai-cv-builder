@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import type { CvDraft, EducationEntry, ExperienceEntry } from "@/lib/api/cvs";
+import { isCurrentlyStudying, isPresent } from "@/lib/cv/draft-form";
 import { skillLines } from "@/lib/cv/skill-lines";
 
 // The A4 document surface from Figma 05.1: Lora body, Inter section headings, 1px rules, white
@@ -12,15 +13,16 @@ function present(parts: (string | null)[]): string[] {
 
 function dateRange(start: string | null, end: string | null): string | null {
   const parts = present([start, end]);
-  return parts.length > 0 ? parts.join(" — ") : null;
+  return parts.length > 0 ? parts.join(" – ") : null;
 }
 
-function DocSection({ title, children }: { title: string; children: ReactNode }) {
+/** "Document section heading" (Figma 05.1): a 10px label over a 1px rule; `gap` is the space below. */
+function DocSection({ title, gap, children }: { title: string; gap: 10 | 12 | 14; children: ReactNode }) {
   return (
-    <section className="flex flex-col gap-3">
+    <section className="flex flex-col" style={{ gap }}>
       <div className="flex flex-col gap-[7px]">
-        <h3 className="text-[10px] font-semibold tracking-wide text-paper-ink uppercase">{title}</h3>
-        <hr className="border-paper-rule" />
+        <h3 className="text-[10px] leading-[normal] font-semibold text-paper-ink uppercase">{title}</h3>
+        <hr className="border-line" />
       </div>
       {children}
     </section>
@@ -31,7 +33,7 @@ function Experience({ entry }: { entry: ExperienceEntry }) {
   const dates = dateRange(entry.startDate, entry.endDate);
   const company = present([entry.employer, entry.location]).join(" · ");
   return (
-    <article className="flex flex-col gap-[7px]">
+    <article className="flex flex-col gap-2">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4">
         <h4 className="text-xs font-semibold text-paper-ink">{entry.title ?? entry.employer}</h4>
         {dates ? <p className="text-[10px] text-paper-muted">{dates}</p> : null}
@@ -42,11 +44,11 @@ function Experience({ entry }: { entry: ExperienceEntry }) {
         <p className="font-serif text-xs text-paper-muted italic">{entry.location}</p>
       ) : null}
       {entry.bullets.length > 0 ? (
-        <ul className="flex flex-col gap-[5px] font-serif text-xs leading-[1.55] text-paper-ink">
+        <ul className="flex flex-col gap-2 text-xs text-paper-ink">
           {entry.bullets.map((bullet, index) => (
             <li key={index} className="flex gap-[9px]">
               <span aria-hidden>•</span>
-              <span className="min-w-0 flex-1 break-words">{bullet}</span>
+              <span className="min-w-0 flex-1 font-serif leading-[1.65] break-words">{bullet}</span>
             </li>
           ))}
         </ul>
@@ -56,19 +58,22 @@ function Experience({ entry }: { entry: ExperienceEntry }) {
 }
 
 function Education({ entry }: { entry: EducationEntry }) {
-  const dates = dateRange(entry.startDate, entry.endDate);
+  const studying = entry.endDate !== null && isCurrentlyStudying(entry.endDate);
+  // A future end year is an expected graduation; "Present" is shown as it is.
+  const expected = studying && entry.endDate !== null && !isPresent(entry.endDate);
+  const range = dateRange(entry.startDate, entry.endDate);
+  const dates = range !== null && expected ? `${range} (expected)` : range;
   return (
-    <article className="flex flex-col gap-[5px]">
-      <div className="flex flex-wrap items-baseline justify-between gap-x-4">
-        <h4 className="text-[11px] font-semibold text-paper-ink">
-          {entry.qualification ?? entry.institution}
-        </h4>
+    <article className="flex flex-col gap-1.5 leading-[normal]">
+      <div className="flex flex-wrap items-start justify-between gap-x-4">
+        <h4 className="text-xs font-semibold text-paper-ink">{entry.qualification ?? entry.institution}</h4>
         {dates ? <p className="text-[10px] text-paper-muted">{dates}</p> : null}
       </div>
       {entry.qualification !== null && entry.institution ? (
         <p className="font-serif text-xs text-paper-muted">{entry.institution}</p>
       ) : null}
       {entry.details ? <p className="font-serif text-xs text-paper-muted">{entry.details}</p> : null}
+      {studying ? <p className="text-[10px] text-paper-muted">Currently studying</p> : null}
     </article>
   );
 }
@@ -115,7 +120,7 @@ export function CvDocument({
 
   return (
     <A4Sheet label="CV preview" fixed={fixed}>
-      <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-[26px]">
         <header className="flex flex-col gap-2.5">
           <h2
             className={`font-serif text-[28px] leading-[1.2] font-normal break-words sm:text-4xl ${
@@ -124,9 +129,9 @@ export function CvDocument({
           >
             {contact.fullName ?? "Name not provided"}
           </h2>
-          <p className="text-[11px] font-medium tracking-wide break-words uppercase">{targetRole}</p>
+          <p className="text-[11px] leading-[normal] font-medium break-words uppercase">{targetRole}</p>
           {contactLine || linksLine ? (
-            <div className="text-[10px] leading-[1.8] break-words text-paper-muted">
+            <div className="text-[9.5px] leading-[1.8] break-words text-paper-muted">
               {contactLine ? <p>{contactLine}</p> : null}
               {linksLine ? <p>{linksLine}</p> : null}
             </div>
@@ -134,13 +139,13 @@ export function CvDocument({
         </header>
 
         {draft.summary ? (
-          <DocSection title="Profile">
+          <DocSection title="Profile" gap={10}>
             <p className="font-serif text-xs leading-[1.65] break-words">{draft.summary}</p>
           </DocSection>
         ) : null}
 
         {draft.experience.length > 0 ? (
-          <DocSection title="Experience">
+          <DocSection title="Experience" gap={14}>
             <div className="flex flex-col gap-4">
               {draft.experience.map((entry) => (
                 <Experience key={entry.id} entry={entry} />
@@ -150,7 +155,7 @@ export function CvDocument({
         ) : null}
 
         {draft.education.length > 0 ? (
-          <DocSection title="Education">
+          <DocSection title="Education" gap={12}>
             <div className="flex flex-col gap-3">
               {draft.education.map((entry) => (
                 <Education key={entry.id} entry={entry} />
@@ -160,7 +165,7 @@ export function CvDocument({
         ) : null}
 
         {skills.length > 0 ? (
-          <DocSection title="Skills">
+          <DocSection title="Skills" gap={10}>
             <div className="flex flex-col gap-1">
               {skills.map((line, index) => (
                 <p key={index} className="font-serif text-xs leading-[1.65] break-words">
