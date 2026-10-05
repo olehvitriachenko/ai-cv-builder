@@ -55,6 +55,8 @@ const styles = StyleSheet.create({
   body: { fontFamily: SERIF, fontSize: 10.8, lineHeight: 1.65, color: INK },
   entry: { marginBottom: 14 },
   educationEntry: { marginBottom: 11 },
+  // The section's own bottom margin separates it from the next section.
+  lastEntry: { marginBottom: 0 },
   entryHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   entryTitle: { fontFamily: SANS, fontSize: 10.8, fontWeight: 600, color: INK },
   educationTitle: { fontFamily: SANS, fontSize: 10, fontWeight: 600, color: INK },
@@ -132,14 +134,45 @@ function Prose({ text, style }: { text: string; style: Style }) {
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+/**
+ * A section. When the lead (its first block of content) is small enough, the heading and the lead
+ * form one unbreakable group, so a heading is never left alone at the bottom of a page.
+ *
+ * Never group content that can be taller than a page: the renderer cannot place such a block and
+ * silently drops the part that does not fit (a 60-skill list lost its tail that way). Those leads
+ * (`keepTogether={false}`) flow normally and the heading only asks for room ahead of it, which is
+ * best effort.
+ */
+function Section({
+  title,
+  lead,
+  children,
+  keepTogether = true,
+}: {
+  title: string;
+  lead: React.ReactNode;
+  children?: React.ReactNode;
+  keepTogether?: boolean;
+}) {
+  const heading = (
+    <View style={styles.sectionHeading} minPresenceAhead={keepTogether ? undefined : 90}>
+      <Text style={styles.sectionTitle}>{title}</Text>
+      <View style={styles.rule} />
+    </View>
+  );
   return (
     <View style={styles.section}>
-      {/* Keeps the heading together with the start of its content: never alone at a page bottom. */}
-      <View style={styles.sectionHeading} minPresenceAhead={60}>
-        <Text style={styles.sectionTitle}>{title}</Text>
-        <View style={styles.rule} />
-      </View>
+      {keepTogether ? (
+        <View wrap={false}>
+          {heading}
+          {lead}
+        </View>
+      ) : (
+        <>
+          {heading}
+          {lead}
+        </>
+      )}
       {children}
     </View>
   );
@@ -154,38 +187,47 @@ function Bullet({ text }: { text: string }) {
   );
 }
 
-function Experience({ entry }: { entry: ExperienceEntry }) {
+/** The title row, the employer line and the first bullet: never parted by a page break. */
+function ExperienceHead({ entry }: { entry: ExperienceEntry }) {
   const dates = dateRange(entry.startDate, entry.endDate);
   const company = present([entry.employer, entry.location]).join(' · ');
-  const [firstBullet, ...otherBullets] = entry.bullets;
+  const firstBullet = entry.bullets[0];
   return (
-    <View style={styles.entry}>
-      {/* The title row and the first bullet never part across a page break. */}
-      <View wrap={false}>
-        <View style={styles.entryHeader}>
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <Prose text={entry.title ?? entry.employer ?? ''} style={styles.entryTitle} />
-          </View>
-          {dates ? <Text style={styles.dates}>{dates}</Text> : null}
+    <View wrap={false}>
+      <View style={styles.entryHeader}>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Prose text={entry.title ?? entry.employer ?? ''} style={styles.entryTitle} />
         </View>
-        {entry.title !== null && company ? (
-          <Prose text={company} style={styles.company} />
-        ) : entry.title === null && entry.location ? (
-          <Prose text={entry.location} style={styles.company} />
-        ) : null}
-        {firstBullet !== undefined ? <Bullet text={firstBullet} /> : null}
+        {dates ? <Text style={styles.dates}>{dates}</Text> : null}
       </View>
-      {otherBullets.map((bullet, index) => (
+      {entry.title !== null && company ? (
+        <Prose text={company} style={styles.company} />
+      ) : entry.title === null && entry.location ? (
+        <Prose text={entry.location} style={styles.company} />
+      ) : null}
+      {firstBullet !== undefined ? <Bullet text={firstBullet} /> : null}
+    </View>
+  );
+}
+
+/** The remaining bullets, plus the space before the next entry (none after the last one). */
+function ExperienceTail({ entry, last }: { entry: ExperienceEntry; last: boolean }) {
+  return (
+    <View style={last ? [styles.entry, styles.lastEntry] : styles.entry}>
+      {entry.bullets.slice(1).map((bullet, index) => (
         <Bullet key={index} text={bullet} />
       ))}
     </View>
   );
 }
 
-function Education({ entry }: { entry: EducationEntry }) {
+function Education({ entry, last }: { entry: EducationEntry; last: boolean }) {
   const dates = dateRange(entry.startDate, entry.endDate);
   return (
-    <View style={styles.educationEntry} wrap={false}>
+    <View
+      style={last ? [styles.educationEntry, styles.lastEntry] : styles.educationEntry}
+      wrap={false}
+    >
       <View style={styles.entryHeader}>
         <View style={{ flex: 1, minWidth: 0 }}>
           <Prose
@@ -203,6 +245,9 @@ function Education({ entry }: { entry: EducationEntry }) {
   );
 }
 
+/** A skills list longer than this (about seven lines) is not grouped with its heading; see `Section`. */
+const MAX_GROUPED_SKILLS_LENGTH = 600;
+
 export interface CvPdfDocumentProps {
   draft: CvDraft;
   targetRole: string;
@@ -212,11 +257,14 @@ export function CvPdfDocument({ draft, targetRole }: CvPdfDocumentProps) {
   const { contact } = draft;
   const contactLine = present([contact.location, contact.email, contact.phone]).join('  ·  ');
   const linksLine = contact.links.join('  ·  ');
+  const skillsText = draft.skills.join(' · ');
+  const [firstExperience, ...otherExperience] = draft.experience;
+  const [firstEducation, ...otherEducation] = draft.education;
 
   return (
     <Document title={contact.fullName ? `${contact.fullName} — ${targetRole}` : targetRole}>
       <Page size="A4" style={styles.page}>
-        <View style={styles.header} wrap={false}>
+        <View style={styles.header}>
           {contact.fullName ? <Prose text={contact.fullName} style={styles.name} /> : null}
           <Prose text={targetRole} style={styles.role} />
           {contactLine || linksLine ? (
@@ -228,31 +276,38 @@ export function CvPdfDocument({ draft, targetRole }: CvPdfDocumentProps) {
         </View>
 
         {draft.summary ? (
-          <Section title="Profile">
-            <Prose text={draft.summary} style={styles.body} />
-          </Section>
+          <Section title="Profile" lead={<Prose text={draft.summary} style={styles.body} />} />
         ) : null}
 
-        {draft.experience.length > 0 ? (
-          <Section title="Experience">
-            {draft.experience.map((entry) => (
-              <Experience key={entry.id} entry={entry} />
+        {firstExperience ? (
+          <Section title="Experience" lead={<ExperienceHead entry={firstExperience} />}>
+            <ExperienceTail entry={firstExperience} last={otherExperience.length === 0} />
+            {otherExperience.map((entry, index) => (
+              <View key={entry.id}>
+                <ExperienceHead entry={entry} />
+                <ExperienceTail entry={entry} last={index === otherExperience.length - 1} />
+              </View>
             ))}
           </Section>
         ) : null}
 
-        {draft.education.length > 0 ? (
-          <Section title="Education">
-            {draft.education.map((entry) => (
-              <Education key={entry.id} entry={entry} />
+        {firstEducation ? (
+          <Section
+            title="Education"
+            lead={<Education entry={firstEducation} last={otherEducation.length === 0} />}
+          >
+            {otherEducation.map((entry, index) => (
+              <Education key={entry.id} entry={entry} last={index === otherEducation.length - 1} />
             ))}
           </Section>
         ) : null}
 
         {draft.skills.length > 0 ? (
-          <Section title="Skills">
-            <Prose text={draft.skills.join(' · ')} style={styles.body} />
-          </Section>
+          <Section
+            title="Skills"
+            lead={<Prose text={skillsText} style={styles.body} />}
+            keepTogether={skillsText.length <= MAX_GROUPED_SKILLS_LENGTH}
+          />
         ) : null}
       </Page>
     </Document>
