@@ -19,6 +19,7 @@ import { ExperienceSection } from "./editor-sections/experience-section";
 import { SkillsSection } from "./editor-sections/skills-section";
 import { SummarySection } from "./editor-sections/summary-section";
 import { SaveIndicator } from "./save-indicator";
+import { FullscreenPreview } from "./fullscreen-preview";
 import { PreviewPanel } from "./preview-panel";
 import { ConflictBanner, SaveErrorMessage } from "./save-problems";
 
@@ -65,6 +66,8 @@ export function EditorWorkspace({
   const [conflictBusy, setConflictBusy] = useState(false);
   const [conflictError, setConflictError] = useState<string | null>(null);
   const [applying, setApplying] = useState(false);
+  const [fullscreen, setFullscreen] = useState(false);
+  const expandRef = useRef<HTMLButtonElement>(null);
   // The last draft handed to the autosaver. Opening the editor (the effect also runs once on mount)
   // therefore saves nothing, while reverting an edit still saves, because it differs from this.
   const lastSent = useRef(JSON.stringify({ draft: result.draft, targetRole: result.targetRole }));
@@ -264,10 +267,32 @@ export function EditorWorkspace({
               targetRole={targetRole}
               saveStatus={saveState.status}
               invalid={invalid}
+              onOpenFullscreen={() => setFullscreen(true)}
+              expandRef={expandRef}
             />
           </div>
         </div>
       </div>
+      {fullscreen ? (
+        <FullscreenPreview
+          cvId={cvId}
+          draft={draft}
+          targetRole={targetRole}
+          saveStatus={saveState.status}
+          invalid={invalid}
+          beforeDownload={() =>
+            prepareDownload({
+              blockedReason: invalid ? "Fix the highlighted fields first, then download the PDF." : null,
+              flush: () => autosaver.flush(),
+            })
+          }
+          onClose={() => {
+            setFullscreen(false);
+            // The dialog is removed with its state; hand focus back to what opened it.
+            requestAnimationFrame(() => expandRef.current?.focus());
+          }}
+        />
+      ) : null}
     </FormProvider>
   );
 }

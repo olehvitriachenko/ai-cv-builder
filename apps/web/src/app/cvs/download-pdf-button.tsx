@@ -3,7 +3,7 @@
 import { Download, LoaderCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
-import { Button, type ButtonVariant } from "@/components/ui/button";
+import { Button, type ButtonSize, type ButtonVariant } from "@/components/ui/button";
 import { fetchCvPdf } from "@/lib/api/cv-pdf";
 import {
   DownloadBlockedError,
@@ -19,12 +19,18 @@ import {
 export function DownloadPdfButton({
   cvId,
   variant,
+  size = "compact",
+  label = "Download PDF",
   showIcon = false,
   disabledReason = null,
   beforeDownload,
 }: {
   cvId: string;
   variant?: ButtonVariant;
+  /** Compact (36 px) by default; the full-screen preview uses the regular 44 px button. */
+  size?: ButtonSize;
+  /** The idle text; the full-screen preview on a phone shortens it to "PDF". */
+  label?: string;
   showIcon?: boolean;
   /** Why the action is unavailable (the CV has no draft yet), or null when it is available. */
   disabledReason?: string | null;
@@ -71,7 +77,7 @@ export function DownloadPdfButton({
       <Button
         type="button"
         variant={variant}
-        size="compact"
+        size={size}
         stretch={false}
         disabled={unavailable || busy}
         aria-busy={busy}
@@ -83,7 +89,7 @@ export function DownloadPdfButton({
         ) : showIcon ? (
           <Download aria-hidden className="size-4" strokeWidth={1.75} />
         ) : null}
-        {busy ? "Preparing PDF…" : "Download PDF"}
+        {busy ? "Preparing PDF…" : label}
       </Button>
       {/* Announced without moving focus; the button stays available to try again. */}
       {message ? (
