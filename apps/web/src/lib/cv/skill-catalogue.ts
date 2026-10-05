@@ -7,7 +7,7 @@ import { z } from "zod";
 // malformed catalogue fails the build/start instead of rendering a broken combobox.
 
 /** The category new skills fall back to; the API uses the same name and the catalogue never lists it. */
-const FALLBACK_CATEGORY = "Skills";
+export const FALLBACK_CATEGORY = "Skills";
 
 const text = z.string().trim().min(1).max(60);
 

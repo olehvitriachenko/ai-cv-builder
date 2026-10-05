@@ -29,6 +29,12 @@ export interface EducationFormEntry {
   details: string;
 }
 
+export interface SkillCategoryFormEntry {
+  id: string;
+  name: string;
+  skills: ListItem[];
+}
+
 export interface DraftFormValues {
   contact: {
     fullName: string;
@@ -40,7 +46,7 @@ export interface DraftFormValues {
   summary: string;
   experience: ExperienceFormEntry[];
   education: EducationFormEntry[];
-  skills: ListItem[];
+  skillCategories: SkillCategoryFormEntry[];
 }
 
 const orEmpty = (value: string | null): string => value ?? "";
@@ -78,14 +84,18 @@ export function toFormValues(draft: CvDraft): DraftFormValues {
       endDate: orEmpty(entry.endDate),
       details: orEmpty(entry.details),
     })),
-    skills: draft.skills.map((value) => ({ value })),
+    skillCategories: draft.skillCategories.map((category) => ({
+      id: category.id,
+      name: category.name,
+      skills: category.skills.map((value) => ({ value })),
+    })),
   };
 }
 
 /** Form values -> the stored draft: trimmed, blank text as `null`, blank list items dropped. */
 export function toDraft(values: DraftFormValues): CvDraft {
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     contact: {
       fullName: orNull(values.contact.fullName),
       email: orNull(values.contact.email),
@@ -111,7 +121,10 @@ export function toDraft(values: DraftFormValues): CvDraft {
       endDate: orNull(entry.endDate),
       details: orNull(entry.details),
     })),
-    skills: nonBlank(values.skills),
+    // The server never stores an empty category, so one without skills is left out of the draft.
+    skillCategories: values.skillCategories
+      .map((category) => ({ id: category.id, name: category.name.trim(), skills: nonBlank(category.skills) }))
+      .filter((category) => category.skills.length > 0),
   };
 }
 
@@ -125,6 +138,10 @@ export function newExperienceEntry(): ExperienceFormEntry {
 
 export function newEducationEntry(): EducationFormEntry {
   return { id: newId(), institution: "", qualification: "", startDate: "", endDate: "", details: "" };
+}
+
+export function newSkillCategory(): SkillCategoryFormEntry {
+  return { id: newId(), name: "", skills: [] };
 }
 
 const text = (max: number, label: string) =>
@@ -169,7 +186,16 @@ const educationEntry = z
     }
   });
 
-export const cvFormSchema = z.object({
+const MAX_SKILL_CATEGORIES = 12;
+const MAX_SKILLS = 60;
+
+const skillCategory = z.object({
+  id: z.string().min(1),
+  name: text(60, "A category name"),
+  skills: z.array(listItem(60, "A skill")),
+});
+
+const cvFormObject = z.object({
   contact: z.object({
     fullName: text(120, "Name"),
     email,
@@ -180,5 +206,51 @@ export const cvFormSchema = z.object({
   summary: text(1200, "The summary"),
   experience: z.array(experienceEntry).max(30, "At most 30 roles."),
   education: z.array(educationEntry).max(10, "At most 10 education entries."),
-  skills: z.array(listItem(60, "A skill")).max(60, "At most 60 skills."),
+  skillCategories: z.array(skillCategory).max(MAX_SKILL_CATEGORIES, `At most ${MAX_SKILL_CATEGORIES} skill categories.`),
+});
+
+/**
+ * Mirrors the server's write rules for skill categories: a named category when it holds skills,
+ * unique category names, a skill listed once in the whole CV (case-insensitive), 60 skills at most.
+ */
+export const cvFormSchema = cvFormObject.superRefine((values, context) => {
+  const names = new Set<string>();
+  const skills = new Set<string>();
+  let total = 0;
+
+  values.skillCategories.forEach((category, index) => {
+    const name = category.name.trim();
+    const held = category.skills.map((item) => item.value.trim()).filter((value) => value !== "");
+
+    if (name === "" && held.length > 0) {
+      context.addIssue({ code: "custom", path: ["skillCategories", index, "name"], message: "Name this category." });
+    }
+    if (name !== "") {
+      const key = name.toLowerCase();
+      if (names.has(key)) {
+        context.addIssue({
+          code: "custom",
+          path: ["skillCategories", index, "name"],
+          message: "Another category already uses this name.",
+        });
+      }
+      names.add(key);
+    }
+    for (const skill of held) {
+      const key = skill.toLowerCase();
+      if (skills.has(key)) {
+        context.addIssue({
+          code: "custom",
+          path: ["skillCategories", index, "skills"],
+          message: `"${skill}" is listed more than once.`,
+        });
+      }
+      skills.add(key);
+    }
+    total += held.length;
+  });
+
+  if (total > MAX_SKILLS) {
+    context.addIssue({ code: "custom", path: ["skillCategories"], message: `At most ${MAX_SKILLS} skills in total.` });
+  }
 });

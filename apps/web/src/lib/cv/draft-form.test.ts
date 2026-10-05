@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { CvDraft } from "@/lib/api/cvs";
-import { cvFormSchema, newEducationEntry, newExperienceEntry, toDraft, toFormValues } from "./draft-form";
+import { cvFormSchema, newEducationEntry, newExperienceEntry, newSkillCategory, toDraft, toFormValues } from "./draft-form";
 
 function draft(): CvDraft {
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     contact: { fullName: "Ada Lovelace", email: "ada@example.com", phone: null, location: "London", links: ["github.com/ada"] },
     summary: "Backend engineer.",
     experience: [
@@ -13,7 +13,7 @@ function draft(): CvDraft {
     education: [
       { id: "edu-1", institution: "State University", qualification: null, startDate: null, endDate: "2015", details: null },
     ],
-    skills: ["Node.js", "SQL"],
+    skillCategories: [{ id: "cat-1", name: "Backend", skills: ["Node.js", "SQL"] }],
   };
 }
 
@@ -44,13 +44,13 @@ describe("toFormValues / toDraft", () => {
   it("trims text and drops blank bullets, skills and links", () => {
     const values = toFormValues(draft());
     values.experience[0]?.bullets.push({ value: "   " });
-    values.skills.push({ value: "" }, { value: "  Go  " });
+    values.skillCategories[0]?.skills.push({ value: "" }, { value: "  Go  " });
     values.contact.links.push({ value: " " });
 
     const result = toDraft(values);
 
     expect(result.experience[0]?.bullets).toEqual(["Built APIs", "Led a team"]);
-    expect(result.skills).toEqual(["Node.js", "SQL", "Go"]);
+    expect(result.skillCategories[0]?.skills).toEqual(["Node.js", "SQL", "Go"]);
     expect(result.contact.links).toEqual(["github.com/ada"]);
   });
 
@@ -89,12 +89,13 @@ describe("cvFormSchema", () => {
   it("rejects text over the caps the server enforces", () => {
     expect(messages((values) => { values.contact.fullName = "x".repeat(121); }).join()).toContain("contact.fullName");
     expect(messages((values) => { values.summary = "x".repeat(1201); }).join()).toContain("summary");
-    expect(messages((values) => { values.skills[0] = { value: "x".repeat(61) }; }).join()).toContain("skills.0.value");
+    expect(messages((values) => { values.skillCategories[0]!.skills[0] = { value: "x".repeat(61) }; }).join()).toContain("skillCategories.0.skills.0.value");
+    expect(messages((values) => { values.skillCategories[0]!.name = "x".repeat(61); }).join()).toContain("skillCategories.0.name");
     expect(messages((values) => { values.experience[0]?.bullets.push({ value: "x".repeat(301) }); }).join()).toContain("experience.0.bullets.2.value");
   });
 
   it("rejects too many items", () => {
-    expect(messages((values) => { values.skills = Array.from({ length: 61 }, (_, index) => ({ value: `s${index}` })); }).join()).toContain("skills");
+    expect(messages((values) => { values.skillCategories = Array.from({ length: 13 }, (_, index) => ({ id: `c${index}`, name: `C${index}`, skills: [{ value: `s${index}` }] })); }).join()).toContain("skillCategories:");
     expect(messages((values) => { values.experience[0]?.bullets.push(...Array.from({ length: 11 }, () => ({ value: "b" }))); }).join()).toContain("experience.0.bullets");
     expect(messages((values) => { values.contact.links = Array.from({ length: 6 }, () => ({ value: "l" })); }).join()).toContain("contact.links");
   });
@@ -121,5 +122,79 @@ describe("cvFormSchema", () => {
     });
 
     expect(result.join()).toContain("education.0.institution");
+  });
+});
+
+describe("skill categories in the form", () => {
+  function categoryMessages(change: (values: ReturnType<typeof toFormValues>) => void): string[] {
+    const values = toFormValues(draft());
+    change(values);
+    const result = cvFormSchema.safeParse(values);
+    return result.success ? [] : result.error.issues.map((issue) => `${issue.path.join(".")}: ${issue.message}`);
+  }
+
+  it("drops a category that has no skills (the server never stores an empty category)", () => {
+    const values = toFormValues(draft());
+    values.skillCategories.push({ id: "cat-2", name: "Databases", skills: [{ value: "  " }] });
+    values.skillCategories.push({ id: "cat-3", name: "", skills: [] });
+
+    expect(toDraft(values).skillCategories).toEqual([{ id: "cat-1", name: "Backend", skills: ["Node.js", "SQL"] }]);
+  });
+
+  it("trims the category name and keeps the category id", () => {
+    const values = toFormValues(draft());
+    values.skillCategories[0]!.name = "  Backend  ";
+
+    expect(toDraft(values).skillCategories[0]).toMatchObject({ id: "cat-1", name: "Backend" });
+  });
+
+  it("gives a new category a fresh unique id", () => {
+    expect(newSkillCategory().id).not.toBe(newSkillCategory().id);
+    expect(newSkillCategory()).toMatchObject({ name: "", skills: [] });
+  });
+
+  it("asks for a name when a category holds skills", () => {
+    expect(categoryMessages((values) => { values.skillCategories[0]!.name = "  "; })).toContain(
+      "skillCategories.0.name: Name this category.",
+    );
+  });
+
+  it("rejects two categories with the same name, ignoring case", () => {
+    const result = categoryMessages((values) => {
+      values.skillCategories.push({ id: "cat-2", name: "BACKEND", skills: [{ value: "Go" }] });
+    });
+
+    expect(result).toContain("skillCategories.1.name: Another category already uses this name.");
+  });
+
+  it("rejects a skill listed twice anywhere in the CV, ignoring case", () => {
+    const result = categoryMessages((values) => {
+      values.skillCategories.push({ id: "cat-2", name: "Tools", skills: [{ value: "node.js" }] });
+    });
+
+    expect(result.join()).toContain("skillCategories.1.skills:");
+  });
+
+  it("rejects more than 60 skills in total across categories", () => {
+    const result = categoryMessages((values) => {
+      values.skillCategories = [
+        { id: "a", name: "A", skills: Array.from({ length: 31 }, (_, index) => ({ value: `a${index}` })) },
+        { id: "b", name: "B", skills: Array.from({ length: 30 }, (_, index) => ({ value: `b${index}` })) },
+      ];
+    });
+
+    expect(result).toContain("skillCategories: At most 60 skills in total.");
+  });
+
+  it("accepts 12 categories and exactly 60 skills", () => {
+    const result = categoryMessages((values) => {
+      values.skillCategories = Array.from({ length: 12 }, (_, category) => ({
+        id: `c${category}`,
+        name: `Category ${category}`,
+        skills: Array.from({ length: 5 }, (_, skill) => ({ value: `skill-${category}-${skill}` })),
+      }));
+    });
+
+    expect(result).toEqual([]);
   });
 });

@@ -6,7 +6,7 @@ import { TextareaField } from "@/components/ui/field";
 import type { DraftFormValues } from "@/lib/cv/draft-form";
 
 /**
- * A string list edited as plain text (skills separated by commas, links one per line). The form
+ * A string list edited as plain text (a category's skills separated by commas, links one per line). The form
  * keeps it as `{ value }[]`; blank items are dropped when the draft is built. The local text is kept
  * as typed so a trailing separator is not eaten while the person is still typing.
  */
@@ -17,7 +17,7 @@ export function ListTextField({
   hint,
   rows = 3,
 }: {
-  name: "skills" | "contact.links";
+  name: "contact.links" | `skillCategories.${number}.skills`;
   label: string;
   separator: "comma" | "newline";
   hint?: string;

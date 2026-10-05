@@ -8,13 +8,14 @@ const RESULT: CvResult = {
   id: "cv1",
   status: "COMPLETED",
   revision: 4,
+  targetRole: "Backend Engineer",
   draft: {
-    schemaVersion: 1,
+    schemaVersion: 2,
     contact: { fullName: null, email: null, phone: null, location: null, links: [] },
     summary: null,
     experience: [],
     education: [],
-    skills: [],
+    skillCategories: [],
   },
   questions: [],
 };

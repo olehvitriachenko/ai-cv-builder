@@ -16,12 +16,12 @@ function question(overrides: Partial<ClarificationQuestion>): ClarificationQuest
 }
 
 const draft: CvDraft = {
-  schemaVersion: 1,
+  schemaVersion: 2,
   contact: { fullName: "Ada", email: null, phone: null, location: null, links: [] },
   summary: null,
   experience: [{ id: "exp-1", employer: "Northstar Labs", title: "Engineer", location: null, startDate: null, endDate: null, bullets: [] }],
   education: [{ id: "edu-1", institution: null, qualification: "BSc", startDate: null, endDate: null, details: null }],
-  skills: [],
+  skillCategories: [],
 };
 
 describe("answerFormSchema", () => {

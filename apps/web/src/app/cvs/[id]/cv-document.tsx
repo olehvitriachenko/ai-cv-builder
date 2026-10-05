@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import type { CvDraft, EducationEntry, ExperienceEntry } from "@/lib/api/cvs";
+import { skillLines } from "@/lib/cv/skill-lines";
 
 // The A4 document surface from Figma 05.1: Lora body, Inter section headings, 1px rules, white
 // sheet on a light stage. Read-only in this feature. Facts the source did not support are null
@@ -95,6 +96,7 @@ export function CvDocument({ draft, targetRole }: { draft: CvDraft; targetRole: 
   const { contact } = draft;
   const contactLine = present([contact.location, contact.email, contact.phone]).join("  ·  ");
   const linksLine = contact.links.join("  ·  ");
+  const skills = skillLines(draft.skillCategories);
 
   return (
     <A4Sheet label="CV preview">
@@ -142,9 +144,16 @@ export function CvDocument({ draft, targetRole }: { draft: CvDraft; targetRole: 
           </DocSection>
         ) : null}
 
-        {draft.skills.length > 0 ? (
+        {skills.length > 0 ? (
           <DocSection title="Skills">
-            <p className="font-serif text-xs leading-[1.65] break-words">{draft.skills.join(" · ")}</p>
+            <div className="flex flex-col gap-1">
+              {skills.map((line, index) => (
+                <p key={index} className="font-serif text-xs leading-[1.65] break-words">
+                  {line.label !== null ? <span className="font-sans font-semibold">{line.label}: </span> : null}
+                  {line.skills.join(" · ")}
+                </p>
+              ))}
+            </div>
           </DocSection>
         ) : null}
       </div>

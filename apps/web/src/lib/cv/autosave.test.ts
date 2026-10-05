@@ -5,12 +5,12 @@ import { DraftAutosaver, type SaveState } from "./autosave";
 
 function draftWith(summary: string): CvDraft {
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     contact: { fullName: "Ada", email: null, phone: null, location: null, links: [] },
     summary,
     experience: [],
     education: [],
-    skills: [],
+    skillCategories: [],
   };
 }
 

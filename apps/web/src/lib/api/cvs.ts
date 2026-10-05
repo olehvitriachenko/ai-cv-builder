@@ -49,8 +49,14 @@ const educationEntrySchema = z.object({
   details: z.string().nullable(),
 });
 
+export const skillCategorySchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  skills: z.array(z.string()),
+});
+
 export const cvDraftSchema = z.object({
-  schemaVersion: z.literal(1),
+  schemaVersion: z.literal(2),
   contact: z.object({
     fullName: z.string().nullable(),
     email: z.string().nullable(),
@@ -61,9 +67,10 @@ export const cvDraftSchema = z.object({
   summary: z.string().nullable(),
   experience: z.array(experienceEntrySchema),
   education: z.array(educationEntrySchema),
-  skills: z.array(z.string()),
+  skillCategories: z.array(skillCategorySchema),
 });
 export type CvDraft = z.infer<typeof cvDraftSchema>;
+export type SkillCategory = z.infer<typeof skillCategorySchema>;
 export type ExperienceEntry = z.infer<typeof experienceEntrySchema>;
 export type EducationEntry = z.infer<typeof educationEntrySchema>;
 
@@ -82,6 +89,7 @@ export const cvResultSchema = z.object({
   id: z.string(),
   status: z.literal("COMPLETED"),
   revision: z.number().int().nonnegative(),
+  targetRole: z.string(),
   draft: cvDraftSchema,
   questions: z.array(clarificationQuestionSchema),
 });
@@ -153,9 +161,10 @@ export const draftSaveSchema = z.object({
 
 /**
  * `PUT /api/cvs/:id/draft`: replaces the draft of a COMPLETED CV. `revision` is the one the edit is
- * based on; a stale one is `409 REVISION_CONFLICT` and nothing is stored.
+ * based on; a stale one is `409 REVISION_CONFLICT` and nothing is stored. `targetRole`, when given,
+ * is saved in the same write.
  */
-export function saveDraft(id: string, input: { revision: number; draft: CvDraft }): Promise<{ revision: number }> {
+export function saveDraft(id: string, input: { revision: number; draft: CvDraft; targetRole?: string }): Promise<{ revision: number }> {
   return apiFetch(`/cvs/${encodeURIComponent(id)}/draft`, { method: "PUT", body: input, schema: draftSaveSchema });
 }
 
