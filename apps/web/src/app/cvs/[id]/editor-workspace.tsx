@@ -17,7 +17,7 @@ import { ConflictBanner, SaveErrorMessage } from "./save-problems";
 import { Education } from "./sections/education";
 import { Experience } from "./sections/experience";
 import { PersonalDetails } from "./sections/personal-details";
-import { SkillsShell } from "./sections/skills-shell";
+import { Skills } from "./sections/skills";
 import { Summary } from "./sections/summary";
 import { useCvEditor } from "./use-cv-editor";
 
@@ -139,7 +139,7 @@ export function EditorWorkspace({
               <PersonalDetails />
               <Summary />
               <Experience />
-              <SkillsShell />
+              <Skills />
               <Education />
             </fieldset>
             <p className="text-xs leading-normal text-muted">

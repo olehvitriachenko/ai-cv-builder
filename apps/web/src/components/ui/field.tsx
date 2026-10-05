@@ -28,7 +28,7 @@ interface FieldFrameProps {
   children: ReactNode;
 }
 
-function FieldFrame({ label, labelHidden = false, controlId, hint, error, children }: FieldFrameProps) {
+export function FieldFrame({ label, labelHidden = false, controlId, hint, error, children }: FieldFrameProps) {
   return (
     <div className="flex flex-col gap-2">
       <label
@@ -55,7 +55,7 @@ function FieldFrame({ label, labelHidden = false, controlId, hint, error, childr
   );
 }
 
-function describedBy(controlId: string, hint?: string, error?: string): string | undefined {
+export function describedBy(controlId: string, hint?: string, error?: string): string | undefined {
   if (error) {
     return `${controlId}-error`;
   }

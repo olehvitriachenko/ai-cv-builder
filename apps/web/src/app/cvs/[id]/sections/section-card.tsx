@@ -7,16 +7,26 @@ import type { ReactNode } from "react";
 export function SectionCard({
   title,
   count,
+  aside,
   children,
 }: {
   title: string;
   count?: string | null;
+  /** A short note at the right end of the title row (for example "6 skills · By category"). */
+  aside?: string | null;
   children: ReactNode;
 }) {
   return (
     <section aria-label={title} className="flex flex-col gap-4 rounded-xl border border-line bg-surface p-4">
       <header className="flex flex-col gap-2">
-        <h3 className="text-base leading-[normal] font-semibold text-ink">{title}</h3>
+        {aside ? (
+          <div className="flex items-baseline justify-between gap-3">
+            <h3 className="text-base leading-[normal] font-semibold text-ink">{title}</h3>
+            <p className="shrink-0 text-[11px] leading-[normal] text-muted">{aside}</p>
+          </div>
+        ) : (
+          <h3 className="text-base leading-[normal] font-semibold text-ink">{title}</h3>
+        )}
         {count ? <p className="text-[11px] leading-normal text-muted">{count}</p> : null}
       </header>
       {children}

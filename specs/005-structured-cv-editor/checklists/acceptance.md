@@ -116,3 +116,17 @@ Deviations from the frames, on purpose:
 - The desktop bottom bar is as wide as the 660 px sheet at 100%; at a smaller zoom it stays 660 px wide while the sheet is narrower.
 - The page count is an estimate from the preview height (the PDF export owns real pagination); the sheet grows to the content with dashed guides at each A4 boundary rather than in whole A4 steps.
 - The inline preview is sticky in the structured layout (iteration 1 column; the panel scrolls inside it when the sheet is taller than the window).
+
+## Iteration 2 (US2): skills by category (T049 to T059)
+
+Figma: `08.1` (skills editing), `08.2` (state matrix: combobox, category cards and ordering, validation, suggestion states) and the skills block of `05.1`.
+
+| Check | Result |
+|-------|--------|
+| Unit: `skills-form.test.ts` (add with the four refusals and their order, duplicate across categories, remove, add/choose category with the 12 limit, remove category, move and the end limits, counts, "at least 5" advice, suggestion states) and `category-filter.test.ts` (filter, custom option, keyboard navigation) | 59 tests passed; web suite 20 files, 218 tests |
+| Gates: web `tsc --noEmit`, `lint` | clean |
+| Browser (Playwright script against the dev servers, throwaway account): search field takes focus on open; filter; pick an existing category; add by Enter and by button; duplicate in this category and in another (named); blank; too long; custom category created with "No items added"; Move up reorders; Remove category asks "Observability contains 1 skill: Grafana", Cancel has the focus and keeps it, confirm removes it | pass |
+| Save and reload: the draft stores categories in order without the empty ones; reload shows the same grouping and order; the preview groups the skills | pass |
+| 320 px: the open list stays inside the viewport (236 px wide, 288 px high, scrolls inside), a 60-character unbroken skill wraps, no horizontal scroll | pass |
+
+Deviations from the frames, on purpose: see the "Built as" note under Phase 4 in `tasks.md` (one editor model for every width, order and removal controls on the edited category, the custom option beside matches).
