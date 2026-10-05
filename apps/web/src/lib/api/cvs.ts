@@ -73,13 +73,15 @@ export const clarificationQuestionSchema = z.object({
   itemId: z.string().nullable(),
   missing: z.string(),
   question: z.string(),
-  status: z.enum(["OPEN", "RESOLVED"]),
+  status: z.enum(["UNANSWERED", "ANSWERED", "APPLIED", "DISMISSED"]),
+  answer: z.string().nullable(),
 });
 export type ClarificationQuestion = z.infer<typeof clarificationQuestionSchema>;
 
 export const cvResultSchema = z.object({
   id: z.string(),
   status: z.literal("COMPLETED"),
+  revision: z.number().int().nonnegative(),
   draft: cvDraftSchema,
   questions: z.array(clarificationQuestionSchema),
 });

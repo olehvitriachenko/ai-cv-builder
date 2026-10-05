@@ -3,7 +3,6 @@ import { notFound, redirect } from "next/navigation";
 import { ApiError } from "@/lib/api/fetcher";
 import { getCvStatusServer } from "@/lib/cv/server";
 import { GenerationView } from "./generation-view";
-import { QueryProvider } from "./query-provider";
 
 export const metadata: Metadata = { title: "Your CV · AI CV Builder" };
 
@@ -26,9 +25,5 @@ export default async function CvPage(props: PageProps<"/cvs/[id]">) {
     throw error;
   }
 
-  return (
-    <QueryProvider>
-      <GenerationView initialStatus={status} />
-    </QueryProvider>
-  );
+  return <GenerationView initialStatus={status} />;
 }

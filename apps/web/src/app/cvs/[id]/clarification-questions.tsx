@@ -42,7 +42,9 @@ export function ClarificationQuestions({
   questions: ClarificationQuestion[];
   draft: CvDraft;
 }) {
-  const open = questions.filter((question) => question.status === "OPEN");
+  const open = questions.filter(
+    (question) => question.status === "UNANSWERED" || question.status === "ANSWERED",
+  );
 
   return (
     <Card className="flex flex-col gap-3 p-4">
@@ -81,7 +83,7 @@ export function ClarificationQuestions({
                     {contextLabel(question, draft)}
                   </p>
                   <span className="shrink-0 text-[11px] font-semibold text-accent">
-                    {question.status === "OPEN" ? "Open" : "Resolved"}
+                    {question.status === "UNANSWERED" || question.status === "ANSWERED" ? "Open" : "Resolved"}
                   </span>
                 </div>
                 <p className="text-[13px] leading-[1.4] font-semibold break-words text-ink">
