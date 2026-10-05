@@ -56,7 +56,7 @@ describe('GenerationProcessor cancellation during persistence', () => {
                 questions: [
                   {
                     section: 'SUMMARY',
-                    itemIndex: null, field: null,
+                    itemIndex: null, field: undefined,
                     missing: 'Focus',
                     question: 'Which focus?',
                   },

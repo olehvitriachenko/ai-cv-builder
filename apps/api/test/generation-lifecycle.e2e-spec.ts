@@ -104,13 +104,13 @@ describe('Generation lifecycle', () => {
         questions: [
           {
             section: 'CONTACT',
-            itemIndex: null, field: null,
+            itemIndex: null, field: undefined,
             missing: 'Email address',
             question: 'What is your email address?',
           },
           {
             section: 'EXPERIENCE',
-            itemIndex: 0, field: null,
+            itemIndex: 0, field: undefined,
             missing: 'Job title and dates',
             question: 'What was your title at Acme Corp and when?',
           },
@@ -152,7 +152,7 @@ describe('Generation lifecycle', () => {
         questions: [
           { section: 'CONTACT', itemIndex: null, field: 'CONTACT_EMAIL', missing: 'Email', question: 'Your email?' },
           { section: 'EXPERIENCE', itemIndex: 0, field: 'EXPERIENCE_END_DATE', missing: 'End date', question: 'When did you leave?' },
-          { section: 'SUMMARY', itemIndex: null, field: null, missing: 'Focus', question: 'Which focus?' },
+          { section: 'SUMMARY', itemIndex: null, field: undefined, missing: 'Focus', question: 'Which focus?' },
         ],
       }),
     );

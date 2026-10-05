@@ -90,7 +90,7 @@ function questionIssues(output: LlmCvOutput): ValidationIssue[] {
 
     // A field names the one value the answer fills, so it must belong to the question's section
     // (the prefix), and an entry field needs an entry while a contact field must not point at one.
-    if (question.field !== null) {
+    if (question.field !== undefined) {
       const inSection = question.field.startsWith(`${question.section}_`);
       const needsEntry = hasEntry;
       if (!inSection || needsEntry !== (question.itemIndex !== null)) {

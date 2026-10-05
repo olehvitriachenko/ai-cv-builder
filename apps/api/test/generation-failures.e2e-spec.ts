@@ -210,7 +210,7 @@ describe('Generation failures, retry and recovery', () => {
           controller.abort(reason);
           return validLlmOutput({
             questions: [
-              { section: 'SUMMARY', itemIndex: null, field: null, missing: 'Focus', question: 'Which focus?' },
+              { section: 'SUMMARY', itemIndex: null, field: undefined, missing: 'Focus', question: 'Which focus?' },
             ],
           });
         });
@@ -262,7 +262,7 @@ describe('Generation failures, retry and recovery', () => {
       hold.release(
         validLlmOutput({
           questions: [
-            { section: 'SUMMARY', itemIndex: null, field: null, missing: 'Focus', question: 'Which focus?' },
+            { section: 'SUMMARY', itemIndex: null, field: undefined, missing: 'Focus', question: 'Which focus?' },
           ],
         }),
       );
@@ -462,7 +462,7 @@ describe('Generation failures, retry and recovery', () => {
         validLlmOutput({
           summary: 'STALE RESULT',
           questions: [
-            { section: 'SUMMARY', itemIndex: null, field: null, missing: 'Stale', question: 'Stale?' },
+            { section: 'SUMMARY', itemIndex: null, field: undefined, missing: 'Stale', question: 'Stale?' },
           ],
         }),
       );

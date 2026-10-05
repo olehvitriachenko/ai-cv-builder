@@ -125,7 +125,7 @@ export function mapQuestions(questions: LlmQuestion[], draft: CvDraft): Question
     return {
       section: question.section,
       itemId: entry ? entry.id : null,
-      field: question.field,
+      field: question.field ?? null,
       missing: question.missing,
       question: question.question,
       position,

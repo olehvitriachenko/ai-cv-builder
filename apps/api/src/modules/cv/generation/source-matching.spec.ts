@@ -69,9 +69,26 @@ describe('contact details (strict)', () => {
       expect(source.hasPhone('no digits')).toBe(false);
     });
 
-    it('does not assemble a number from digits on different lines', () => {
-      const split = indexSource('call 415 555\n0132 later');
-      expect(split.hasPhone('4155550132')).toBe(false);
+    it.each([
+      ['phone next to date', '+44 20 7946 0958 2019-2023'],
+      ['date before phone', '2019-2023 44 20 7946 0958'],
+      ['phone split across lines', '+44 20\n7946 0958'],
+      ['formatted phone', '+44 (20) 7946-0958'],
+      ['Unicode dashes and non-breaking spaces', '+44 20‑7946‑0958'],
+      ['phone next to text', 'Phone +44 20 7946 0958 London, 2019-2023'],
+    ])('accepts the complete number with %s', (_label, text) => {
+      expect(indexSource(text).hasPhone('+44 20 7946 0958')).toBe(true);
+    });
+
+    it.each([
+      ['year range', '2019-2023', '20192023'],
+      ['years across lines', '2016\n2023\n2024', '201620232024'],
+      ['labelled unrelated numbers', 'Account 4420\nInvoice 7946\nAmount 0958', '442079460958'],
+      ['separate numeric blocks', '4420\n\n79460958', '442079460958'],
+      ['digits inside an unrelated identifier', 'ID 94420794609580', '442079460958'],
+      ['short fragment beside a date', '+44 20 7946 0958 2019-2023', '0958'],
+    ])('rejects unrelated numeric text: %s', (_label, text, phone) => {
+      expect(indexSource(text).hasPhone(phone)).toBe(false);
     });
 
     it('is Unicode-aware: fullwidth digits normalise, other digit scripts match their own script', () => {

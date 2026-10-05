@@ -80,9 +80,9 @@ export const llmCvOutputSchema = z.object({
       section: z.enum(QUESTION_SECTIONS),
       // Zero-based position of the entry inside its section; null for section-level questions.
       itemIndex: z.number().int().nullable(),
-      // The one plain value the answer fills (see QUESTION_FIELDS); null when the answer is not a
-      // single value for exactly one field. Always present: structured output returns every key.
-      field: z.enum(QUESTION_FIELDS).nullable(),
+      // Omit when there is no single-value target. Optional rather than nullable keeps the
+      // provider schema within its 16-union limit; persistence still represents absence as null.
+      field: z.enum(QUESTION_FIELDS).optional(),
       missing: z.string(),
       question: z.string(),
     }),

@@ -178,3 +178,47 @@ Done against the reorganised file (sections 05 to 11 and the UI kit 00.3, 00.4):
 
 Not built, on purpose: the read-only editor panel while generating or after a failed generation (11.1, 00.4; the editor opens only for completed CVs and generation has its own screens), the feature-flagged "PDF Coming soon" state (PDF export exists), the proposed 100-point scoring table of 11.1 and the 30% to 200% zoom bounds ("approval required" in the design; the specification's weights and 50% to 150% stay).
 
+## Final gates on the final tree (T085)
+
+| Gate | Result |
+|------|--------|
+| API `tsc --noEmit`, `lint` | clean |
+| API unit tests | 31 files, 441 tests |
+| API e2e (real PostgreSQL `ai_cv_builder_test`, no `ANTHROPIC_API_KEY`; includes the migration and CHECK replay and the lifecycle on the v2 schema, and the PDF export) | 23 files, 292 tests (the test database was recreated first: it held a failed-migration record from an earlier run) |
+| Web `tsc --noEmit`, `lint`, `test`, `build` | clean; 23 files, 255 tests; production build compiles |
+
+## Real-model smoke (T087)
+
+`pnpm --filter api test:smoke` against the real Anthropic API with the key in `apps/api/.env` (synthetic source text only): **11 passed**, model `claude-sonnet-5-5`, prompts `cv-draft-v4` and `answer-patch-v2`. Added in this iteration: a case where a source lists ten skills, which the model grouped into 4 categories, all 4 from the catalogue (no invented names), each skill once and each present in the source text. The existing cases cover a complete CV, single- and two-column PDFs, a sparse source (questions instead of invented facts, 9 of 10 carry a field), prompt injection in the source and in an answer, and the apply of an EXPERIENCE, SKILLS, SUMMARY and CONTACT answer. This is one observation, not a guarantee: **skill grounding stays prompt-based and is not claimed as mechanically verified** (SC-006).
+
+## Mapping to the specification (T089)
+
+| Requirement | Evidence |
+|-------------|----------|
+| US1 scenarios 1 to 5 (structure, personal details, summary, experience, education) | Iteration 1 (layout against 05.1 / 06.1, behaviour list), design-parity pass (Education status, End date, removal confirmation) |
+| US1 scenario 6 (target role everywhere) | Iteration 1 behaviour (title, preview and the CV's `targetRole` change together); API e2e `cv-edit` (role saved in the draft request, list shows it) |
+| US1 scenario 7 (not `COMPLETED` stays read-only) | unchanged `003` behaviour; API e2e `cv-edit` and `cv-editor-ownership` |
+| US2 scenarios 1 to 6 (combobox, add, suggestions, hint, chips and counts, ordering) | Iteration 2 table (unit and browser) |
+| US2 scenario 7 (migrated CVs show one "Skills" category) | Phase 2 records T028 to T030 and the e2e migration replay |
+| US3 scenarios 1 to 4 (unanswered, answered, applied and dismissed, none open) | Iteration 3 table (unit and browser with stubbed apply failures) |
+| US4 scenarios 1 to 3 (status, conflict notice, review and the two choices) | Iteration 4 table |
+| US5 scenarios 1 to 3 (zoom, full screen, last-saved caption) | Iteration 5 and the design-parity pass (zoom basis 794 px) |
+| US6 scenarios 1 to 3 (320 px, Edit and Preview keep state, sticky bar) | Iteration 6 table |
+| SC-001 (edits survive reload and a second session) | Iterations 1 and 2 reload checks; e2e `cv-edit` |
+| SC-002 (five skills across two categories in under 60 seconds) | not timed; the flow is two category picks, typing with Enter and suggestion taps (Iteration 2 browser run completed a longer flow in a few seconds) |
+| SC-003 (no false Saved; failures and conflicts keep local text) | Iteration 4 browser run (aborted save, newer revision written by another device, all choices) |
+| SC-004 (320 px with no horizontal scroll; screens match their frames) | Iterations 2, 4 and 6 at 320 px; frames compared at 1440 px and 390 px in Iteration 1 and the design-parity pass |
+| SC-005 (migration lossless, idempotent, same on clean and existing databases) | T028 and the e2e migration replay |
+| SC-006 (prompt rule present, no real AI request in the suites) | prompt and patch tests in the API suite; the smoke observation above, not claimed as verification |
+| SC-007 (no editing another user's CV) | API e2e `cv-editor-ownership` and `cv-ownership` |
+| SC-008 (PDF valid after the migration, skills by category, Cyrillic) | T030 and `cv-export` e2e |
+
+## Scope review (T090)
+
+- No new external runtime dependency: the internal workspace package `@ai-cv-builder/skill-catalogue` and its lockfile entries, plus `@types/pg` (type declarations used by the migration replay test) and the `react` peer for the PDF export that came with feature 004.
+- No new table and no Prisma model change: one migration file (the draft conversion and the CHECK).
+- No `any`, `@ts-ignore` or `@ts-expect-error` in the changed TypeScript; no `OPEN` or `RESOLVED` question status; no flat `skills` on the draft (the remaining `skills: string[]` are per category).
+- The PDF export endpoint, template and fonts are unchanged; only the document renders skills by category (T023).
+- `Cv.revision` is written only in `CvEditorService.updateDraft` and `ClarificationService.commitApply`.
+- The logging e2e specs keep CV content out of logs and errors.
+

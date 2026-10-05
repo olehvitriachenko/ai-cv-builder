@@ -5,7 +5,7 @@ const SOURCE = 'Ada worked at Acme Corp as an engineer.';
 
 describe('cv-draft prompt', () => {
   it('has a version', () => {
-    expect(PROMPT_VERSION).toBe('cv-draft-v3');
+    expect(PROMPT_VERSION).toBe('cv-draft-v4');
   });
 
   describe('system prompt', () => {
@@ -120,6 +120,6 @@ describe('cv-draft prompt', () => {
     expect(prompt).toContain('field');
     expect(prompt).toContain('CONTACT_EMAIL');
     expect(prompt).toContain('EXPERIENCE_END_DATE');
-    expect(prompt).toMatch(/otherwise (set )?field to null/i);
+    expect(prompt).toMatch(/otherwise omit field/i);
   });
 });

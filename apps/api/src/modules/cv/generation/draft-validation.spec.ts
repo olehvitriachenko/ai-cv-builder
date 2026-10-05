@@ -54,7 +54,7 @@ describe('validateGeneration', () => {
         questions: [
           {
             section: 'EXPERIENCE',
-            itemIndex: 0, field: null,
+            itemIndex: 0, field: undefined,
             missing: 'Team size',
             question: 'How big was the team?',
           },
@@ -88,7 +88,7 @@ describe('validateGeneration', () => {
         experience: [],
         education: [],
         skillCategories: [],
-        questions: [{ section: 'CONTACT', itemIndex: null, field: null, missing: 'Email', question: 'Email?' }],
+        questions: [{ section: 'CONTACT', itemIndex: null, field: undefined, missing: 'Email', question: 'Email?' }],
       }),
       SOURCE,
     );
@@ -149,7 +149,7 @@ describe('validateGeneration', () => {
         questions: [
           {
             section: 'EXPERIENCE',
-            itemIndex: null, field: null,
+            itemIndex: null, field: undefined,
             missing: 'No roles given',
             question: 'Where have you worked?',
           },
@@ -234,7 +234,7 @@ describe('validateGeneration', () => {
     const fq = (overrides: Partial<LlmCvOutput['questions'][number]> = {}) => ({
       section: 'CONTACT' as const,
       itemIndex: null,
-      field: null,
+      field: undefined,
       missing: 'Phone is missing',
       question: 'What is your phone number?',
       ...overrides,
@@ -246,7 +246,7 @@ describe('validateGeneration', () => {
         fq({ field: 'CONTACT_PHONE' }),
         fq({ section: 'EXPERIENCE', itemIndex: 0, field: 'EXPERIENCE_END_DATE', question: 'End date?' }),
         fq({ section: 'EDUCATION', itemIndex: 0, field: 'EDUCATION_QUALIFICATION', question: 'Degree?' }),
-        fq({ section: 'SKILLS', field: null, question: 'Any other skills?' }),
+        fq({ section: 'SKILLS', field: undefined, question: 'Any other skills?' }),
       ]);
 
       expect(result.ok).toBe(true);
@@ -298,7 +298,7 @@ describe('validateGeneration', () => {
   describe('clarification questions', () => {
     const q = (overrides: Partial<LlmCvOutput['questions'][number]> = {}) => ({
       section: 'CONTACT' as const,
-      itemIndex: null, field: null,
+      itemIndex: null, field: undefined,
       missing: 'Email',
       question: 'What is your email?',
       ...overrides,
@@ -326,9 +326,9 @@ describe('validateGeneration', () => {
         output({
           questions: [
             q({ section: 'EXPERIENCE', itemIndex: 1 }),
-            q({ section: 'EDUCATION', itemIndex: -1, field: null, question: 'b?' }),
-            q({ section: 'CONTACT', itemIndex: 0, field: null, question: 'c?' }),
-            q({ section: 'EXPERIENCE', itemIndex: 0, field: null, question: 'd?' }),
+            q({ section: 'EDUCATION', itemIndex: -1, field: undefined, question: 'b?' }),
+            q({ section: 'CONTACT', itemIndex: 0, field: undefined, question: 'c?' }),
+            q({ section: 'EXPERIENCE', itemIndex: 0, field: undefined, question: 'd?' }),
           ],
         }),
         SOURCE,

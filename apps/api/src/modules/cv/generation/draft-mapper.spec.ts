@@ -147,7 +147,7 @@ describe('mapOutputToDraft', () => {
 describe('normalizeQuestions', () => {
   const base = {
     section: 'CONTACT',
-    itemIndex: null, field: null,
+    itemIndex: null, field: undefined,
     missing: 'Email',
     question: 'What is your email?',
   } as const;
@@ -157,7 +157,7 @@ describe('normalizeQuestions', () => {
       { ...base, missing: '  Email ', question: ' What is your email? ' },
       { ...base },
       { ...base, question: 'what is   your EMAIL?' },
-      { section: 'SUMMARY', itemIndex: null, field: null, missing: 'Focus', question: 'Which focus?' },
+      { section: 'SUMMARY', itemIndex: null, field: undefined, missing: 'Focus', question: 'Which focus?' },
     ]);
 
     expect(result.map((q) => q.section)).toEqual(['CONTACT', 'SUMMARY']);
@@ -166,8 +166,8 @@ describe('normalizeQuestions', () => {
 
   it('keeps the same question when it concerns different entries', () => {
     const result = normalizeQuestions([
-      { section: 'EXPERIENCE', itemIndex: 0, field: null, missing: 'Dates', question: 'When?' },
-      { section: 'EXPERIENCE', itemIndex: 1, field: null, missing: 'Dates', question: 'When?' },
+      { section: 'EXPERIENCE', itemIndex: 0, field: undefined, missing: 'Dates', question: 'When?' },
+      { section: 'EXPERIENCE', itemIndex: 1, field: undefined, missing: 'Dates', question: 'When?' },
     ]);
 
     expect(result).toHaveLength(2);
@@ -180,8 +180,8 @@ describe('mapQuestions', () => {
 
     const rows = mapQuestions(
       [
-        { section: 'EXPERIENCE', itemIndex: 1, field: null, missing: 'Dates', question: 'When at Globex?' },
-        { section: 'EDUCATION', itemIndex: 0, field: null, missing: 'Degree', question: 'Which degree?' },
+        { section: 'EXPERIENCE', itemIndex: 1, field: undefined, missing: 'Dates', question: 'When at Globex?' },
+        { section: 'EDUCATION', itemIndex: 0, field: undefined, missing: 'Degree', question: 'Which degree?' },
       ],
       draft,
     );
@@ -194,7 +194,7 @@ describe('mapQuestions', () => {
     const draft = cvDraftSchema.parse(mapOutputToDraft(output()));
 
     const rows = mapQuestions(
-      [{ section: 'CONTACT', itemIndex: null, field: null, missing: 'Email', question: 'Email?' }],
+      [{ section: 'CONTACT', itemIndex: null, field: undefined, missing: 'Email', question: 'Email?' }],
       draft,
     );
 
@@ -205,7 +205,7 @@ describe('mapQuestions', () => {
     const draft = cvDraftSchema.parse(mapOutputToDraft(output()));
     const questions = (['CONTACT', 'SUMMARY', 'SKILLS'] as const).map((section) => ({
       section,
-      itemIndex: null, field: null,
+      itemIndex: null, field: undefined,
       missing: section,
       question: `${section}?`,
     }));
@@ -218,13 +218,13 @@ describe('mapQuestions', () => {
 });
 
 describe('mapQuestions field', () => {
-  it('carries the field of each question into its stored row', () => {
+  it('carries a field into its stored row and persists an omitted field as null', () => {
     const draft = cvDraftSchema.parse(mapOutputToDraft(output()));
 
     const rows = mapQuestions(
       [
         { section: 'CONTACT', itemIndex: null, field: 'CONTACT_EMAIL', missing: 'Email', question: 'Email?' },
-        { section: 'SUMMARY', itemIndex: null, field: null, missing: 'Focus', question: 'Focus?' },
+        { section: 'SUMMARY', itemIndex: null, missing: 'Focus', question: 'Focus?' },
       ],
       draft,
     );

@@ -16,7 +16,7 @@
 const NAME_WINDOW_SLACK = 2;
 
 /** A phone number needs at least this many digits to be checked at all. */
-const MIN_PHONE_DIGITS = 5;
+const MIN_PHONE_DIGITS = 8;
 
 /** Legal-form words: "Acme Inc." and "Acme" are the same organisation for our purposes. */
 const LEGAL_SUFFIXES = new Set([
@@ -75,15 +75,34 @@ function stripLinkNoise(value: string): string {
     .replace(/\bwww\./g, '');
 }
 
-/** Digit-only forms of the number-like runs in one source line (separators stay inside a run). */
-function digitRuns(source: string): string[] {
-  const runs: string[] = [];
-  for (const line of source.normalize('NFKC').split(/\r?\n/)) {
-    for (const match of line.matchAll(/\p{Nd}(?:[\p{Nd} \t ().\-/]*\p{Nd})?/gu)) {
-      runs.push(match[0].replace(/\P{Nd}/gu, ''));
+/** Number-like blocks, including a wrapped phone but never letters or blank-line boundaries. */
+function phoneRuns(source: string): string[][] {
+  return source.normalize('NFKC').split(/\r?\n[ \t]*\r?\n/).flatMap((block) =>
+    [...block.matchAll(/\p{Nd}(?:[\p{Nd}\p{Pd} \t ()./\r\n]*\p{Nd})?/gu)]
+      .map((match) => [...match[0].matchAll(/\p{Nd}+/gu)].map((group) => group[0])),
+  );
+}
+
+/** An extracted phone may share a numeric block with an adjacent employment year/range. */
+function isYear(group: string): boolean {
+  return /^(?:19|20)\d{2}$/.test(group);
+}
+
+function containsPhone(groups: string[], digits: string): boolean {
+  for (let start = 0; start < groups.length; start += 1) {
+    // Only year groups may precede the phone; do not accept a missing country/area prefix.
+    if (start > 0 && !isYear(groups[start - 1]!)) break;
+    let candidate = '';
+    let hasNonYear = false;
+    for (let end = start; end < groups.length; end += 1) {
+      const group = groups[end]!;
+      candidate += group;
+      hasNonYear ||= !isYear(group);
+      if (candidate.length > digits.length) break;
+      if (candidate === digits && hasNonYear && groups.slice(end + 1).every(isYear)) return true;
     }
   }
-  return runs;
+  return false;
 }
 
 /**
@@ -130,7 +149,7 @@ export interface SourceIndex {
 export function indexSource(sourceText: string): SourceIndex {
   const folded = foldCase(sourceText);
   const linkText = stripLinkNoise(sourceText);
-  const runs = digitRuns(sourceText);
+  const runs = phoneRuns(sourceText);
   const rawTokens = tokenize(sourceText);
   const sourceSignificant = significantTokens(rawTokens);
 
@@ -139,7 +158,7 @@ export function indexSource(sourceText: string): SourceIndex {
 
     hasPhone: (phone) => {
       const digits = phone.normalize('NFKC').replace(/\P{Nd}/gu, '');
-      return digits.length >= MIN_PHONE_DIGITS && runs.includes(digits);
+      return digits.length >= MIN_PHONE_DIGITS && runs.some((groups) => containsPhone(groups, digits));
     },
 
     hasLink: (link) => occursAsToken(stripLinkNoise(link).trim().replace(/\/+$/, ''), linkText),

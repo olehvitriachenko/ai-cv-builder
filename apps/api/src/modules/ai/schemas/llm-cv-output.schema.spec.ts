@@ -1,3 +1,4 @@
+import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
 import { FALLBACK_SKILL_CATEGORY, SKILL_CATEGORY_NAMES } from '../catalogue/skill-categories.js';
 import { QUESTION_FIELDS, llmCvOutputSchema } from './llm-cv-output.schema.js';
 
@@ -63,11 +64,11 @@ describe('llmCvOutputSchema', () => {
       questions: [
         {
           section: 'EXPERIENCE',
-          itemIndex: 0, field: null,
+          itemIndex: 0, field: undefined,
           missing: 'Dates',
           question: 'When did you work there?',
         },
-        { section: 'CONTACT', itemIndex: null, field: null, missing: 'Email', question: 'What is your email?' },
+        { section: 'CONTACT', itemIndex: null, field: undefined, missing: 'Email', question: 'What is your email?' },
       ],
     };
     expect(llmCvOutputSchema.safeParse(withQuestions).success).toBe(true);
@@ -96,13 +97,13 @@ describe('llmCvOutputSchema', () => {
   it('rejects an unknown question section and a non-integer item index', () => {
     const badSection = {
       ...validOutput(),
-      questions: [{ section: 'HOBBIES', itemIndex: null, field: null, missing: 'x', question: 'y' }],
+      questions: [{ section: 'HOBBIES', itemIndex: null, field: undefined, missing: 'x', question: 'y' }],
     };
     expect(llmCvOutputSchema.safeParse(badSection).success).toBe(false);
 
     const badIndex = {
       ...validOutput(),
-      questions: [{ section: 'EXPERIENCE', itemIndex: 1.5, field: null, missing: 'x', question: 'y' }],
+      questions: [{ section: 'EXPERIENCE', itemIndex: 1.5, field: undefined, missing: 'x', question: 'y' }],
     };
     expect(llmCvOutputSchema.safeParse(badIndex).success).toBe(false);
   });
@@ -113,9 +114,9 @@ describe('llmCvOutputSchema', () => {
       questions: [{ section: 'CONTACT', itemIndex: null, field, missing: 'Email', question: 'Your email?' }],
     });
 
-    it('accepts every known field and null', () => {
-      for (const field of [...QUESTION_FIELDS, null]) {
-        const section = field === null ? 'CONTACT' : field.split('_')[0];
+    it('accepts every known field and omission', () => {
+      for (const field of [...QUESTION_FIELDS, undefined]) {
+        const section = field === undefined ? 'CONTACT' : field.split('_')[0];
         const output = {
           ...validOutput(),
           questions: [{ section, itemIndex: null, field, missing: 'm', question: 'q' }],
@@ -135,13 +136,30 @@ describe('llmCvOutputSchema', () => {
       expect(llmCvOutputSchema.safeParse(withField('email')).success).toBe(false);
     });
 
-    it('requires the field key (structured output returns every property)', () => {
+    it('accepts an omitted field and rejects explicit null', () => {
       const output = {
         ...validOutput(),
         questions: [{ section: 'CONTACT', itemIndex: null, missing: 'Email', question: 'Your email?' }],
       };
 
-      expect(llmCvOutputSchema.safeParse(output).success).toBe(false);
+      expect(llmCvOutputSchema.safeParse(output).success).toBe(true);
+      expect(llmCvOutputSchema.safeParse(withField(null)).success).toBe(false);
     });
+  });
+});
+
+/** Count the actual SDK schema, including definitions referenced by $ref. */
+function unionParameterCount(value: unknown): number {
+  if (value === null || typeof value !== 'object') return 0;
+  if (Array.isArray(value)) return value.reduce((count, child) => count + unionParameterCount(child), 0);
+  const node = value as Record<string, unknown>;
+  const union = (Array.isArray(node.type) && node.type.length > 1) || Array.isArray(node.anyOf) || Array.isArray(node.oneOf);
+  return Number(union) + Object.values(node).reduce<number>((count, child) => count + unionParameterCount(child), 0);
+}
+
+describe('Anthropic structured-output compatibility', () => {
+  it('keeps the generated schema within the provider limit of 16 union parameters', () => {
+    const { schema } = zodOutputFormat(llmCvOutputSchema);
+    expect(unionParameterCount(schema)).toBeLessThanOrEqual(16);
   });
 });
