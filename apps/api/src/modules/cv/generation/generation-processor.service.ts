@@ -3,7 +3,7 @@ import { describeError } from '../../../common/errors.js';
 import type { FailureReason } from '../../../generated/prisma/enums.js';
 import { PrismaService } from '../../../infrastructure/index.js';
 import { CvGenerator, ProviderError } from '../../ai/cv-generator.js';
-import { llmCvOutputSchema } from '../../ai/llm-cv-output.schema.js';
+import { llmCvOutputSchema } from '../../ai/schemas/llm-cv-output.schema.js';
 import type { QuestionRow } from './draft-mapper.js';
 import { formatIssue, validateGeneration, type ValidationIssue } from './draft-validation.js';
 import type { CvDraft } from './draft.schema.js';

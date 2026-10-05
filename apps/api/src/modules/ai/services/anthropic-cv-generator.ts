@@ -6,9 +6,9 @@ import Anthropic, {
   PermissionDeniedError,
 } from '@anthropic-ai/sdk';
 import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
-import { CvGenerator, ProviderError, type CvGeneratorRequest } from './cv-generator.js';
-import { llmCvOutputSchema } from './llm-cv-output.schema.js';
-import { PROMPT_VERSION, buildSystemPrompt, buildUserContent } from './prompts/cv-draft.prompt.js';
+import { CvGenerator, ProviderError, type CvGeneratorRequest } from '../cv-generator.js';
+import { llmCvOutputSchema } from '../schemas/llm-cv-output.schema.js';
+import { PROMPT_VERSION, buildSystemPrompt, buildUserContent } from '../prompts/cv-draft.prompt.js';
 
 /**
  * The ONLY file that imports the Anthropic SDK. Everything provider-specific stays here: the

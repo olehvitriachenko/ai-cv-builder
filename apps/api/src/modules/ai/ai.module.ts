@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { AnthropicCvGenerator } from './anthropic-cv-generator.js';
+import { AnthropicCvGenerator } from './services/anthropic-cv-generator.js';
 import { CvGenerator } from './cv-generator.js';
 
 @Module({

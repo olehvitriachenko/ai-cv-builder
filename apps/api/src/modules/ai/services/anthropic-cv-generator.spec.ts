@@ -10,9 +10,9 @@ import {
   isRetryable,
   type AnthropicMessagesClient,
 } from './anthropic-cv-generator.js';
-import { ProviderError } from './cv-generator.js';
-import { llmCvOutputSchema } from './llm-cv-output.schema.js';
-import { PROMPT_VERSION } from './prompts/cv-draft.prompt.js';
+import { ProviderError } from '../cv-generator.js';
+import { llmCvOutputSchema } from '../schemas/llm-cv-output.schema.js';
+import { PROMPT_VERSION } from '../prompts/cv-draft.prompt.js';
 
 type CreateFn = AnthropicMessagesClient['messages']['create'];
 type MessageResult = Awaited<ReturnType<CreateFn>>;

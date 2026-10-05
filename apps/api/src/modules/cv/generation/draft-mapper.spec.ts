@@ -1,4 +1,4 @@
-import type { LlmCvOutput } from '../../ai/llm-cv-output.schema.js';
+import type { LlmCvOutput } from '../../ai/schemas/llm-cv-output.schema.js';
 import { cvDraftSchema } from './draft.schema.js';
 import { mapOutputToDraft, mapQuestions, normalizeQuestions } from './draft-mapper.js';
 

@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { z } from 'zod';
-import type { LlmCvOutput, QuestionSectionName } from '../../ai/llm-cv-output.schema.js';
+import type { LlmCvOutput, QuestionSectionName } from '../../ai/schemas/llm-cv-output.schema.js';
 import type { CvDraft, cvDraftSchema } from './draft.schema.js';
 
 /** The draft shape before schema validation (strings not yet trimmed or checked). */

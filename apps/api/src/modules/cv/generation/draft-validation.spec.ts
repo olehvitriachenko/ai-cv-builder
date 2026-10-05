@@ -1,4 +1,4 @@
-import type { LlmCvOutput } from '../../ai/llm-cv-output.schema.js';
+import type { LlmCvOutput } from '../../ai/schemas/llm-cv-output.schema.js';
 import { formatIssue, validateGeneration, type GenerationValidation } from './draft-validation.js';
 
 const SOURCE = [

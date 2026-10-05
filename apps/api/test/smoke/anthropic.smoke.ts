@@ -1,5 +1,5 @@
-import { AnthropicCvGenerator } from '../../src/modules/ai/anthropic-cv-generator.js';
-import { llmCvOutputSchema } from '../../src/modules/ai/llm-cv-output.schema.js';
+import { AnthropicCvGenerator } from '../../src/modules/ai/services/anthropic-cv-generator.js';
+import { llmCvOutputSchema } from '../../src/modules/ai/schemas/llm-cv-output.schema.js';
 import { validateEnv } from '../../src/config/env.js';
 import {
   formatIssue,
