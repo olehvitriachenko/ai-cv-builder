@@ -77,29 +77,44 @@ function Education({ entry }: { entry: EducationEntry }) {
  * The white A4 sheet: at least A4-proportioned (the invisible spacer sets the height from the
  * width), and it grows when the content is longer. On narrow screens the text keeps its readable
  * size and the sheet gets taller instead of shrinking the page to an unreadable thumbnail.
+ * `fixed` is the zoomable preview: always 660 px wide with the full margins, scaled from outside.
  */
-export function A4Sheet({ children, label }: { children: ReactNode; label?: string }) {
+export function A4Sheet({ children, label, fixed = false }: { children: ReactNode; label?: string; fixed?: boolean }) {
   return (
     <article
       aria-label={label}
-      className="grid w-full max-w-[660px] bg-surface text-paper-ink shadow-[0_8px_28px_rgba(40,51,71,0.08)]"
+      className={`grid bg-surface text-paper-ink shadow-[0_8px_28px_rgba(40,51,71,0.08)] ${
+        fixed ? "w-[660px]" : "w-full max-w-[660px]"
+      }`}
     >
       <div aria-hidden className="col-start-1 row-start-1 pb-[141.43%]" />
-      <div className="col-start-1 row-start-1 min-w-0 px-5 pt-8 pb-8 sm:px-[54px] sm:pt-12 sm:pb-10">
+      <div
+        className={`col-start-1 row-start-1 min-w-0 ${
+          fixed ? "px-[54px] pt-12 pb-10" : "px-5 pt-8 pb-8 sm:px-[54px] sm:pt-12 sm:pb-10"
+        }`}
+      >
         {children}
       </div>
     </article>
   );
 }
 
-export function CvDocument({ draft, targetRole }: { draft: CvDraft; targetRole: string }) {
+export function CvDocument({
+  draft,
+  targetRole,
+  fixed = false,
+}: {
+  draft: CvDraft;
+  targetRole: string;
+  fixed?: boolean;
+}) {
   const { contact } = draft;
   const contactLine = present([contact.location, contact.email, contact.phone]).join("  ·  ");
   const linksLine = contact.links.join("  ·  ");
   const skills = skillLines(draft.skillCategories);
 
   return (
-    <A4Sheet label="CV preview">
+    <A4Sheet label="CV preview" fixed={fixed}>
       <div className="flex flex-col gap-6">
         <header className="flex flex-col gap-2.5">
           <h2

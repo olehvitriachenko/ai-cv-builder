@@ -1,92 +1,66 @@
+import { z } from "zod";
 import type { DraftFormValues } from "./draft-form";
-import { linkError } from "./links";
+import { splitLinks } from "./links";
 
-// The completeness score of the spec appendix: nine items summing to 100%. A pure function of the
-// current form values, so it follows every keystroke. Advisory only: it never blocks saving.
+// The advisory completeness score of the editor (spec appendix "Completeness score"): the sum of
+// the weights of the satisfied items. It runs on the live form values, is never stored or sent, and
+// never blocks saving.
 
 export interface MissingItem {
-  id: CompletenessItemId;
+  id: "fullName" | "email" | "phone" | "location" | "linkedin" | "summary" | "experience" | "education" | "skills";
   label: string;
-  /** The percentage points the item adds once it is satisfied. */
+  /** The percentage points the item adds once it is filled in. */
   gain: number;
 }
 
 export interface Completeness {
   percent: number;
-  /** Unsatisfied items in the appendix order. */
   missing: MissingItem[];
 }
 
-export type CompletenessItemId =
-  | "fullName"
-  | "email"
-  | "phone"
-  | "location"
-  | "linkedin"
-  | "summary"
-  | "experience"
-  | "education"
-  | "skills";
+const MIN_SKILLS = 5;
 
 const filled = (value: string): boolean => value.trim() !== "";
 
-const MIN_SKILLS = 5;
-
-interface Item {
-  id: CompletenessItemId;
-  label: string;
-  weight: number;
-  satisfied: (values: DraftFormValues) => boolean;
-}
-
-const ITEMS: Item[] = [
-  { id: "fullName", label: "Full name", weight: 15, satisfied: (v) => filled(v.contact.fullName) },
-  {
-    id: "email",
-    label: "Email address",
-    weight: 10,
-    satisfied: (v) => filled(v.contact.email) && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.contact.email.trim()),
-  },
-  { id: "phone", label: "Phone number", weight: 10, satisfied: (v) => filled(v.contact.phone) },
-  { id: "location", label: "Location", weight: 5, satisfied: (v) => filled(v.contact.location) },
-  {
-    id: "linkedin",
-    label: "LinkedIn",
-    weight: 5,
-    satisfied: (v) => filled(v.contact.linkedin) && linkError("linkedin", v.contact.linkedin) === null,
-  },
-  { id: "summary", label: "Professional summary", weight: 15, satisfied: (v) => filled(v.summary) },
-  {
-    id: "experience",
-    label: "Professional experience",
-    weight: 25,
-    satisfied: (v) => v.experience.some((e) => filled(e.title) && filled(e.employer) && filled(e.startDate)),
-  },
-  {
-    id: "education",
-    label: "Education",
-    weight: 5,
-    satisfied: (v) => v.education.some((e) => filled(e.institution)),
-  },
-  {
-    id: "skills",
-    label: "Skills (at least 5)",
-    weight: 10,
-    satisfied: (v) =>
-      v.skillCategories.reduce((count, category) => count + category.skills.filter((s) => filled(s.value)).length, 0) >=
-      MIN_SKILLS,
-  },
-];
-
 export function computeCompleteness(values: DraftFormValues): Completeness {
-  let percent = 0;
-  const missing: MissingItem[] = [];
-  for (const item of ITEMS) {
-    if (item.satisfied(values)) {
-      percent += item.weight;
-    } else {
-      missing.push({ id: item.id, label: item.label, gain: item.weight });
-    }
-  }
-  return { percent, missing };
+  const { contact } = values;
+  const skillCount = values.skillCategories.reduce(
+    (count, category) => count + category.skills.filter((item) => filled(item.value)).length,
+    0,
+  );
+
+  const items: (MissingItem & { satisfied: boolean })[] = [
+    { id: "fullName", label: "Full name", gain: 15, satisfied: filled(contact.fullName) },
+    { id: "email", label: "Email", gain: 10, satisfied: z.email().safeParse(contact.email.trim()).success },
+    { id: "phone", label: "Phone number", gain: 10, satisfied: filled(contact.phone) },
+    { id: "location", label: "Location", gain: 5, satisfied: filled(contact.location) },
+    {
+      id: "linkedin",
+      label: "LinkedIn",
+      gain: 5,
+      // Judged like the saved draft: a LinkedIn address counts wherever it was typed.
+      satisfied: splitLinks([contact.linkedin, contact.portfolio, ...contact.extraLinks.map((item) => item.value)]).linkedin !== null,
+    },
+    { id: "summary", label: "Professional summary", gain: 15, satisfied: filled(values.summary) },
+    {
+      id: "experience",
+      label: "Work experience",
+      gain: 25,
+      satisfied: values.experience.some(
+        (entry) => filled(entry.title) && filled(entry.employer) && filled(entry.startDate),
+      ),
+    },
+    {
+      id: "education",
+      label: "Education",
+      gain: 5,
+      satisfied: values.education.some((entry) => filled(entry.institution)),
+    },
+    { id: "skills", label: "Skills", gain: 10, satisfied: skillCount >= MIN_SKILLS },
+  ];
+
+  return {
+    percent: items.filter((item) => item.satisfied).reduce((sum, item) => sum + item.gain, 0),
+    missing: items.filter((item) => !item.satisfied).map(({ id, label, gain }) => ({ id, label, gain })),
+  };
 }

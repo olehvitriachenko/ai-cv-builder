@@ -20,6 +20,7 @@ export function DownloadPdfButton({
   cvId,
   variant,
   size = "compact",
+  label = "Download PDF",
   showIcon = false,
   disabledReason = null,
   beforeDownload,
@@ -27,7 +28,10 @@ export function DownloadPdfButton({
 }: {
   cvId: string;
   variant?: ButtonVariant;
+  /** Compact (36 px) by default; the editor header and the full-screen preview use the regular 44 px button. */
   size?: ButtonSize;
+  /** The idle text; the full-screen preview on a phone shortens it to "PDF". */
+  label?: string;
   showIcon?: boolean;
   /** Why the action is unavailable (the CV has no draft yet), or null when it is available. */
   disabledReason?: string | null;
@@ -95,7 +99,7 @@ export function DownloadPdfButton({
         ) : showIcon ? (
           <Download aria-hidden className="size-4" strokeWidth={1.75} />
         ) : null}
-        {busy ? "Preparing PDF…" : "Download PDF"}
+        {busy ? "Preparing PDF…" : label}
       </Button>
       {/* Announced without moving focus; the button stays available to try again. */}
       {inlineMessage && onMessage === undefined ? (

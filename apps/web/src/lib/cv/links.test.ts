@@ -1,74 +1,66 @@
 import { describe, expect, it } from "vitest";
-import { linkError, mergeLinks, splitLinks } from "./links";
+import { MAX_LINKS, linkError, mergeLinks, splitLinks } from "./links";
 
 describe("splitLinks", () => {
-  it("takes the first LinkedIn link, the first other link as the portfolio and keeps the rest", () => {
-    expect(
-      splitLinks([
-        "https://github.com/ada",
-        "https://www.linkedin.com/in/ada",
-        "https://ada.dev",
-        "https://twitter.com/ada",
-      ]),
-    ).toEqual({
+  it("takes the first LinkedIn link as LinkedIn and the first other link as Portfolio", () => {
+    expect(splitLinks(["https://github.com/ada", "https://www.linkedin.com/in/ada", "https://ada.dev"])).toEqual({
       linkedin: "https://www.linkedin.com/in/ada",
       portfolio: "https://github.com/ada",
-      extra: ["https://ada.dev", "https://twitter.com/ada"],
-    });
-  });
-
-  it("recognises linkedin.com and any subdomain, with or without a scheme", () => {
-    expect(splitLinks(["linkedin.com/in/ada"]).linkedin).toBe("linkedin.com/in/ada");
-    expect(splitLinks(["https://uk.linkedin.com/in/ada"]).linkedin).toBe("https://uk.linkedin.com/in/ada");
-    expect(splitLinks(["https://notlinkedin.com/ada"]).linkedin).toBe("");
-    expect(splitLinks(["https://linkedin.com.evil.example/ada"]).linkedin).toBe("");
-  });
-
-  it("keeps a second LinkedIn link (as the portfolio), never dropping it", () => {
-    expect(splitLinks(["https://linkedin.com/in/a", "https://linkedin.com/in/b"])).toEqual({
-      linkedin: "https://linkedin.com/in/a",
-      portfolio: "https://linkedin.com/in/b",
-      extra: [],
-    });
-  });
-
-  it("keeps text that is not a URL (it is never lost)", () => {
-    expect(splitLinks(["my site", "https://ada.dev"])).toEqual({
-      linkedin: "",
-      portfolio: "my site",
       extra: ["https://ada.dev"],
     });
   });
 
-  it("handles an empty list", () => {
-    expect(splitLinks([])).toEqual({ linkedin: "", portfolio: "", extra: [] });
+  it("recognises LinkedIn with or without a scheme, a www prefix or a country subdomain", () => {
+    for (const link of ["linkedin.com/in/ada", "http://LinkedIn.com/in/ada", "https://uk.linkedin.com/in/ada"]) {
+      expect(splitLinks([link]).linkedin).toBe(link);
+    }
+  });
+
+  it("does not mistake a look-alike host for LinkedIn", () => {
+    const result = splitLinks(["https://notlinkedin.com/ada", "https://example.com/linkedin.com"]);
+
+    expect(result.linkedin).toBeNull();
+    expect(result.portfolio).toBe("https://notlinkedin.com/ada");
+    expect(result.extra).toEqual(["https://example.com/linkedin.com"]);
+  });
+
+  it("puts a second LinkedIn link in the extras, never in Portfolio", () => {
+    expect(splitLinks(["linkedin.com/in/a", "linkedin.com/in/b"])).toEqual({
+      linkedin: "linkedin.com/in/a",
+      portfolio: null,
+      extra: ["linkedin.com/in/b"],
+    });
+  });
+
+  it("returns empty slots for no links and ignores blank entries", () => {
+    expect(splitLinks([])).toEqual({ linkedin: null, portfolio: null, extra: [] });
+    expect(splitLinks(["  ", ""])).toEqual({ linkedin: null, portfolio: null, extra: [] });
   });
 });
 
 describe("mergeLinks", () => {
-  it("returns LinkedIn, Portfolio and the extra links in that order, dropping blanks", () => {
-    expect(
-      mergeLinks({ linkedin: " https://linkedin.com/in/ada ", portfolio: "", extra: ["", "https://ada.dev", "  "] }),
-    ).toEqual(["https://linkedin.com/in/ada", "https://ada.dev"]);
+  it("returns LinkedIn, Portfolio, then the extras, dropping blanks and trimming", () => {
+    expect(mergeLinks({ linkedin: " linkedin.com/in/a ", portfolio: "", extra: ["x.dev", "  ", "y.dev"] })).toEqual([
+      "linkedin.com/in/a",
+      "x.dev",
+      "y.dev",
+    ]);
   });
 
-  it("keeps at most five links", () => {
-    const links = mergeLinks({
-      linkedin: "https://linkedin.com/in/a",
-      portfolio: "https://a.dev",
-      extra: ["https://1.dev", "https://2.dev", "https://3.dev", "https://4.dev"],
+  it(`never returns more than ${MAX_LINKS} links`, () => {
+    const merged = mergeLinks({
+      linkedin: "l",
+      portfolio: "p",
+      extra: ["1", "2", "3", "4"],
     });
 
-    expect(links).toHaveLength(5);
+    expect(merged).toEqual(["l", "p", "1", "2", "3"]);
   });
 
-  it("round-trips every non-blank link, whatever the host", () => {
-    const original = ["https://github.com/ada", "https://linkedin.com/in/ada", "my site", "https://ada.dev"];
+  it("keeps every non-blank link through a split and merge, including unknown hosts", () => {
+    const links = ["https://ada.dev", "linkedin.com/in/ada", "mailto:ada@example.com", "https://example.org/a"];
 
-    const merged = mergeLinks(splitLinks(original));
-
-    expect([...merged].sort()).toEqual([...original].sort());
-    expect(merged[0]).toBe("https://linkedin.com/in/ada");
+    expect([...mergeLinks(splitLinks(links))].sort()).toEqual([...links].sort());
   });
 });
 

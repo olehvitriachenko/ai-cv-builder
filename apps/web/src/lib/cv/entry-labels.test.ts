@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { educationCount, educationHeading, experienceCount, experienceHeading, studyLine } from "./entry-labels";
 
+const TODAY = new Date("2026-06-01T00:00:00Z");
+
 describe("experienceHeading", () => {
   it("reads Company · dates, as in the design", () => {
     expect(experienceHeading({ employer: "Kilona", title: "Dev", startDate: "Jun 2025", endDate: "Present" })).toBe(
@@ -36,9 +38,9 @@ describe("section count lines", () => {
 
   it("counts education entries and says when one is ongoing", () => {
     expect(educationCount([])).toBe("No education added");
-    expect(educationCount([{ endDate: "2015" }], 2026)).toBe("1 education");
-    expect(educationCount([{ endDate: "Present" }], 2026)).toBe("1 education · Ongoing");
-    expect(educationCount([{ endDate: "2015" }, { endDate: "2029" }], 2026)).toBe("2 educations · Ongoing");
+    expect(educationCount([{ endDate: "2015" }], TODAY)).toBe("1 education");
+    expect(educationCount([{ endDate: "Present" }], TODAY)).toBe("1 education · Ongoing");
+    expect(educationCount([{ endDate: "2015" }, { endDate: "2029" }], TODAY)).toBe("2 educations · Ongoing");
   });
 });
 

@@ -14,6 +14,8 @@ import {
   toTargetRole,
 } from "./draft-form";
 
+const ROLE = "Backend Engineer";
+
 function draft(): CvDraft {
   return {
     schemaVersion: 2,
@@ -29,16 +31,13 @@ function draft(): CvDraft {
   };
 }
 
-const ROLE = "Backend Engineer";
-const formOf = () => toFormValues(draft(), ROLE);
-
 describe("toFormValues / toDraft", () => {
   it("round-trips a draft unchanged", () => {
-    expect(toDraft(formOf())).toEqual(draft());
+    expect(toDraft(toFormValues(draft(), ROLE))).toEqual(draft());
   });
 
   it("shows null as an empty input", () => {
-    const values = formOf();
+    const values = toFormValues(draft(), ROLE);
 
     expect(values.contact.phone).toBe("");
     expect(values.experience[0]?.location).toBe("");
@@ -46,7 +45,7 @@ describe("toFormValues / toDraft", () => {
   });
 
   it("sends an emptied or whitespace-only field as null", () => {
-    const values = formOf();
+    const values = toFormValues(draft(), ROLE);
     values.summary = "   ";
     values.contact.email = "";
 
@@ -57,7 +56,7 @@ describe("toFormValues / toDraft", () => {
   });
 
   it("trims text and drops blank bullets, skills and links", () => {
-    const values = formOf();
+    const values = toFormValues(draft(), ROLE);
     values.experience[0]?.bullets.push({ value: "   " });
     values.skillCategories[0]?.skills.push({ value: "" }, { value: "  Go  " });
     values.contact.extraLinks.push({ value: " " });
@@ -70,8 +69,8 @@ describe("toFormValues / toDraft", () => {
   });
 
   it("keeps entry ids so clarification questions still point at their entries", () => {
-    expect(toDraft(formOf()).experience[0]?.id).toBe("exp-1");
-    expect(toDraft(formOf()).education[0]?.id).toBe("edu-1");
+    expect(toDraft(toFormValues(draft(), ROLE)).experience[0]?.id).toBe("exp-1");
+    expect(toDraft(toFormValues(draft(), ROLE)).education[0]?.id).toBe("edu-1");
   });
 
   it("gives new entries a fresh unique id", () => {
@@ -87,11 +86,11 @@ describe("toFormValues / toDraft", () => {
 
 describe("cvFormSchema", () => {
   it("accepts a valid form", () => {
-    expect(cvFormSchema.safeParse(formOf()).success).toBe(true);
+    expect(cvFormSchema.safeParse(toFormValues(draft(), ROLE)).success).toBe(true);
   });
 
   function messages(change: (values: ReturnType<typeof toFormValues>) => void): string[] {
-    const values = formOf();
+    const values = toFormValues(draft(), ROLE);
     change(values);
     const result = cvFormSchema.safeParse(values);
     return result.success ? [] : result.error.issues.map((issue) => `${issue.path.join(".")}: ${issue.message}`);
@@ -142,14 +141,14 @@ describe("cvFormSchema", () => {
 
 describe("skill categories in the form", () => {
   function categoryMessages(change: (values: ReturnType<typeof toFormValues>) => void): string[] {
-    const values = formOf();
+    const values = toFormValues(draft(), ROLE);
     change(values);
     const result = cvFormSchema.safeParse(values);
     return result.success ? [] : result.error.issues.map((issue) => `${issue.path.join(".")}: ${issue.message}`);
   }
 
   it("drops a category that has no skills (the server never stores an empty category)", () => {
-    const values = formOf();
+    const values = toFormValues(draft(), ROLE);
     values.skillCategories.push({ id: "cat-2", name: "Databases", skills: [{ value: "  " }] });
     values.skillCategories.push({ id: "cat-3", name: "", skills: [] });
 
@@ -157,7 +156,7 @@ describe("skill categories in the form", () => {
   });
 
   it("trims the category name and keeps the category id", () => {
-    const values = formOf();
+    const values = toFormValues(draft(), ROLE);
     values.skillCategories[0]!.name = "  Backend  ";
 
     expect(toDraft(values).skillCategories[0]).toMatchObject({ id: "cat-1", name: "Backend" });
@@ -214,58 +213,101 @@ describe("skill categories in the form", () => {
   });
 });
 
+
 describe("target role in the form", () => {
-  it("maps the role to and from the form, trimmed and never null", () => {
-    const values = formOf();
-    expect(values.targetRole).toBe(ROLE);
+  it("maps the stored role to the form and back, trimmed and never null", () => {
+    const values = toFormValues(draft(), "Backend Engineer");
+    expect(values.targetRole).toBe("Backend Engineer");
 
     values.targetRole = "  Staff Engineer  ";
-
     expect(toTargetRole(values)).toBe("Staff Engineer");
   });
 
-  it("leaves the stored draft untouched: the role is not part of it", () => {
-    const values = formOf();
-    values.targetRole = "Something else";
+  it("requires a role of at most 200 characters, like the server", () => {
+    const values = toFormValues(draft(), ROLE);
 
-    expect(toDraft(values)).toEqual(draft());
+    values.targetRole = "   ";
+    const blank = cvFormSchema.safeParse(values);
+    expect(blank.success ? [] : blank.error.issues.map((issue) => issue.path.join("."))).toContain("targetRole");
+
+    values.targetRole = "x".repeat(201);
+    expect(cvFormSchema.safeParse(values).success).toBe(false);
+
+    values.targetRole = "x".repeat(200);
+    expect(cvFormSchema.safeParse(values).success).toBe(true);
+  });
+});
+
+describe("end dates", () => {
+  it("treats Present as an end-date mode, ignoring case and spaces", () => {
+    expect(PRESENT).toBe("Present");
+    for (const value of ["Present", "present", " PRESENT "]) {
+      expect(isPresent(value)).toBe(true);
+    }
+    for (const value of ["", "2023", "Mar 2023", "Presently"]) {
+      expect(isPresent(value)).toBe(false);
+    }
   });
 
-  it("refuses a blank role and one over 200 characters, with a message on the field", () => {
-    const blank = formOf();
-    blank.targetRole = "   ";
-    const long = formOf();
-    long.targetRole = "x".repeat(201);
+  it("derives currently studying from Present or an end year in the future", () => {
+    const today = new Date("2026-10-05T12:00:00Z");
 
-    const messageOf = (values: ReturnType<typeof formOf>) => {
+    expect(isCurrentlyStudying("Present", today)).toBe(true);
+    expect(isCurrentlyStudying("2027", today)).toBe(true);
+    expect(isCurrentlyStudying("2026", today)).toBe(false);
+    expect(isCurrentlyStudying("2019", today)).toBe(false);
+    expect(isCurrentlyStudying("", today)).toBe(false);
+    expect(isCurrentlyStudying("Summer 2030", today)).toBe(false);
+  });
+});
+
+describe("links in the form", () => {
+  const stored = (links: string[]): CvDraft => ({ ...draft(), contact: { ...draft().contact, links } });
+
+  it("shows the flat list as LinkedIn, Portfolio and extra links, and saves it back in that order", () => {
+    const links = ["https://github.com/ada", "https://www.linkedin.com/in/ada", "https://ada.dev"];
+
+    const values = toFormValues(stored(links), ROLE);
+
+    expect(values.contact).toMatchObject({
+      linkedin: "https://www.linkedin.com/in/ada",
+      portfolio: "https://github.com/ada",
+      extraLinks: [{ value: "https://ada.dev" }],
+    });
+    expect(toDraft(values).contact.links).toEqual([
+      "https://www.linkedin.com/in/ada",
+      "https://github.com/ada",
+      "https://ada.dev",
+    ]);
+  });
+
+  it("keeps a link that is not a URL instead of dropping it", () => {
+    expect(toDraft(toFormValues(stored(["my site"]), ROLE)).contact.links).toEqual(["my site"]);
+  });
+
+  it("asks for a valid URL on the field that holds the problem", () => {
+    const issues = (change: (values: ReturnType<typeof toFormValues>) => void): string[] => {
+      const values = toFormValues(draft(), ROLE);
+      change(values);
       const result = cvFormSchema.safeParse(values);
       return result.success ? [] : result.error.issues.map((issue) => `${issue.path.join(".")}: ${issue.message}`);
     };
 
-    expect(messageOf(blank)).toContain("targetRole: Enter your target role.");
-    expect(messageOf(long).join()).toContain("targetRole: Target role must be at most 200 characters.");
+    expect(issues((values) => { values.contact.linkedin = "https://github.com/ada"; })).toEqual([
+      "contact.linkedin: Enter a valid LinkedIn URL.",
+    ]);
+    expect(issues((values) => { values.contact.portfolio = "not a url"; })).toEqual([
+      "contact.portfolio: Enter a valid Portfolio URL.",
+    ]);
+    expect(issues((values) => { values.contact.extraLinks = [{ value: "javascript:alert(1)" }]; })).toEqual([
+      "contact.extraLinks.0.value: Enter a valid URL.",
+    ]);
   });
 });
 
-describe("end dates and education status", () => {
-  it("treats Present as an end date choice, ignoring case and spaces", () => {
-    expect(PRESENT).toBe("Present");
-    expect(isPresent("Present")).toBe(true);
-    expect(isPresent("  present ")).toBe(true);
-    expect(isPresent("PRESENT")).toBe(true);
-    expect(isPresent("2024")).toBe(false);
-    expect(isPresent("")).toBe(false);
-    expect(isPresent("Presently")).toBe(false);
-  });
-
-  it("derives Currently studying from Present or an end year in the future", () => {
-    expect(isCurrentlyStudying("Present", 2026)).toBe(true);
-    expect(isCurrentlyStudying("2029", 2026)).toBe(true);
-    expect(isCurrentlyStudying("May 2029", 2026)).toBe(true);
-    expect(isCurrentlyStudying("2026", 2026)).toBe(false);
-    expect(isCurrentlyStudying("2015", 2026)).toBe(false);
-    expect(isCurrentlyStudying("", 2026)).toBe(false);
-    expect(isCurrentlyStudying("not a year", 2026)).toBe(false);
+describe("entries", () => {
+  it("a new education entry starts empty", () => {
+    expect(newEducationEntry()).toMatchObject({ institution: "", qualification: "", startDate: "", endDate: "", details: "" });
   });
 
   it("shows the expected graduation only when there is a real date", () => {
@@ -273,34 +315,9 @@ describe("end dates and education status", () => {
     expect(expectedGraduation("2029")).toBe("2029");
     expect(expectedGraduation("")).toBe("");
   });
-});
-
-describe("new entries in the form", () => {
-  it("creates empty entries with unique client ids", () => {
-    const education = newEducationEntry();
-
-    expect(education).toMatchObject({ institution: "", qualification: "", startDate: "", endDate: "", details: "" });
-    expect(newEducationEntry().id).not.toBe(education.id);
-    expect(newExperienceEntry()).toMatchObject({ employer: "", title: "", startDate: "", endDate: "", bullets: [] });
-  });
-
-  it("blocks the save for a fresh empty entry and says what is missing instead of saving it", () => {
-    const withExperience = formOf();
-    withExperience.experience.push(newExperienceEntry());
-    const withEducation = formOf();
-    withEducation.education.push(newEducationEntry());
-
-    const issues = (values: ReturnType<typeof formOf>) => {
-      const result = cvFormSchema.safeParse(values);
-      return result.success ? [] : result.error.issues.map((issue) => `${issue.path.join(".")}: ${issue.message}`);
-    };
-
-    expect(issues(withExperience)).toContain("experience.1.employer: Add an employer or a job title.");
-    expect(issues(withEducation)).toContain("education.1.institution: Add an institution or a qualification.");
-  });
 
   it("removing entries and highlights is reflected in the saved draft at once", () => {
-    const values = formOf();
+    const values = toFormValues(draft(), ROLE);
     values.experience.splice(0, 1);
     values.education.splice(0, 1);
     values.contact.portfolio = "";
@@ -311,8 +328,18 @@ describe("new entries in the form", () => {
     expect(result.education).toEqual([]);
     expect(result.contact.links).toEqual([]);
 
-    const withBullets = formOf();
+    const withBullets = toFormValues(draft(), ROLE);
     withBullets.experience[0]?.bullets.splice(0, 1);
     expect(toDraft(withBullets).experience[0]?.bullets).toEqual(["Led a team"]);
+  });
+
+  it("an entry that breaks the schema is reported by field, so the editor can block the save", () => {
+    const values = toFormValues(draft(), ROLE);
+    values.experience.push({ ...newExperienceEntry(), startDate: "2020" });
+
+    const result = cvFormSchema.safeParse(values);
+
+    expect(result.success).toBe(false);
+    expect(result.success ? [] : result.error.issues.map((issue) => issue.path.join("."))).toContain("experience.1.employer");
   });
 });

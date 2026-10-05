@@ -3,10 +3,10 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useForm, useWatch } from "react-hook-form";
-import { applyQuestion, saveDraft, type ClarificationQuestion, type CvDraft, type CvResult } from "@/lib/api/cvs";
+import { applyQuestion, saveDraft, type ClarificationQuestion, type CvResult } from "@/lib/api/cvs";
 import { isApiError } from "@/lib/api/fetcher";
 import { ApplyBlockedError, applyAnswer, applyErrorOutcome } from "@/lib/cv/apply-flow";
-import { DraftAutosaver } from "@/lib/cv/autosave";
+import { DraftAutosaver, type SavePayload } from "@/lib/cv/autosave";
 import {
   cvFormSchema,
   toDraft,
@@ -14,12 +14,6 @@ import {
   toTargetRole,
   type DraftFormValues,
 } from "@/lib/cv/draft-form";
-
-/** What is saved together: the draft and the target role (stored with the CV, not in the draft). */
-interface SavePayload {
-  draft: CvDraft;
-  targetRole: string;
-}
 
 function payloadOf(values: DraftFormValues): SavePayload {
   return { draft: toDraft(values), targetRole: toTargetRole(values) };
@@ -43,7 +37,7 @@ export function useCvEditor({
 }) {
   const [autosaver] = useState(
     () =>
-      new DraftAutosaver<SavePayload>({
+      new DraftAutosaver({
         initialRevision: result.revision,
         save: (revision, { draft, targetRole }) => saveDraft(cvId, { revision, draft, targetRole }),
       }),

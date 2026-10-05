@@ -1,56 +1,68 @@
-// The draft stores a person's links as one ordered list of strings. The editor shows them as
-// LinkedIn, Portfolio and further links; these helpers translate between the two without ever
-// losing a link (text that is not a URL is kept too).
+// Contact links as the editor shows them: a LinkedIn field, a Portfolio field and extra links. The
+// stored draft keeps one flat `links` list, so these helpers translate in both directions without
+// losing anything.
 
-export interface LinkFields {
-  linkedin: string;
-  portfolio: string;
+export const MAX_LINKS = 5;
+
+export interface LinkSlots {
+  linkedin: string | null;
+  portfolio: string | null;
   extra: string[];
+}
+
+function hostOf(link: string): string {
+  const withoutScheme = link.replace(/^[a-z][a-z0-9+.-]*:\/\//i, "");
+  const authority = withoutScheme.split(/[/?#]/, 1)[0] ?? "";
+  return authority.split("@").pop()?.split(":", 1)[0]?.toLowerCase() ?? "";
+}
+
+export function isLinkedInLink(link: string): boolean {
+  const host = hostOf(link.trim());
+  return host === "linkedin.com" || host.endsWith(".linkedin.com");
+}
+
+/** The first LinkedIn link is LinkedIn, the first other link is Portfolio, the rest are extras. */
+export function splitLinks(links: readonly string[]): LinkSlots {
+  const slots: LinkSlots = { linkedin: null, portfolio: null, extra: [] };
+  for (const raw of links) {
+    const link = raw.trim();
+    if (link === "") {
+      continue;
+    }
+    if (slots.linkedin === null && isLinkedInLink(link)) {
+      slots.linkedin = link;
+    } else if (slots.portfolio === null && !isLinkedInLink(link)) {
+      slots.portfolio = link;
+    } else {
+      slots.extra.push(link);
+    }
+  }
+  return slots;
+}
+
+/** LinkedIn, Portfolio, then the extras: blanks dropped, at most `MAX_LINKS`. */
+export function mergeLinks(slots: LinkSlots): string[] {
+  return [slots.linkedin ?? "", slots.portfolio ?? "", ...slots.extra]
+    .map((link) => link.trim())
+    .filter((link) => link !== "")
+    .slice(0, MAX_LINKS);
 }
 
 export type LinkKind = "linkedin" | "portfolio" | "link";
 
-/** The most links a CV can hold (the server's cap). */
-export const MAX_LINKS = 5;
-
 /** A web address, with or without `https://`; anything else (spaces, other schemes) is not one. */
-function parseUrl(value: string): URL | null {
+function isWebAddress(value: string): boolean {
   const text = value.trim();
   if (text === "" || /\s/.test(text)) {
-    return null;
+    return false;
   }
   const withScheme = /^[a-z][a-z0-9+.-]*:\/\//i.test(text) ? text : `https://${text}`;
   try {
     const url = new URL(withScheme);
-    return (url.protocol === "https:" || url.protocol === "http:") && url.hostname.includes(".") ? url : null;
+    return (url.protocol === "https:" || url.protocol === "http:") && url.hostname.includes(".");
   } catch {
-    return null;
+    return false;
   }
-}
-
-function isLinkedIn(value: string): boolean {
-  const host = parseUrl(value)?.hostname.toLowerCase();
-  return host !== undefined && (host === "linkedin.com" || host.endsWith(".linkedin.com"));
-}
-
-/**
- * The first LinkedIn address is the LinkedIn link, the first of the others the portfolio, the rest
- * are further links. Nothing is dropped: an unknown host or plain text lands in portfolio or extra.
- */
-export function splitLinks(links: string[]): LinkFields {
-  const trimmed = links.map((link) => link.trim()).filter((link) => link !== "");
-  const linkedinIndex = trimmed.findIndex(isLinkedIn);
-  const linkedin = linkedinIndex === -1 ? "" : (trimmed[linkedinIndex] ?? "");
-  const rest = trimmed.filter((_, index) => index !== linkedinIndex);
-  return { linkedin, portfolio: rest[0] ?? "", extra: rest.slice(1) };
-}
-
-/** LinkedIn, Portfolio, then the further links; blanks dropped, at most `MAX_LINKS`. */
-export function mergeLinks({ linkedin, portfolio, extra }: LinkFields): string[] {
-  return [linkedin, portfolio, ...extra]
-    .map((link) => link.trim())
-    .filter((link) => link !== "")
-    .slice(0, MAX_LINKS);
 }
 
 /** The message for a link field, or null when it is empty (links are optional) or valid. */
@@ -59,9 +71,9 @@ export function linkError(kind: LinkKind, value: string): string | null {
     return null;
   }
   if (kind === "linkedin") {
-    return isLinkedIn(value) ? null : "Enter a valid LinkedIn URL.";
+    return isWebAddress(value) && isLinkedInLink(value) ? null : "Enter a valid LinkedIn URL.";
   }
-  if (parseUrl(value) !== null) {
+  if (isWebAddress(value)) {
     return null;
   }
   return kind === "portfolio" ? "Enter a valid Portfolio URL." : "Enter a valid URL.";

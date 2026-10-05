@@ -37,12 +37,12 @@ export function experienceCount(count: number): string {
   return `${count} ${count === 1 ? "experience" : "experiences"} · Highlights appear in the order below`;
 }
 
-export function educationCount(entries: { endDate: string }[], currentYear?: number): string {
+export function educationCount(entries: { endDate: string }[], today: Date = new Date()): string {
   if (entries.length === 0) {
     return "No education added";
   }
   const noun = entries.length === 1 ? "education" : "educations";
-  const ongoing = entries.some((entry) => isCurrentlyStudying(entry.endDate, currentYear));
+  const ongoing = entries.some((entry) => isCurrentlyStudying(entry.endDate, today));
   return ongoing ? `${entries.length} ${noun} · Ongoing` : `${entries.length} ${noun}`;
 }
 

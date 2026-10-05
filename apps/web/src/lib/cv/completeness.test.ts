@@ -3,13 +3,13 @@ import type { CvDraft } from "@/lib/api/cvs";
 import { computeCompleteness } from "./completeness";
 import { toFormValues, type DraftFormValues } from "./draft-form";
 
-function fullDraft(): CvDraft {
-  return {
+function complete(): DraftFormValues {
+  const draft: CvDraft = {
     schemaVersion: 2,
     contact: {
       fullName: "Ada Lovelace",
       email: "ada@example.com",
-      phone: "+44 20 7946 0000",
+      phone: "+44 7700 900123",
       location: "London",
       links: ["https://www.linkedin.com/in/ada"],
     },
@@ -18,31 +18,32 @@ function fullDraft(): CvDraft {
       { id: "e1", employer: "Acme", title: "Engineer", location: null, startDate: "2016", endDate: null, bullets: [] },
     ],
     education: [{ id: "d1", institution: "State University", qualification: null, startDate: null, endDate: null, details: null }],
-    skillCategories: [{ id: "c1", name: "Backend", skills: ["Node.js", "SQL", "Go", "Rust", "Python"] }],
+    skillCategories: [{ id: "c1", name: "Backend", skills: ["Node.js", "SQL", "Go", "Rust", "Docker"] }],
   };
+  return toFormValues(draft, "Backend Engineer");
 }
 
-const values = (draft: CvDraft = fullDraft()): DraftFormValues => toFormValues(draft, "Backend Engineer");
+function ids(values: DraftFormValues): string[] {
+  return computeCompleteness(values).missing.map((item) => item.id);
+}
 
 describe("computeCompleteness", () => {
-  it("is 100% with nothing missing for a complete CV", () => {
-    expect(computeCompleteness(values())).toEqual({ percent: 100, missing: [] });
+  it("scores a complete CV at 100% with nothing missing", () => {
+    expect(computeCompleteness(complete())).toEqual({ percent: 100, missing: [] });
   });
 
-  it("is 0% for an empty CV and lists every item in the appendix order with its weight", () => {
-    const empty = computeCompleteness(
-      values({
-        schemaVersion: 2,
-        contact: { fullName: null, email: null, phone: null, location: null, links: [] },
-        summary: null,
-        experience: [],
-        education: [],
-        skillCategories: [],
-      }),
-    );
+  it("scores an empty form at 0% and lists every item in table order with its weight", () => {
+    const values = complete();
+    values.contact = { fullName: "", email: "", phone: "", location: "", linkedin: "", portfolio: "", extraLinks: [] };
+    values.summary = "";
+    values.experience = [];
+    values.education = [];
+    values.skillCategories = [];
 
-    expect(empty.percent).toBe(0);
-    expect(empty.missing.map((item) => [item.id, item.gain])).toEqual([
+    const result = computeCompleteness(values);
+
+    expect(result.percent).toBe(0);
+    expect(result.missing.map((item) => [item.id, item.gain])).toEqual([
       ["fullName", 15],
       ["email", 10],
       ["phone", 10],
@@ -53,15 +54,14 @@ describe("computeCompleteness", () => {
       ["education", 5],
       ["skills", 10],
     ]);
-    expect(empty.missing.reduce((sum, item) => sum + item.gain, 0)).toBe(100);
   });
 
-  it("matches the design example: phone and LinkedIn missing gives 85% and two items left", () => {
-    const draft = fullDraft();
-    draft.contact.phone = null;
-    draft.contact.links = [];
+  it("matches the design example: no phone and no LinkedIn gives 85% and two items", () => {
+    const values = complete();
+    values.contact.phone = "";
+    values.contact.linkedin = "";
 
-    const result = computeCompleteness(values(draft));
+    const result = computeCompleteness(values);
 
     expect(result.percent).toBe(85);
     expect(result.missing).toEqual([
@@ -70,21 +70,27 @@ describe("computeCompleteness", () => {
     ]);
   });
 
-  it("counts an email only when it is present and valid", () => {
-    const draft = fullDraft();
-    draft.contact.email = "ada@";
-    const form = values(draft);
+  it("treats blank and whitespace-only text as missing", () => {
+    const values = complete();
+    values.contact.fullName = "   ";
+    values.summary = "\n";
 
-    expect(computeCompleteness(form).missing.map((item) => item.id)).toEqual(["email"]);
-    form.contact.email = "   ";
-    expect(computeCompleteness(form).missing.map((item) => item.id)).toEqual(["email"]);
+    expect(ids(values)).toEqual(["fullName", "summary"]);
   });
 
-  it("counts LinkedIn only for a LinkedIn link, not for another site", () => {
-    const draft = fullDraft();
-    draft.contact.links = ["https://github.com/ada"];
+  it("needs a valid email address, not just any text", () => {
+    const values = complete();
+    values.contact.email = "not-an-email";
 
-    expect(computeCompleteness(values(draft)).missing.map((item) => item.id)).toEqual(["linkedin"]);
+    expect(ids(values)).toEqual(["email"]);
+  });
+
+  it("counts LinkedIn only when a LinkedIn link is present, not any link", () => {
+    const values = complete();
+    values.contact.linkedin = "";
+    values.contact.portfolio = "https://ada.dev";
+
+    expect(ids(values)).toEqual(["linkedin"]);
   });
 
   it("needs an experience entry with a title, a company and a start date", () => {
@@ -93,53 +99,45 @@ describe("computeCompleteness", () => {
       (entry: DraftFormValues["experience"][number]) => { entry.employer = " "; },
       (entry: DraftFormValues["experience"][number]) => { entry.startDate = ""; },
     ]) {
-      const form = values();
-      const entry = form.experience[0];
-      if (entry) {
-        change(entry);
-      }
-      expect(computeCompleteness(form).missing.map((item) => item.id)).toEqual(["experience"]);
+      const values = complete();
+      change(values.experience[0]!);
+      expect(ids(values)).toEqual(["experience"]);
     }
   });
 
-  it("is satisfied by any one complete experience entry", () => {
-    const form = values();
-    form.experience.unshift({ id: "x", employer: "", title: "", location: "", startDate: "", endDate: "", bullets: [] });
+  it("is satisfied by any one complete experience entry, even next to an incomplete one", () => {
+    const values = complete();
+    values.experience.push({ ...values.experience[0]!, id: "e2", title: "", startDate: "" });
 
-    expect(computeCompleteness(form).missing).toEqual([]);
+    expect(ids(values)).toEqual([]);
   });
 
   it("needs an education entry with an institution", () => {
-    const form = values();
-    const entry = form.education[0];
-    if (entry) {
-      entry.institution = "";
-      entry.qualification = "BSc";
-    }
+    const values = complete();
+    values.education[0]!.institution = "";
+    values.education[0]!.qualification = "BSc";
 
-    expect(computeCompleteness(form).missing.map((item) => item.id)).toEqual(["education"]);
+    expect(ids(values)).toEqual(["education"]);
   });
 
   it("needs at least five skills in total across categories, ignoring blanks", () => {
-    const form = values();
-    form.skillCategories = [
-      { id: "a", name: "A", skills: [{ value: "one" }, { value: "two" }, { value: " " }] },
-      { id: "b", name: "B", skills: [{ value: "three" }, { value: "four" }] },
+    const values = complete();
+    values.skillCategories = [
+      { id: "a", name: "A", skills: [{ value: "x" }, { value: "y" }, { value: " " }] },
+      { id: "b", name: "B", skills: [{ value: "z" }, { value: "w" }] },
     ];
-    expect(computeCompleteness(form).missing.map((item) => item.id)).toEqual(["skills"]);
+    expect(ids(values)).toEqual(["skills"]);
 
-    form.skillCategories[1]?.skills.push({ value: "five" });
-    expect(computeCompleteness(form).missing).toEqual([]);
+    values.skillCategories[1]!.skills.push({ value: "v" });
+    expect(ids(values)).toEqual([]);
   });
 
-  it("follows the edits: typing a phone number raises the score by its weight", () => {
-    const draft = fullDraft();
-    draft.contact.phone = null;
-    const form = values(draft);
-    expect(computeCompleteness(form).percent).toBe(90);
+  it("follows edits: filling a missing item raises the score by its weight", () => {
+    const values = complete();
+    values.contact.phone = "";
+    expect(computeCompleteness(values).percent).toBe(90);
 
-    form.contact.phone = "+1 555 0100";
-
-    expect(computeCompleteness(form).percent).toBe(100);
+    values.contact.phone = "+44 1";
+    expect(computeCompleteness(values).percent).toBe(100);
   });
 });

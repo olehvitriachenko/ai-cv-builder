@@ -87,9 +87,32 @@ Verified in a browser against the running development servers with a throwaway a
 | Gate | Result |
 |------|--------|
 | Web `tsc --noEmit`, `lint`, `next build` | clean |
-| Web unit tests | 17 files, 164 passed (completeness, links, entry labels, form and autosave payload added) |
+| Web unit tests | 18 files, 180 passed after merging iteration 5 (completeness, links with `linkError`, entry labels, form with the split link fields) |
 
 ### Notes
 
 - The employer location and the education details text are kept in the draft untouched and not shown, because the design has no field for them.
 - Skills still use the temporary per-category editor inside the new card shell.
+
+## Iteration 5 (US5): preview controls and full-screen preview (T072 to T077)
+
+Figma: section `10 · Preview & fullscreen` (`76:3937`): 10.1 desktop hover, 10.2 desktop fullscreen, 10.3 mobile 390, 10.4 mobile 320 (frames `51:2273`, `41:28492`, `46:2700`, `46:2790`).
+
+| Check | Result |
+|-------|--------|
+| Unit: `preview-zoom.test.ts` (zoom steps and limits, fitted phone scale, fit, page estimate, status line) | 12 tests passed; web suite 17 files, 164 tests |
+| Gates: web `tsc --noEmit`, `lint`, `build` | clean |
+| Expand action hidden until the sheet is hovered or focused; visible without hover on a touch device | pass (1440, 390, 320) |
+| Zoom limits in the inline panel | 150% (+ disabled) and 50% (- disabled) |
+| Fullscreen: opens on the keyboard (Enter), own zoom (inline zoom unchanged), Fit page resets, Esc closes, Close preview closes, focus returns to the expand button | pass |
+| Download PDF from the fullscreen bar | a PDF download starts (`Alex-Morgan-Senior-Frontend-Engineer.pdf`) |
+| Long CV (9 roles) | "Page 1 of 2" and a page-break guide |
+| 390 px and 320 px fullscreen | no horizontal overflow; every control 44 px high; fitted zoom 54% and 43% |
+| `localStorage`/`sessionStorage` | empty of CV content |
+
+Deviations from the frames, on purpose:
+
+- The frames show "83%" (desktop) and "45%" (phone) as example values. The product shows the real scale: the sheet fits the available width (inline) or the whole page (fullscreen Fit page), never above 100%.
+- The desktop bottom bar is as wide as the 660 px sheet at 100%; at a smaller zoom it stays 660 px wide while the sheet is narrower.
+- The page count is an estimate from the preview height (the PDF export owns real pagination); the sheet grows to the content with dashed guides at each A4 boundary rather than in whole A4 steps.
+- The inline preview is sticky in the structured layout (iteration 1 column; the panel scrolls inside it when the sheet is taller than the window).

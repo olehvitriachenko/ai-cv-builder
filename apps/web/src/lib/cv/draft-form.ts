@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { CvDraft } from "@/lib/api/cvs";
+import { MAX_TARGET_ROLE_CHARS } from "./create-form";
 import { MAX_LINKS, linkError, mergeLinks, splitLinks } from "./links";
 
 // The editor form's shape and rules. The stored model is `CvDraft` and nothing else: these helpers
@@ -37,14 +38,14 @@ export interface SkillCategoryFormEntry {
 }
 
 export interface DraftFormValues {
-  /** Stored with the CV, not in the draft; saved in the same request as the draft. */
+  /** The role the CV targets; saved with the draft (same revision). Never empty in a saved CV. */
   targetRole: string;
   contact: {
     fullName: string;
     email: string;
     phone: string;
     location: string;
-    /** The draft's links as the editor shows them (see `links.ts`); merged back when saving. */
+    /** The draft's flat link list as the editor shows it (see `links.ts`); merged back when saving. */
     linkedin: string;
     portfolio: string;
     extraLinks: ListItem[];
@@ -72,8 +73,8 @@ export function toFormValues(draft: CvDraft, targetRole: string): DraftFormValue
       email: orEmpty(draft.contact.email),
       phone: orEmpty(draft.contact.phone),
       location: orEmpty(draft.contact.location),
-      linkedin: links.linkedin,
-      portfolio: links.portfolio,
+      linkedin: links.linkedin ?? "",
+      portfolio: links.portfolio ?? "",
       extraLinks: links.extra.map((value) => ({ value })),
     },
     summary: orEmpty(draft.summary),
@@ -100,6 +101,32 @@ export function toFormValues(draft: CvDraft, targetRole: string): DraftFormValue
       skills: category.skills.map((value) => ({ value })),
     })),
   };
+}
+
+/** The role to save: trimmed (the schema guarantees it is not empty before a save is sent). */
+export function toTargetRole(values: DraftFormValues): string {
+  return values.targetRole.trim();
+}
+
+/** The end-date value that means "still going"; the experience form offers it as an option. */
+export const PRESENT = "Present";
+
+export function isPresent(value: string): boolean {
+  return value.trim().toLowerCase() === PRESENT.toLowerCase();
+}
+
+/** Education counts as ongoing when it ends in the future or is marked Present. */
+export function isCurrentlyStudying(endDate: string, today: Date = new Date()): boolean {
+  if (isPresent(endDate)) {
+    return true;
+  }
+  const year = /^\d{4}$/.test(endDate.trim()) ? Number(endDate.trim()) : null;
+  return year !== null && year > today.getUTCFullYear();
+}
+
+/** The expected graduation shown for an ongoing study: empty while the end is just "Present". */
+export function expectedGraduation(endDate: string): string {
+  return isPresent(endDate) ? "" : endDate;
 }
 
 /** Form values -> the stored draft: trimmed, blank text as `null`, blank list items dropped. */
@@ -140,35 +167,6 @@ export function toDraft(values: DraftFormValues): CvDraft {
       .map((category) => ({ id: category.id, name: category.name.trim(), skills: nonBlank(category.skills) }))
       .filter((category) => category.skills.length > 0),
   };
-}
-
-/** The role the CV is written for: trimmed, never null (the server refuses a blank one). */
-export function toTargetRole(values: DraftFormValues): string {
-  return values.targetRole.trim();
-}
-
-/** `Present` is the stored end date of a role (or study) that has not ended. */
-export const PRESENT = "Present";
-
-export function isPresent(endDate: string): boolean {
-  return endDate.trim().toLowerCase() === PRESENT.toLowerCase();
-}
-
-/**
- * Education is "currently studying" when it has no end yet (Present) or ends in a future year. The
- * state is derived from the stored end date; nothing extra is stored.
- */
-export function isCurrentlyStudying(endDate: string, currentYear: number = new Date().getFullYear()): boolean {
-  if (isPresent(endDate)) {
-    return true;
-  }
-  const year = /(\d{4})/.exec(endDate)?.[1];
-  return year !== undefined && Number(year) > currentYear;
-}
-
-/** The expected graduation shown for an ongoing study: empty while the end is just "Present". */
-export function expectedGraduation(endDate: string): string {
-  return isPresent(endDate) ? "" : endDate;
 }
 
 function newId(): string {
@@ -247,7 +245,11 @@ const link = (kind: "linkedin" | "portfolio" | "link") =>
   });
 
 const cvFormObject = z.object({
-  targetRole: z.string().trim().min(1, "Enter your target role.").max(200, "Target role must be at most 200 characters."),
+  targetRole: z
+    .string()
+    .trim()
+    .min(1, "Enter the role you’re targeting.")
+    .max(MAX_TARGET_ROLE_CHARS, `Keep the role under ${MAX_TARGET_ROLE_CHARS} characters.`),
   contact: z.object({
     fullName: text(120, "Name"),
     email,
@@ -272,9 +274,11 @@ export const cvFormSchema = cvFormObject.superRefine((values, context) => {
   const skills = new Set<string>();
   let total = 0;
 
-  const linkCount = [values.contact.linkedin, values.contact.portfolio, ...values.contact.extraLinks.map((item) => item.value)].filter(
-    (value) => value.trim() !== "",
-  ).length;
+  const linkCount = [
+    values.contact.linkedin,
+    values.contact.portfolio,
+    ...values.contact.extraLinks.map((item) => item.value),
+  ].filter((value) => value.trim() !== "").length;
   if (linkCount > MAX_LINKS) {
     context.addIssue({ code: "custom", path: ["contact", "extraLinks"], message: `At most ${MAX_LINKS} links.` });
   }

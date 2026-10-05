@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { FormProvider } from "react-hook-form";
 import type { CvResult } from "@/lib/api/cvs";
 import { prepareDownload } from "@/lib/cv/download-flow";
@@ -10,7 +10,8 @@ import { ClarificationPanel } from "./clarification-panel";
 import { CompletenessCard } from "./completeness-card";
 import { EditorMenu } from "./editor-menu";
 import { EditorNav } from "./editor-nav";
-import { PreviewColumn } from "./preview-column";
+import { FullscreenPreview } from "./fullscreen-preview";
+import { PreviewPanel } from "./preview-panel";
 import { SaveIndicator } from "./save-indicator";
 import { ConflictBanner, SaveErrorMessage } from "./save-problems";
 import { Education } from "./sections/education";
@@ -45,6 +46,8 @@ export function EditorWorkspace({
   const { form, saveState, draft, targetRole, invalid, autosaver } = editor;
   const [view, setView] = useState<MobileView>("editor");
   const [downloadMessage, setDownloadMessage] = useState<string | null>(null);
+  const [fullscreen, setFullscreen] = useState(false);
+  const expandRef = useRef<HTMLButtonElement>(null);
 
   const name = draft.contact.fullName;
   const editorPane = view === "editor" ? "flex" : "hidden lg:flex";
@@ -144,9 +147,39 @@ export function EditorWorkspace({
             </p>
           </div>
 
-          <PreviewColumn draft={draft} targetRole={targetRole} className={previewPane} />
+          {/* Sticky on desktop; the panel scrolls inside when the sheet is taller than the window. */}
+          <div className={`${previewPane} min-w-0 flex-1 flex-col lg:sticky lg:top-28 lg:max-h-[calc(100dvh-8rem)] lg:overflow-y-auto`}>
+            <PreviewPanel
+              draft={draft}
+              targetRole={targetRole}
+              saveStatus={saveState.status}
+              invalid={invalid}
+              onOpenFullscreen={() => setFullscreen(true)}
+              expandRef={expandRef}
+            />
+          </div>
         </main>
       </div>
+      {fullscreen ? (
+        <FullscreenPreview
+          cvId={cvId}
+          draft={draft}
+          targetRole={targetRole}
+          saveStatus={saveState.status}
+          invalid={invalid}
+          beforeDownload={() =>
+            prepareDownload({
+              blockedReason: invalid ? "Fix the highlighted fields first, then download the PDF." : null,
+              flush: () => autosaver.flush(),
+            })
+          }
+          onClose={() => {
+            setFullscreen(false);
+            // The dialog is removed with its state; hand focus back to what opened it.
+            requestAnimationFrame(() => expandRef.current?.focus());
+          }}
+        />
+      ) : null}
     </FormProvider>
   );
 }
