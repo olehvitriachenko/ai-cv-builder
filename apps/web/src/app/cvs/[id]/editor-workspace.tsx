@@ -192,8 +192,8 @@ export function EditorWorkspace({
             </p>
           </div>
 
-          {/* Sticky on desktop; tall documents use the page scroll rather than a nested scrollbar. */}
-          <div className={`${previewPane} min-w-0 flex-1 flex-col lg:sticky lg:top-28`}>
+          {/* One vertical scroll container for the sticky preview, including tall documents. */}
+          <div className={`${previewPane} min-w-0 flex-1 flex-col lg:sticky lg:top-28 lg:max-h-[calc(100dvh-8rem)] lg:overflow-y-auto`}>
             <PreviewPanel
               draft={draft}
               targetRole={targetRole}
