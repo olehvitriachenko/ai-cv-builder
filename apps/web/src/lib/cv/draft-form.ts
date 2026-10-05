@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { CvDraft } from "@/lib/api/cvs";
+import { MAX_TARGET_ROLE_CHARS } from "./create-form";
 
 // The editor form's shape and rules. The stored model is `CvDraft` and nothing else: these helpers
 // only translate it to inputs (null <-> empty string, string lists wrapped as `{ value }` because
@@ -36,6 +37,8 @@ export interface SkillCategoryFormEntry {
 }
 
 export interface DraftFormValues {
+  /** The role the CV targets; saved with the draft (same revision). Never empty in a saved CV. */
+  targetRole: string;
   contact: {
     fullName: string;
     email: string;
@@ -57,8 +60,9 @@ const orNull = (value: string): string | null => {
 const nonBlank = (items: ListItem[]): string[] =>
   items.map((item) => item.value.trim()).filter((value) => value !== "");
 
-export function toFormValues(draft: CvDraft): DraftFormValues {
+export function toFormValues(draft: CvDraft, targetRole: string): DraftFormValues {
   return {
+    targetRole,
     contact: {
       fullName: orEmpty(draft.contact.fullName),
       email: orEmpty(draft.contact.email),
@@ -90,6 +94,27 @@ export function toFormValues(draft: CvDraft): DraftFormValues {
       skills: category.skills.map((value) => ({ value })),
     })),
   };
+}
+
+/** The role to save: trimmed (the schema guarantees it is not empty before a save is sent). */
+export function toTargetRole(values: DraftFormValues): string {
+  return values.targetRole.trim();
+}
+
+/** The end-date value that means "still going"; the experience form offers it as an option. */
+export const PRESENT = "Present";
+
+export function isPresent(value: string): boolean {
+  return value.trim().toLowerCase() === PRESENT.toLowerCase();
+}
+
+/** Education counts as ongoing when it ends in the future or is marked Present. */
+export function isCurrentlyStudying(endDate: string, today: Date = new Date()): boolean {
+  if (isPresent(endDate)) {
+    return true;
+  }
+  const year = /^\d{4}$/.test(endDate.trim()) ? Number(endDate.trim()) : null;
+  return year !== null && year > today.getUTCFullYear();
 }
 
 /** Form values -> the stored draft: trimmed, blank text as `null`, blank list items dropped. */
@@ -196,6 +221,11 @@ const skillCategory = z.object({
 });
 
 const cvFormObject = z.object({
+  targetRole: z
+    .string()
+    .trim()
+    .min(1, "Enter the role you’re targeting.")
+    .max(MAX_TARGET_ROLE_CHARS, `Keep the role under ${MAX_TARGET_ROLE_CHARS} characters.`),
   contact: z.object({
     fullName: text(120, "Name"),
     email,

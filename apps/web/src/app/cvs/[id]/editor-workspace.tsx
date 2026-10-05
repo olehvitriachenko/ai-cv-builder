@@ -10,7 +10,7 @@ import { applyQuestion, saveDraft, type ClarificationQuestion, type CvResult } f
 import { ApplyBlockedError, applyAnswer, applyErrorOutcome } from "@/lib/cv/apply-flow";
 import { DraftAutosaver } from "@/lib/cv/autosave";
 import { prepareDownload } from "@/lib/cv/download-flow";
-import { cvFormSchema, toDraft, toFormValues, type DraftFormValues } from "@/lib/cv/draft-form";
+import { cvFormSchema, toDraft, toFormValues, toTargetRole, type DraftFormValues } from "@/lib/cv/draft-form";
 import { DownloadPdfButton } from "../download-pdf-button";
 import { ClarificationPanel } from "./clarification-panel";
 import { CvDocument } from "./cv-document";
@@ -49,13 +49,13 @@ export function EditorWorkspace({
     () =>
       new DraftAutosaver({
         initialRevision: result.revision,
-        save: (revision, draft) => saveDraft(cvId, { revision, draft }),
+        save: (revision, payload) => saveDraft(cvId, { revision, ...payload }),
       }),
   );
   const saveState = useSyncExternalStore(autosaver.subscribe, autosaver.getState, autosaver.getState);
 
   const form = useForm<DraftFormValues>({
-    defaultValues: toFormValues(result.draft),
+    defaultValues: toFormValues(result.draft, result.targetRole),
     resolver: zodResolver(cvFormSchema),
     mode: "onChange",
   });
@@ -67,24 +67,25 @@ export function EditorWorkspace({
   const [applying, setApplying] = useState(false);
   // The last draft handed to the autosaver. Opening the editor (the effect also runs once on mount)
   // therefore saves nothing, while reverting an edit still saves, because it differs from this.
-  const lastSent = useRef(JSON.stringify(result.draft));
+  const lastSent = useRef(JSON.stringify({ draft: result.draft, targetRole: result.targetRole }));
 
   // The preview and the validity are derived from the form on every render, never stored.
   const current = form.getValues();
   const draft = toDraft(current);
+  const role = toTargetRole(current);
   const valid = cvFormSchema.safeParse(current).success;
   const invalid = !valid;
 
   // A valid change goes to the autosaver; an invalid form is never sent, so the server keeps the
   // last valid version.
   useEffect(() => {
-    const json = JSON.stringify(draft);
+    const json = JSON.stringify({ draft, targetRole: role });
     if (valid && json !== lastSent.current) {
       lastSent.current = json;
-      autosaver.change(draft);
+      autosaver.change({ draft, targetRole: role });
     }
     // `draft` is a new object on every render; the JSON comparison above is what prevents resends.
-  }, [watched, valid, draft, autosaver]);
+  }, [watched, valid, draft, role, autosaver]);
 
   // Leaving the page (in-app navigation) saves what is pending instead of dropping it.
   useEffect(

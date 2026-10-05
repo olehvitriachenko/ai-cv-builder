@@ -20,7 +20,7 @@ function complete(): DraftFormValues {
     education: [{ id: "d1", institution: "State University", qualification: null, startDate: null, endDate: null, details: null }],
     skillCategories: [{ id: "c1", name: "Backend", skills: ["Node.js", "SQL", "Go", "Rust", "Docker"] }],
   };
-  return toFormValues(draft);
+  return toFormValues(draft, "Backend Engineer");
 }
 
 function ids(values: DraftFormValues): string[] {

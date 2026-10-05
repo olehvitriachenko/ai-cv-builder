@@ -1,6 +1,19 @@
 import { describe, expect, it } from "vitest";
 import type { CvDraft } from "@/lib/api/cvs";
-import { cvFormSchema, newEducationEntry, newExperienceEntry, newSkillCategory, toDraft, toFormValues } from "./draft-form";
+import {
+  cvFormSchema,
+  isCurrentlyStudying,
+  isPresent,
+  newEducationEntry,
+  newExperienceEntry,
+  newSkillCategory,
+  PRESENT,
+  toDraft,
+  toFormValues,
+  toTargetRole,
+} from "./draft-form";
+
+const ROLE = "Backend Engineer";
 
 function draft(): CvDraft {
   return {
@@ -19,11 +32,11 @@ function draft(): CvDraft {
 
 describe("toFormValues / toDraft", () => {
   it("round-trips a draft unchanged", () => {
-    expect(toDraft(toFormValues(draft()))).toEqual(draft());
+    expect(toDraft(toFormValues(draft(), ROLE))).toEqual(draft());
   });
 
   it("shows null as an empty input", () => {
-    const values = toFormValues(draft());
+    const values = toFormValues(draft(), ROLE);
 
     expect(values.contact.phone).toBe("");
     expect(values.experience[0]?.location).toBe("");
@@ -31,7 +44,7 @@ describe("toFormValues / toDraft", () => {
   });
 
   it("sends an emptied or whitespace-only field as null", () => {
-    const values = toFormValues(draft());
+    const values = toFormValues(draft(), ROLE);
     values.summary = "   ";
     values.contact.email = "";
 
@@ -42,7 +55,7 @@ describe("toFormValues / toDraft", () => {
   });
 
   it("trims text and drops blank bullets, skills and links", () => {
-    const values = toFormValues(draft());
+    const values = toFormValues(draft(), ROLE);
     values.experience[0]?.bullets.push({ value: "   " });
     values.skillCategories[0]?.skills.push({ value: "" }, { value: "  Go  " });
     values.contact.links.push({ value: " " });
@@ -55,8 +68,8 @@ describe("toFormValues / toDraft", () => {
   });
 
   it("keeps entry ids so clarification questions still point at their entries", () => {
-    expect(toDraft(toFormValues(draft())).experience[0]?.id).toBe("exp-1");
-    expect(toDraft(toFormValues(draft())).education[0]?.id).toBe("edu-1");
+    expect(toDraft(toFormValues(draft(), ROLE)).experience[0]?.id).toBe("exp-1");
+    expect(toDraft(toFormValues(draft(), ROLE)).education[0]?.id).toBe("edu-1");
   });
 
   it("gives new entries a fresh unique id", () => {
@@ -72,11 +85,11 @@ describe("toFormValues / toDraft", () => {
 
 describe("cvFormSchema", () => {
   it("accepts a valid form", () => {
-    expect(cvFormSchema.safeParse(toFormValues(draft())).success).toBe(true);
+    expect(cvFormSchema.safeParse(toFormValues(draft(), ROLE)).success).toBe(true);
   });
 
   function messages(change: (values: ReturnType<typeof toFormValues>) => void): string[] {
-    const values = toFormValues(draft());
+    const values = toFormValues(draft(), ROLE);
     change(values);
     const result = cvFormSchema.safeParse(values);
     return result.success ? [] : result.error.issues.map((issue) => `${issue.path.join(".")}: ${issue.message}`);
@@ -127,14 +140,14 @@ describe("cvFormSchema", () => {
 
 describe("skill categories in the form", () => {
   function categoryMessages(change: (values: ReturnType<typeof toFormValues>) => void): string[] {
-    const values = toFormValues(draft());
+    const values = toFormValues(draft(), ROLE);
     change(values);
     const result = cvFormSchema.safeParse(values);
     return result.success ? [] : result.error.issues.map((issue) => `${issue.path.join(".")}: ${issue.message}`);
   }
 
   it("drops a category that has no skills (the server never stores an empty category)", () => {
-    const values = toFormValues(draft());
+    const values = toFormValues(draft(), ROLE);
     values.skillCategories.push({ id: "cat-2", name: "Databases", skills: [{ value: "  " }] });
     values.skillCategories.push({ id: "cat-3", name: "", skills: [] });
 
@@ -142,7 +155,7 @@ describe("skill categories in the form", () => {
   });
 
   it("trims the category name and keeps the category id", () => {
-    const values = toFormValues(draft());
+    const values = toFormValues(draft(), ROLE);
     values.skillCategories[0]!.name = "  Backend  ";
 
     expect(toDraft(values).skillCategories[0]).toMatchObject({ id: "cat-1", name: "Backend" });
@@ -196,5 +209,69 @@ describe("skill categories in the form", () => {
     });
 
     expect(result).toEqual([]);
+  });
+});
+
+
+describe("target role in the form", () => {
+  it("maps the stored role to the form and back, trimmed and never null", () => {
+    const values = toFormValues(draft(), "Backend Engineer");
+    expect(values.targetRole).toBe("Backend Engineer");
+
+    values.targetRole = "  Staff Engineer  ";
+    expect(toTargetRole(values)).toBe("Staff Engineer");
+  });
+
+  it("requires a role of at most 200 characters, like the server", () => {
+    const values = toFormValues(draft(), ROLE);
+
+    values.targetRole = "   ";
+    const blank = cvFormSchema.safeParse(values);
+    expect(blank.success ? [] : blank.error.issues.map((issue) => issue.path.join("."))).toContain("targetRole");
+
+    values.targetRole = "x".repeat(201);
+    expect(cvFormSchema.safeParse(values).success).toBe(false);
+
+    values.targetRole = "x".repeat(200);
+    expect(cvFormSchema.safeParse(values).success).toBe(true);
+  });
+});
+
+describe("end dates", () => {
+  it("treats Present as an end-date mode, ignoring case and spaces", () => {
+    expect(PRESENT).toBe("Present");
+    for (const value of ["Present", "present", " PRESENT "]) {
+      expect(isPresent(value)).toBe(true);
+    }
+    for (const value of ["", "2023", "Mar 2023", "Presently"]) {
+      expect(isPresent(value)).toBe(false);
+    }
+  });
+
+  it("derives currently studying from Present or an end year in the future", () => {
+    const today = new Date("2026-10-05T12:00:00Z");
+
+    expect(isCurrentlyStudying("Present", today)).toBe(true);
+    expect(isCurrentlyStudying("2027", today)).toBe(true);
+    expect(isCurrentlyStudying("2026", today)).toBe(false);
+    expect(isCurrentlyStudying("2019", today)).toBe(false);
+    expect(isCurrentlyStudying("", today)).toBe(false);
+    expect(isCurrentlyStudying("Summer 2030", today)).toBe(false);
+  });
+});
+
+describe("entries", () => {
+  it("a new education entry starts empty", () => {
+    expect(newEducationEntry()).toMatchObject({ institution: "", qualification: "", startDate: "", endDate: "", details: "" });
+  });
+
+  it("an entry that breaks the schema is reported by field, so the editor can block the save", () => {
+    const values = toFormValues(draft(), ROLE);
+    values.experience.push({ ...newExperienceEntry(), startDate: "2020" });
+
+    const result = cvFormSchema.safeParse(values);
+
+    expect(result.success).toBe(false);
+    expect(result.success ? [] : result.error.issues.map((issue) => issue.path.join("."))).toContain("experience.1.employer");
   });
 });
