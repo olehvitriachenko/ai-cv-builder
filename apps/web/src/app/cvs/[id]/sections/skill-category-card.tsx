@@ -135,19 +135,17 @@ export function SkillCategoryCard({
 
       <SkillSuggestions suggestions={suggestionStates(suggestionsFor(category.name), categories)} onAdd={(skill) => add(skill, false)} />
 
-      <div className="flex min-h-20 flex-wrap items-center justify-center gap-2 rounded-lg border border-dashed border-line bg-canvas p-3">
-        {skills.length === 0 ? (
-          <p className="text-[13px] leading-[normal] text-muted">No items added</p>
-        ) : (
-          skills.map(({ skill, position }) => (
+      {skills.length > 0 ? (
+        <div className="flex min-h-20 flex-wrap items-center justify-center gap-2 rounded-lg border border-dashed border-line bg-canvas p-3">
+          {skills.map(({ skill, position }) => (
             <SkillChip
               key={`${skill}-${position}`}
               skill={skill}
               onRemove={() => onUpdate(removeSkill(categories, category.id, position))}
             />
-          ))
-        )}
-      </div>
+          ))}
+        </div>
+      ) : null}
 
       <div className="flex flex-wrap gap-2">
         <Button type="button" variant="text" stretch={false} disabled={!canMoveCategory(index, -1, categories.length)} onClick={() => onMove(-1)}>

@@ -48,9 +48,6 @@ export function NewCategoryCard({
           </Button>
         </div>
       </FieldFrame>
-      <div className="flex min-h-20 items-center justify-center rounded-lg border border-dashed border-line bg-canvas p-3">
-        <p className="text-[13px] leading-[normal] text-muted">No items added</p>
-      </div>
     </section>
   );
 }
