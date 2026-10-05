@@ -13,13 +13,13 @@ import { prepareDownload } from "@/lib/cv/download-flow";
 import { cvFormSchema, toDraft, toFormValues, toTargetRole, type DraftFormValues } from "@/lib/cv/draft-form";
 import { DownloadPdfButton } from "../download-pdf-button";
 import { ClarificationPanel } from "./clarification-panel";
-import { CvDocument } from "./cv-document";
 import { ContactSection } from "./editor-sections/contact-section";
 import { EducationSection } from "./editor-sections/education-section";
 import { ExperienceSection } from "./editor-sections/experience-section";
 import { SkillsSection } from "./editor-sections/skills-section";
 import { SummarySection } from "./editor-sections/summary-section";
 import { SaveIndicator } from "./save-indicator";
+import { PreviewPanel } from "./preview-panel";
 import { ConflictBanner, SaveErrorMessage } from "./save-problems";
 
 type MobileView = "editor" | "preview";
@@ -258,15 +258,14 @@ export function EditorWorkspace({
             </p>
           </div>
 
-          <section aria-label="Live preview" className={`${previewPaneClass} min-w-0 flex-1 flex-col gap-3`}>
-            <div className="flex items-center gap-3">
-              <h2 className="text-sm font-semibold text-ink">Preview</h2>
-              <p className="text-[11px] text-muted">Classic · A4</p>
-            </div>
-            <div className="flex flex-col items-center rounded-xl bg-stage p-4 sm:p-6">
-              <CvDocument draft={draft} targetRole={targetRole} />
-            </div>
-          </section>
+          <div className={`${previewPaneClass} min-w-0 flex-1 flex-col`}>
+            <PreviewPanel
+              draft={draft}
+              targetRole={targetRole}
+              saveStatus={saveState.status}
+              invalid={invalid}
+            />
+          </div>
         </div>
       </div>
     </FormProvider>
