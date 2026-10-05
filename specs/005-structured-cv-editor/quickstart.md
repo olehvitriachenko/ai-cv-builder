@@ -6,7 +6,7 @@ How to run and verify each iteration. Details: [plan.md](./plan.md), [data-model
 
 - Node 22/24, pnpm, PostgreSQL 16 (`pg_ctlcluster 16 main start`, or `docker compose up -d postgres`).
 - `apps/api/.env` with `DATABASE_URL`; `ANTHROPIC_API_KEY` only for the manual smoke test.
-- Install and generate: `pnpm install`, `pnpm db:generate`, `pnpm db:migrate`.
+- Install and generate: `pnpm install` (links `packages/skill-catalogue`), `pnpm db:generate`, `pnpm db:migrate`.
 
 ## 1. Gates (every iteration)
 
@@ -32,7 +32,7 @@ Expected: all green; the suite makes no real AI request.
    - (c) and (d) are byte-for-byte unchanged; `revision` and `updatedAt` are unchanged for all.
 3. **Second run**: `prisma migrate deploy` reports nothing to apply; re-executing the SQL file changes nothing.
 4. **Malformed draft**: a scratch row with `skills: "x"` makes the migration fail with a clear error and leaves every row unchanged.
-5. **CHECK**: inserting a `schemaVersion: 1` draft is rejected by the database.
+5. **CHECK**: the database rejects a `schemaVersion: 1` draft, a draft without `schemaVersion`, a JSON array and a JSON `null`; it accepts SQL `NULL` and a v2 object. Replay the lifecycle by SQL (`PENDING` with `NULL` draft, `PROCESSING`, `COMPLETED` with a v2 draft, edit with a revision bump, `FAILED`, retry to `PENDING`, sweep to `FAILED/INTERRUPTED`) and confirm nothing is rejected.
 
 The e2e suite runs the same cases against the migration file.
 

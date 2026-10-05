@@ -23,7 +23,7 @@ No new table, no new dependency, no new infrastructure. Pure derivations (comple
 
 **Language/Version**: TypeScript (strict), ESM. API: NestJS 12 + Fastify 5 on Node 22/24. Web: Next.js 16 / React 19 (read the relevant guide in `apps/web/node_modules/next/dist/docs/` before touching routing; `AGENTS.md` warns that conventions differ from older versions).
 
-**Primary Dependencies**: Existing only: Prisma 7, Zod 4, `@anthropic-ai/sdk`, `@tanstack/react-query`, React Hook Form, `lucide-react`. **No new dependencies** (the combobox, zoom, full-screen view and reordering are hand-written on native elements).
+**Primary Dependencies**: Existing only (plus one internal data-only workspace package, `packages/skill-catalogue`, linked by `pnpm install`; no external package): Prisma 7, Zod 4, `@anthropic-ai/sdk`, `@tanstack/react-query`, React Hook Form, `lucide-react`. **No new dependencies** (the combobox, zoom, full-screen view and reordering are hand-written on native elements).
 
 **Storage**: PostgreSQL. One new migration: a data migration of `Cv.draft` plus one CHECK constraint ([data-model.md](./data-model.md)). No new table or column, no new index.
 
@@ -56,7 +56,7 @@ No new table, no new dependency, no new infrastructure. Pure derivations (comple
 | IX. Database integrity | Pass | Explicit migration; a CHECK constraint keeps every stored draft at version 2; no speculative index |
 | X. Critical behavior tested | Pass | See [Test Strategy](#test-strategy); tests precede each iteration |
 | XI. User controls the CV | Pass | Suggestions are client-only until tapped; "Improve with AI" is not shown; conflicts never merge automatically |
-| XII. Simplicity | Pass | Whole-version conflict choice, Move up/down instead of drag-and-drop, hand-written combobox, estimated page count instead of a pagination engine, no shared package |
+| XII. Simplicity | Pass | Whole-version conflict choice, Move up/down instead of drag-and-drop, hand-written combobox, estimated page count instead of a pagination engine; one JSON file instead of two copies of the catalogue |
 | XIII. Scope discipline | Pass | Out-of-scope list of the spec respected; templates, PDF and AI rewriting stay out |
 | XIV. Owned code | Pass | Each iteration is reviewed against its Figma frames and the diff; decisions are in [research.md](./research.md) |
 | XV. Local reproducibility | Pass | Migration verified on local PostgreSQL (clean and seeded); quickstart lists the commands |
@@ -81,6 +81,10 @@ specs/005-structured-cv-editor/
 ### Source Code (repository root)
 
 ```text
+packages/skill-catalogue/                          # NEW: data-only workspace package, ONE source for categories + suggestions
+├── package.json                                 # name, exports -> ./skill-categories.json
+└── skill-categories.json                        # ordered [{ name, suggestions[4..6] }]
+
 apps/api/
 ├── prisma/migrations/<timestamp>_draft_skill_categories/migration.sql   # NEW: data migration + CHECK
 └── src/modules/
@@ -95,7 +99,7 @@ apps/api/
     │   ├── services/clarification.service.ts     # SKILLS scope content (categories)
     │   └── clarification/answer-patch.ts         # SKILLS patch applies per category
     └── ai/
-        ├── skill-categories.ts                   # NEW: predefined category names (single list for the API)
+        ├── skill-categories.ts                   # NEW: thin typed accessor over the shared catalogue JSON
         ├── schemas/llm-cv-output.schema.ts       # skillCategories with category enum
         ├── schemas/answer-patch.schema.ts        # skills patch = additions per category
         └── prompts/{cv-draft,answer-patch}.prompt.ts   # v3 / skills scope
@@ -108,7 +112,7 @@ apps/web/src/
 │       ├── links.ts                              # NEW: LinkedIn / Portfolio / extra links <-> links[]
 │       ├── completeness.ts                       # NEW: score + missing items (pure)
 │       ├── skills-form.ts                        # NEW: add/remove/move/dedupe operations (pure)
-│       ├── skill-catalogue.ts                    # NEW: categories + 4-6 suggestions each
+│       ├── skill-catalogue.ts                    # NEW: thin typed accessor over the shared catalogue JSON
 │       ├── category-filter.ts                    # NEW: search + keyboard model of the combobox (pure)
 │       ├── preview-zoom.ts                       # NEW: zoom steps, fit, page estimate (pure)
 │       ├── autosave.ts                           # + targetRole in the saved body
@@ -144,7 +148,8 @@ Iteration 0 is the only one that touches the API and the database; iterations 1 
 
 | Spec requirement | Tests (written first) |
 |------------------|-----------------------|
-| FR-010 migration | Migration e2e: executes the migration SQL against seeded rows: clean DB (no rows, no error), v1 drafts with skills (single "Skills" category, order kept, case-insensitive duplicates dropped), v1 with empty skills (no category), already-v2 draft (byte-for-byte unchanged), a second run (no change), a malformed v1 draft (migration fails with a clear error, nothing altered), `updatedAt` and `revision` untouched; CHECK rejects a v1 draft insert |
+| FR-009 catalogue | Unit (both apps): the JSON is valid, names unique, 4 to 6 suggestions each within draft caps; a malformed file fails fast; the API's category enum equals the file's names |
+| FR-010 migration | Migration e2e: executes the migration SQL against seeded rows: clean DB (no rows, no error), v1 drafts with skills (single "Skills" category, order kept, case-insensitive duplicates dropped), v1 with empty skills (no category), already-v2 draft (byte-for-byte unchanged), a second run (no change), a malformed v1 draft (migration fails with a clear error, nothing altered), `updatedAt` and `revision` untouched; CHECK rejects a v1 draft, a draft without `schemaVersion`, a JSON array and a JSON `null`, and accepts SQL `NULL` and a v2 object; the generation lifecycle e2e (`PENDING` -> `PROCESSING` -> `COMPLETED`/`FAILED`, retry, startup sweep) passes unchanged on the migrated schema |
 | FR-007 skills model | Unit: draft schema v2 (caps, name length, v1 rejected), edit schema (unique category names, duplicate skills across the CV, total cap, empty category rejected), mapper (ids, dedupe, caps) |
 | FR-010 AI | Unit: LLM output schema (category enum, unknown name rejected), prompt v3 snapshot rules (categories listed, fallback "Skills", injection delimiters), generation e2e with the fake generator (grouped draft persisted, malformed output not persisted), SKILLS apply unit + e2e (adds to existing category case-insensitively, creates a new one, never removes, unknown category rejected, empty patch rejected) |
 | FR-004 target role | E2e: save with a new target role updates `Cv.targetRole` and the revision in one write; stale revision changes nothing; blank/too long is 400 with a `targetRole` field error; foreign CV is the usual 404; the list and the result show the new role |
@@ -159,4 +164,4 @@ Iteration 0 is the only one that touches the API and the database; iterations 1 
 
 ## Complexity Tracking
 
-No constitution violations. Two points of weight are justified in [research.md](./research.md): the schema version bump with a DB CHECK (D-3, required by "support only the new shape") and the hand-written combobox (D-11, because a native `<select>` or `<datalist>` cannot match the design or the keyboard behaviour and no dependency is allowed).
+No constitution violations. Three points of weight are justified in [research.md](./research.md): the schema version bump with a DB CHECK (D-3, required by "support only the new shape"; verified not to break the generation lifecycle), the data-only workspace package (D-10, required by "one centralized list"; a spike task proves it and a fallback is recorded) and the hand-written combobox (D-11, because a native `<select>` or `<datalist>` cannot match the design or the keyboard behaviour and no dependency is allowed).

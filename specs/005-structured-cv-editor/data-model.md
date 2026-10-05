@@ -44,8 +44,10 @@ Drafts with `schemaVersion` 2 and `NULL` drafts: untouched. `revision` and `upda
 
 ```text
 ALTER TABLE "Cv" ADD CONSTRAINT "Cv_draft_schema_version_check"
-  CHECK (draft IS NULL OR draft ->> 'schemaVersion' = '2');
+  CHECK (draft IS NULL OR (jsonb_typeof(draft) = 'object' AND COALESCE(draft ->> 'schemaVersion', '') = '2'));
 ```
+
+The `COALESCE` matters: without it a draft lacking `schemaVersion` evaluates to `NULL` and a CHECK accepts `NULL`. `NULL` drafts stay valid (non-generated states: `PENDING`, `PROCESSING`, `FAILED`); the generation lifecycle, retry and the startup sweep never write `draft`, and the three writers (completion, edit, apply) always write a v2 object (verified in [research.md](./research.md) D-3).
 
 Properties: idempotent (a second run finds no v1 drafts), order-preserving, loss-free except case-insensitive duplicates, verifiable as a file against seeded rows.
 
