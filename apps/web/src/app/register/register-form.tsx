@@ -6,7 +6,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
-import { TextField } from "@/components/ui/text-field";
+import { TextField } from "@/components/ui/field";
 import { registerAccount } from "@/lib/api/auth";
 import { ApiError } from "@/lib/api/fetcher";
 
@@ -90,7 +90,7 @@ export function RegisterForm() {
         {...register("password")}
       />
       {formError ? (
-        <p role="alert" className="text-sm text-red-700 dark:text-red-400">
+        <p role="alert" className="text-sm text-danger">
           <span className="font-medium">Error: </span>
           {formError}
         </p>
