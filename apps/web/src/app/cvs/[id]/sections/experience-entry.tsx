@@ -4,8 +4,10 @@ import { useFormContext, useWatch } from "react-hook-form";
 import { SelectField, TextField } from "@/components/ui/field";
 import { PRESENT, isPresent, type DraftFormValues } from "@/lib/cv/draft-form";
 import { experienceHeading } from "@/lib/cv/entry-labels";
+import { experienceDuration } from "@/lib/cv/dates";
 import { Highlights } from "./highlights";
 import { RemoveButton } from "./remove-button";
+import { DateField } from "./date-field";
 
 const PLACEHOLDER = "placeholder:text-muted!";
 
@@ -28,6 +30,8 @@ export function ExperienceEntry({
   const entry = useWatch({ control, name: `experience.${index}` });
   const errors = formState.errors.experience?.[index];
   const present = isPresent(entry.endDate);
+  const duration = experienceDuration(entry.startDate, entry.endDate);
+  const setDate = (field: "startDate" | "endDate", value: string) => setValue(`experience.${index}.${field}`, value, { shouldDirty: true, shouldValidate: true });
 
   return (
     <div className="flex flex-col gap-4">
@@ -54,13 +58,13 @@ export function ExperienceEntry({
         {...register(`experience.${index}.employer`)}
       />
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-3">
-        <TextField
+        <DateField
           label="Start date"
-          placeholder="e.g. Jun 2025"
-          autoComplete="off"
-          className={PLACEHOLDER}
+          name={`experience.${index}.startDate`}
+          value={entry.startDate}
+          onChange={(value) => setDate("startDate", value)}
+          maxYear={new Date().getFullYear()}
           error={errors?.startDate?.message}
-          {...register(`experience.${index}.startDate`)}
         />
         <SelectField
           label="End date"
@@ -77,15 +81,16 @@ export function ExperienceEntry({
         </SelectField>
       </div>
       {present ? null : (
-        <TextField
+        <DateField
           label="Date ended"
-          placeholder="e.g. Aug 2024"
-          autoComplete="off"
-          className={PLACEHOLDER}
+          name={`experience.${index}.endDate`}
+          value={entry.endDate}
+          onChange={(value) => setDate("endDate", value)}
+          maxYear={new Date().getFullYear()}
           error={errors?.endDate?.message}
-          {...register(`experience.${index}.endDate`)}
         />
       )}
+      {duration ? <p className="text-xs leading-normal text-muted">Duration: {duration}</p> : null}
       <Highlights experienceIndex={index} />
     </div>
   );

@@ -9,11 +9,12 @@ import {
   PRESENT,
   expectedGraduation,
   isCurrentlyStudying,
-  isPresent,
   newEducationEntry,
   type DraftFormValues,
 } from "@/lib/cv/draft-form";
 import { educationCount, educationHeading, studyLine } from "@/lib/cv/entry-labels";
+import { maxEducationYear } from "@/lib/cv/dates";
+import { DateField } from "./date-field";
 import { EmptySection } from "./empty-section";
 import { RemoveButton } from "./remove-button";
 import { SectionCard } from "./section-card";
@@ -54,7 +55,7 @@ function EducationEntry({
     if (next === "studying") {
       // An expected graduation already typed (a future year) is kept; anything else becomes Present.
       setValue(endField, isCurrentlyStudying(entry.endDate) ? entry.endDate : PRESENT, options);
-    } else if (isPresent(entry.endDate)) {
+    } else if (isCurrentlyStudying(entry.endDate)) {
       setValue(endField, "", options);
     }
   }
@@ -88,26 +89,27 @@ function EducationEntry({
         <option value="studying">Currently studying</option>
       </SelectField>
       <div className={`grid grid-cols-1 gap-4 sm:gap-3 ${studying ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
-        <TextField
+        <DateField
           label="Start year"
-          placeholder="e.g. 2025"
-          autoComplete="off"
-          className={PLACEHOLDER}
+          name={`education.${index}.startDate`}
+          yearOnly
+          value={entry.startDate}
+          onChange={(value) => setValue(`education.${index}.startDate`, value, { shouldDirty: true, shouldValidate: true })}
+          maxYear={new Date().getFullYear()}
           error={errors?.startDate?.message}
-          {...register(`education.${index}.startDate`)}
         />
         {studying ? (
           <>
             <TextField label="End year" placeholder="Not applicable" disabled value="" readOnly />
-            <TextField
+            <DateField
               label="Expected graduation (optional)"
-              placeholder="e.g. 2029"
-              autoComplete="off"
-              className={PLACEHOLDER}
+              name={endField}
+              yearOnly
+              maxYear={maxEducationYear()}
               error={errors?.endDate?.message}
               value={expectedGraduation(entry.endDate)}
-              onChange={(event) =>
-                setValue(endField, event.target.value.trim() === "" ? PRESENT : event.target.value, {
+              onChange={(value) =>
+                setValue(endField, value.trim() === "" ? PRESENT : value, {
                   shouldDirty: true,
                   shouldValidate: true,
                 })
@@ -115,13 +117,17 @@ function EducationEntry({
             />
           </>
         ) : (
-          <TextField
+          <DateField
             label="End year"
-            placeholder="e.g. 2024"
-            autoComplete="off"
-            className={PLACEHOLDER}
+            name={endField}
+            yearOnly
+            maxYear={maxEducationYear()}
+            value={entry.endDate}
+            onChange={(value) => {
+              if (isCurrentlyStudying(value)) setStatus("studying");
+              setValue(endField, value, { shouldDirty: true, shouldValidate: true });
+            }}
             error={errors?.endDate?.message}
-            {...register(endField)}
           />
         )}
       </div>

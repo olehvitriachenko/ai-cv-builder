@@ -2,6 +2,7 @@ import { z } from "zod";
 import type { CvDraft } from "@/lib/api/cvs";
 import { MAX_TARGET_ROLE_CHARS } from "./create-form";
 import { MAX_LINKS, linkError, mergeLinks, splitLinks } from "./links";
+import { dateError, parseCvDate, reversedDateRange } from "./dates";
 
 // The editor form's shape and rules. The stored model is `CvDraft` and nothing else: these helpers
 // only translate it to inputs (null <-> empty string, string lists wrapped as `{ value }` because
@@ -120,8 +121,8 @@ export function isCurrentlyStudying(endDate: string, today: Date = new Date()): 
   if (isPresent(endDate)) {
     return true;
   }
-  const year = /^\d{4}$/.test(endDate.trim()) ? Number(endDate.trim()) : null;
-  return year !== null && year > today.getUTCFullYear();
+  const date = parseCvDate(endDate);
+  return date !== null && (date.year > today.getFullYear() || (date.year === today.getFullYear() && date.month !== null && date.month > today.getMonth() + 1));
 }
 
 /** The expected graduation shown for an ongoing study: empty while the end is just "Present". */
@@ -207,6 +208,7 @@ const experienceEntry = z
     bullets: z.array(listItem(300, "A bullet point")).max(12, "At most 12 bullet points per role."),
   })
   .superRefine((entry, context) => {
+    validateDates(entry, context, false);
     if (entry.employer === "" && entry.title === "") {
       context.addIssue({ code: "custom", path: ["employer"], message: "Add an employer or a job title." });
     }
@@ -222,10 +224,24 @@ const educationEntry = z
     details: text(300, "Details"),
   })
   .superRefine((entry, context) => {
+    validateDates(entry, context, true);
     if (entry.institution === "" && entry.qualification === "") {
       context.addIssue({ code: "custom", path: ["institution"], message: "Add an institution or a qualification." });
     }
   });
+
+function validateDates(entry: { startDate: string; endDate: string }, context: z.RefinementCtx, education: boolean) {
+  for (const field of ["startDate", "endDate"] as const) {
+    if (field === "endDate" && isPresent(entry[field])) continue;
+    const message = dateError(entry[field], education && field === "endDate");
+    if (message) context.addIssue({ code: "custom", path: [field], message });
+  }
+  const start = parseCvDate(entry.startDate);
+  const end = parseCvDate(entry.endDate);
+  if (start && end && reversedDateRange(start, end)) {
+    context.addIssue({ code: "custom", path: ["endDate"], message: "End date must be on or after the start date." });
+  }
+}
 
 const MAX_SKILL_CATEGORIES = 12;
 const MAX_SKILLS = 60;

@@ -2,7 +2,6 @@ import { ChevronDown, TriangleAlert } from "lucide-react";
 import {
   useId,
   type ComponentProps,
-  type InputHTMLAttributes,
   type ReactNode,
   type SelectHTMLAttributes,
 } from "react";
@@ -62,7 +61,7 @@ export function describedBy(controlId: string, hint?: string, error?: string): s
   return hint ? `${controlId}-hint` : undefined;
 }
 
-export interface TextFieldProps extends InputHTMLAttributes<HTMLInputElement> {
+export interface TextFieldProps extends ComponentProps<"input"> {
   label: string;
   labelHidden?: boolean;
   hint?: string;
@@ -142,17 +141,18 @@ export function TextareaField({
 
 interface SelectFieldProps extends SelectHTMLAttributes<HTMLSelectElement> {
   label: string;
+  labelHidden?: boolean;
   hint?: string;
   error?: string;
 }
 
 /** "Forma / Select": a native select (keyboard and mobile friendly) with the design's chevron. */
-export function SelectField({ label, hint, error, id, className = "", children, ...props }: SelectFieldProps) {
+export function SelectField({ label, labelHidden, hint, error, id, className = "", children, ...props }: SelectFieldProps) {
   const generatedId = useId();
   const controlId = id ?? generatedId;
 
   return (
-    <FieldFrame label={label} controlId={controlId} hint={hint} error={error}>
+    <FieldFrame label={label} labelHidden={labelHidden} controlId={controlId} hint={hint} error={error}>
       <div className="relative">
         <select
           id={controlId}
