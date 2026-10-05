@@ -158,3 +158,20 @@ export const draftSaveSchema = z.object({
 export function saveDraft(id: string, input: { revision: number; draft: CvDraft }): Promise<{ revision: number }> {
   return apiFetch(`/cvs/${encodeURIComponent(id)}/draft`, { method: "PUT", body: input, schema: draftSaveSchema });
 }
+
+/** `PUT /api/cvs/:id/questions/:questionId/answer`: saves the answer; the CV content is unchanged. */
+export function answerQuestion(cvId: string, questionId: string, answer: string): Promise<ClarificationQuestion> {
+  return apiFetch(`/cvs/${encodeURIComponent(cvId)}/questions/${encodeURIComponent(questionId)}/answer`, {
+    method: "PUT",
+    body: { answer },
+    schema: clarificationQuestionSchema,
+  });
+}
+
+/** `POST /api/cvs/:id/questions/:questionId/dismiss`: closes a question without changing the CV. */
+export function dismissQuestion(cvId: string, questionId: string): Promise<ClarificationQuestion> {
+  return apiFetch(`/cvs/${encodeURIComponent(cvId)}/questions/${encodeURIComponent(questionId)}/dismiss`, {
+    method: "POST",
+    schema: clarificationQuestionSchema,
+  });
+}

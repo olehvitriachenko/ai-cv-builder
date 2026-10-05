@@ -10,7 +10,7 @@ import { isApiError } from "@/lib/api/fetcher";
 import { saveDraft, type CvResult } from "@/lib/api/cvs";
 import { DraftAutosaver } from "@/lib/cv/autosave";
 import { cvFormSchema, toDraft, toFormValues, type DraftFormValues } from "@/lib/cv/draft-form";
-import { ClarificationQuestions } from "./clarification-questions";
+import { ClarificationPanel } from "./clarification-panel";
 import { CvDocument } from "./cv-document";
 import { ContactSection } from "./editor-sections/contact-section";
 import { EducationSection } from "./editor-sections/education-section";
@@ -192,7 +192,7 @@ export function EditorWorkspace({
               />
             ) : null}
 
-            <ClarificationQuestions questions={result.questions} draft={draft} />
+            <ClarificationPanel cvId={cvId} initialQuestions={result.questions} draft={draft} />
             <ContactSection />
             <SummarySection />
             <ExperienceSection />
