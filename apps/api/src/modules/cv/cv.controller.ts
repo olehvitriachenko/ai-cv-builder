@@ -5,8 +5,10 @@ import type { AuthUser } from '../auth/auth.types.js';
 import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
 import { createCvSchema, cvIdSchema, type CreateCvInput } from './schemas/cv.schemas.js';
 import { cvDraftEditBodySchema, type CvDraftEditBody } from './schemas/draft-edit.schema.js';
+import { answerBodySchema, questionIdSchema, type AnswerBody } from './clarification/question-state.js';
 import { readPdfUpload } from './upload/cv-upload.js';
 import type { CvListItem } from './list/cv-list.query.js';
+import { ClarificationService, type QuestionResponse } from './services/clarification.service.js';
 import { CvEditorService, type DraftSaveResponse } from './services/cv-editor.service.js';
 import { CvService, type CvResultResponse, type CvStatusResponse } from './services/cv.service.js';
 
@@ -19,6 +21,7 @@ export class CvController {
   constructor(
     private readonly cvs: CvService,
     private readonly editor: CvEditorService,
+    private readonly clarifications: ClarificationService,
   ) {}
 
   /** My CVs: the caller's CVs only, newest update first. No paging, no query parameters. */
@@ -78,6 +81,28 @@ export class CvController {
     @Body(new ZodValidationPipe(cvDraftEditBodySchema)) body: CvDraftEditBody,
   ): Promise<DraftSaveResponse> {
     return this.editor.updateDraft(user.id, id, body);
+  }
+
+  /** Answer a clarification question. The CV content and its revision do not change. */
+  @Put(':id/questions/:questionId/answer')
+  answerQuestion(
+    @CurrentUser() user: AuthUser,
+    @Param('id', new ZodValidationPipe(cvIdSchema)) id: string,
+    @Param('questionId', new ZodValidationPipe(questionIdSchema)) questionId: string,
+    @Body(new ZodValidationPipe(answerBodySchema)) body: AnswerBody,
+  ): Promise<QuestionResponse> {
+    return this.clarifications.answer(user.id, id, questionId, body);
+  }
+
+  /** Close a question without applying it. Explicit user action only. */
+  @Post(':id/questions/:questionId/dismiss')
+  @HttpCode(200)
+  dismissQuestion(
+    @CurrentUser() user: AuthUser,
+    @Param('id', new ZodValidationPipe(cvIdSchema)) id: string,
+    @Param('questionId', new ZodValidationPipe(questionIdSchema)) questionId: string,
+  ): Promise<QuestionResponse> {
+    return this.clarifications.dismiss(user.id, id, questionId);
   }
 
   /** Delete a COMPLETED or FAILED CV and its questions; 409 while it is generating. */
