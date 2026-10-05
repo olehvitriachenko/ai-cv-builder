@@ -1,16 +1,17 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowLeft, Download } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { FormProvider, useForm, useWatch } from "react-hook-form";
-import { Button } from "@/components/ui/button";
 import { isApiError } from "@/lib/api/fetcher";
 import { applyQuestion, saveDraft, type ClarificationQuestion, type CvResult } from "@/lib/api/cvs";
 import { ApplyBlockedError, applyAnswer, applyErrorOutcome } from "@/lib/cv/apply-flow";
 import { DraftAutosaver } from "@/lib/cv/autosave";
+import { prepareDownload } from "@/lib/cv/download-flow";
 import { cvFormSchema, toDraft, toFormValues, type DraftFormValues } from "@/lib/cv/draft-form";
+import { DownloadPdfButton } from "../download-pdf-button";
 import { ClarificationPanel } from "./clarification-panel";
 import { CvDocument } from "./cv-document";
 import { ContactSection } from "./editor-sections/contact-section";
@@ -179,16 +180,16 @@ export function EditorWorkspace({
               <p className="text-[11px] text-muted">{name ?? "Untitled CV"}</p>
             </div>
             <SaveIndicator state={saveState} invalid={invalid} />
-            <Button
-              type="button"
-              size="compact"
-              stretch={false}
-              disabled
-              title="PDF export is coming soon"
-            >
-              <Download aria-hidden className="size-4" strokeWidth={1.75} />
-              Download PDF
-            </Button>
+            <DownloadPdfButton
+              cvId={cvId}
+              showIcon
+              beforeDownload={() =>
+                prepareDownload({
+                  blockedReason: invalid ? "Fix the highlighted fields first, then download the PDF." : null,
+                  flush: () => autosaver.flush(),
+                })
+              }
+            />
           </div>
         </div>
 
