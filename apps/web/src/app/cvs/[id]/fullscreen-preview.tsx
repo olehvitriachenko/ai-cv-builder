@@ -39,6 +39,9 @@ export function FullscreenPreview({
   const [manualZoom, setManualZoom] = useState<number | null>(null);
   const [height, setHeight] = useState(PAGE_HEIGHT);
 
+  // No cleanup on purpose: removing an open modal dialog from the DOM already closes it, while
+  // calling `close()` here would fire `onClose` and, under React Strict Mode's mount-unmount-mount
+  // in development, close the dialog again right after it opened.
   useEffect(() => {
     const dialog = dialogRef.current;
     if (dialog && !dialog.open) {
@@ -47,11 +50,6 @@ export function FullscreenPreview({
       // anyone pressed a key. The dialog itself takes focus instead; Tab reaches the controls.
       dialog.focus();
     }
-    return () => {
-      if (dialog?.open) {
-        dialog.close();
-      }
-    };
   }, []);
 
   useEffect(() => {
