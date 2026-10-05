@@ -130,7 +130,7 @@ export function Combobox({
             open ? "border-[1.5px] border-accent" : "border border-line"
           }`}
         >
-          <span id={`${id}-value`} className={value === null ? "text-muted" : "text-ink"}>
+          <span id={`${id}-value`} className={`min-w-0 truncate ${value === null ? "text-muted" : "text-ink"}`}>
             {value ?? placeholder}
           </span>
           <ChevronDown

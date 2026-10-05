@@ -6,7 +6,7 @@ Replaces the accordion editor of `003` with the structured editor from the compl
 
 - **Data foundation (Phase 2)**: the draft is `schemaVersion: 2` with `skillCategories` (no flat `skills`); the target role is saved in the same `PUT /api/cvs/:id/draft` request; generation and the clarification apply work on categories; the PDF (feature `004`) lists skills by category. One migration converts stored drafts and adds a CHECK; it is idempotent and has no model change.
 - **1 Structured layout**: sticky navigation, completeness card, AI Assistant card and five always-open section cards with the live A4 preview beside them.
-- **2 Skills by category**: category combobox over a shared catalogue (36 names, 216 suggestions), custom names, Add, tap-to-add suggestions, removable chips, Move up and Move down, confirmed category removal.
+- **2 Skills by category**: category combobox over a shared catalogue (36 names, 216 suggestions), custom names, Add, tap-to-add suggestions, removable chips, pointer/touch and keyboard drag handles, confirmed category removal.
 - **3 AI assistant**: the answer saves by itself, Apply to CV only for a saved answer, applying progress, the four apply failures with their own recovery.
 - **4 Save state**: Saving, Couldn't save · Retry (offline and retrying forms), Conflict · Review versions, and the Review conflicting versions dialog (no preselection, whole-version choice, nothing merged).
 - **5 Preview**: zoom (a percentage of an A4 sheet at 794 px, as drawn), page footer, full-screen preview.

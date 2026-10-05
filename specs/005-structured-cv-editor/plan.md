@@ -57,7 +57,7 @@ No new table, no new dependency, no new infrastructure. Pure derivations (comple
 | IX. Database integrity | Pass | Explicit migration; a CHECK constraint keeps every stored draft at version 2; no speculative index |
 | X. Critical behavior tested | Pass | See [Test Strategy](#test-strategy); tests precede each iteration |
 | XI. User controls the CV | Pass | Suggestions are client-only until tapped; "Improve with AI" is not shown; conflicts never merge automatically |
-| XII. Simplicity | Pass | Whole-version conflict choice, Move up/down instead of drag-and-drop, hand-written combobox, estimated page count instead of a pagination engine; one JSON file instead of two copies of the catalogue |
+| XII. Simplicity | Pass | Whole-version conflict choice, Dedicated dnd-kit drag handles with keyboard support (owner update, 2026-10-06), hand-written combobox, estimated page count instead of a pagination engine; one JSON file instead of two copies of the catalogue |
 | XIII. Scope discipline | Pass | Out-of-scope list of the spec respected; no new PDF features, templates or AI rewriting; the `004` contract is untouched |
 | XIV. Owned code | Pass | Each iteration is reviewed against its Figma frames and the diff; decisions are in [research.md](./research.md) |
 | XV. Local reproducibility | Pass | Migration verified on local PostgreSQL (clean and seeded); quickstart lists the commands |
@@ -140,7 +140,7 @@ Each iteration: tests first, implement, run gates (`tsc`, lint, unit, e2e, `next
 |---|-----------|------|-------|----------|
 | 0 | Data foundation | FR-007, FR-010, FR-004 (API) | none | Draft v2 schema, migration + CHECK, generation (prompt v3), SKILLS apply, `targetRole` in result and save, **PDF export reading v2**, minimal web adaptation so the existing editor and preview keep working on v2 |
 | 1 | Structured layout and sections | US1 | 05.1, 05.6 | Editor nav, completeness card, always-expanded cards: personal details (links), summary, experience (add/remove, Present, highlights), education (add/remove), sticky preview column |
-| 2 | Skills by category | US2 | 05.7 | Category card, combobox, input + Add, suggestions, chips, move up/down, add category, preview grouping |
+| 2 | Skills by category | US2 | 05.7 | Category card, combobox, input + Add, suggestions, chips, drag handles, add category, preview grouping |
 | 3 | AI Assistant states | US3 | 05.2, 05.3 | Restyled assistant card, unresolved count, answered/applied/dismissed/failed states, complete state |
 | 4 | Save state and conflict | US4 | 05.4, 05.5 | Nav save indicator, failure notice with Retry, conflict notice, review both versions (whole-version choice) |
 | 5 | Preview controls | US5 | 05.10 | Toolbar, zoom, estimated pages, status line, full-screen dialog |

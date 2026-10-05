@@ -72,6 +72,7 @@ Decisions behind [plan.md](./plan.md). Each lists the choice, the reason and wha
 ## D-12. Reordering is Move up / Move down
 
 - **Decision**: two icon buttons per category (disabled at the ends) swap neighbours; the pure `moveCategory(categories, index, delta)` is tested. The design's drag handle is replaced (user decision).
+- **Superseded on 2026-10-06 by the owner**: replace the buttons with dnd-kit sortable categories and a dedicated handle. Pointer/touch and keyboard sensors use stable category IDs; commit the reordered form array only on drop, preserving autosave and cancellation. AutoAnimate inside category cards is disabled during dragging to avoid competing transforms.
 
 ## D-13. Preview zoom and page count
 

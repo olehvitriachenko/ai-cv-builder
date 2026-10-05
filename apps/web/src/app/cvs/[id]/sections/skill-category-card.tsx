@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useEditorMotion } from "@/lib/cv/use-editor-motion";
 import { Button } from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";
@@ -10,7 +10,6 @@ import { suggestionsFor } from "@/lib/cv/skill-catalogue";
 import {
   MAX_SKILLS_TOTAL,
   addSkill,
-  canMoveCategory,
   categoryRefusalMessage,
   refusalMessage,
   removeSkill,
@@ -38,26 +37,26 @@ const skillWord = (count: number): string => (count === 1 ? "skill" : "skills");
  * One category of the Skills card (Figma "Category card / …"): its name (a combobox: choosing
  * another predefined or custom name renames the category), the Skills field with **+ Add**, the
  * suggestions, and the contained area with the skills as removable chips. The rules (refusals,
- * limits) are in `skills-form.ts`. The category's order and removal are text actions at the foot.
+ * limits) are in `skills-form.ts`. The drag handle reorders categories; the trash button removes one.
  */
 export function SkillCategoryCard({
   category,
-  index,
   categories,
   options,
   onUpdate,
-  onMove,
+  dragHandle,
+  motionEnabled,
   onRemove,
 }: {
   category: SkillCategoryFormEntry;
-  index: number;
   categories: SkillCategoryFormEntry[];
   options: readonly string[];
   onUpdate: (next: SkillCategoryFormEntry[]) => void;
-  onMove: (delta: -1 | 1) => void;
+  dragHandle: ReactNode;
+  motionEnabled: boolean;
   onRemove: () => void;
 }) {
-  const cardMotionRef = useEditorMotion<HTMLElement>();
+  const cardMotionRef = useEditorMotion<HTMLElement>(motionEnabled);
   const chipsMotionRef = useEditorMotion();
   const [text, setText] = useState("");
   const [message, setMessage] = useState<string | null>(null);
@@ -101,7 +100,10 @@ export function SkillCategoryCard({
         {...CATEGORY_COMBOBOX}
         onSelect={rename}
         trailing={
-          <RemoveButton label={`Remove category ${category.name}`} onClick={onRemove} />
+          <div className="flex shrink-0 gap-1">
+            {dragHandle}
+            <RemoveButton label={`Remove category ${category.name}`} onClick={onRemove} />
+          </div>
         }
       />
       {nameMessage ? (
@@ -154,14 +156,6 @@ export function SkillCategoryCard({
         </div>
       ) : null}
 
-      <div className="flex flex-wrap gap-2">
-        <Button type="button" variant="text" stretch={false} disabled={!canMoveCategory(index, -1, categories.length)} onClick={() => onMove(-1)}>
-          ↑ Move up
-        </Button>
-        <Button type="button" variant="text" stretch={false} disabled={!canMoveCategory(index, 1, categories.length)} onClick={() => onMove(1)}>
-          ↓ Move down
-        </Button>
-      </div>
     </section>
   );
 }

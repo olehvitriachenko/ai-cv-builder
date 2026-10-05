@@ -1,6 +1,8 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
+import { DndContext, DragOverlay, KeyboardSensor, PointerSensor, closestCenter, pointerWithin, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
+import { SortableContext, arrayMove, sortableKeyboardCoordinates, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { useFormContext, useWatch } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -10,13 +12,12 @@ import {
   MAX_CATEGORIES,
   addCategory,
   categoryRefusalMessage,
-  moveCategory,
   removeCategory,
   skillCount,
 } from "@/lib/cv/skills-form";
 import { NewCategoryCard } from "./new-category-card";
 import { SectionCard } from "./section-card";
-import { SkillCategoryCard } from "./skill-category-card";
+import { SortableSkillCategory } from "./sortable-skill-category";
 
 const skillWord = (count: number): string => (count === 1 ? "skill" : "skills");
 
@@ -33,13 +34,20 @@ function listWithAnd(items: readonly string[]): string {
  * but not saved. The rules are in `skills-form.ts`.
  */
 export function Skills() {
-  const { control, setValue, formState } = useFormContext<DraftFormValues>();
+  const { control, setValue, getValues, formState } = useFormContext<DraftFormValues>();
   const categories = useWatch({ control, name: "skillCategories" });
   const [newMessage, setNewMessage] = useState<string | null>(null);
   const [removing, setRemoving] = useState<string | null>(null);
   const newCardRef = useRef<HTMLDivElement>(null);
   // The empty "New category" card can be removed; "+ Add skills" brings it back.
   const [newVisible, setNewVisible] = useState(true);
+  const dndId = useId();
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+  const draggingCategory = categories.find((category) => category.id === draggingId);
 
   const total = skillCount(categories);
   const filled = categories.filter((entry) => entry.skills.some((item) => item.value.trim() !== "")).length;
@@ -47,6 +55,15 @@ export function Skills() {
 
   const update = (next: SkillCategoryFormEntry[]) =>
     setValue("skillCategories", next, { shouldDirty: true, shouldValidate: true });
+
+  function finishDrag({ active, over }: DragEndEvent) {
+    setDraggingId(null);
+    if (!over || active.id === over.id) return;
+    const current = getValues("skillCategories");
+    const from = current.findIndex((category) => category.id === active.id);
+    const to = current.findIndex((category) => category.id === over.id);
+    if (from >= 0 && to >= 0) update(arrayMove(current, from, to));
+  }
 
   const customNames = categories
     .map((entry) => entry.name)
@@ -81,22 +98,47 @@ export function Skills() {
       title="Skills & Technical Competencies"
       aside={`${total} ${skillWord(total)} · ${filled} ${filled === 1 ? "category" : "categories"}`}
     >
-      <p className="text-sm leading-normal text-muted">Choose a category, then add the skills you can support.</p>
+      <p className="text-sm leading-normal text-muted">Choose a category, then add the skills you can support. Drag the handle to reorder categories.</p>
 
-      {categories.map((category, index) => (
-        <SkillCategoryCard
-          key={category.id}
-          category={category}
-          index={index}
-          categories={categories}
-          options={options}
-          onUpdate={update}
-          onMove={(delta) => update(moveCategory(categories, category.id, delta))}
-          onRemove={() =>
-            category.skills.some((item) => item.value.trim() !== "") ? setRemoving(category.id) : drop(category.id)
-          }
-        />
-      ))}
+      <DndContext
+        id={dndId}
+        sensors={sensors}
+        collisionDetection={(args) => args.pointerCoordinates ? pointerWithin(args) : closestCenter(args)}
+        onDragStart={({ active }) => setDraggingId(String(active.id))}
+        onDragEnd={finishDrag}
+        onDragCancel={() => setDraggingId(null)}
+        accessibility={{
+          screenReaderInstructions: { draggable: "Press Space or Enter to pick up a category, use arrow keys to move it, press Space or Enter to drop, or Escape to cancel." },
+          announcements: {
+            onDragStart: ({ active }) => `Picked up category ${getValues("skillCategories").find((category) => category.id === active.id)?.name ?? ""}.`,
+            onDragOver: ({ active, over }) => over ? `Category ${getValues("skillCategories").find((category) => category.id === active.id)?.name ?? ""} will move to position ${getValues("skillCategories").findIndex((category) => category.id === over.id) + 1}.` : "Outside the category list. Drop here to cancel.",
+            onDragEnd: ({ active, over }) => over ? `Dropped category ${getValues("skillCategories").find((category) => category.id === active.id)?.name ?? ""}.` : "Reordering cancelled. The category order is unchanged.",
+            onDragCancel: () => "Reordering cancelled. The category order is unchanged.",
+          },
+        }}
+      >
+        <SortableContext items={categories.map((category) => category.id)} strategy={verticalListSortingStrategy}>
+          <div className="flex min-w-0 flex-col gap-4">
+            {categories.map((category) => (
+              <SortableSkillCategory
+                key={category.id}
+                category={category}
+                dragging={draggingId !== null}
+                disabled={categories.length < 2}
+                categories={categories}
+                options={options}
+                onUpdate={update}
+                onRemove={() =>
+                  category.skills.some((item) => item.value.trim() !== "") ? setRemoving(category.id) : drop(category.id)
+                }
+              />
+            ))}
+          </div>
+        </SortableContext>
+        <DragOverlay adjustScale={false} dropAnimation={null}>
+          {draggingCategory ? <div className="pointer-events-none rounded-xl border border-accent-line bg-surface p-4 text-sm font-semibold text-ink shadow-lg">{draggingCategory.name}</div> : null}
+        </DragOverlay>
+      </DndContext>
       {categories.length < MAX_CATEGORIES && newVisible ? (
         <div ref={newCardRef}>
           <NewCategoryCard options={options} message={newMessage} onChoose={choose} onDismiss={() => setNewVisible(false)} />

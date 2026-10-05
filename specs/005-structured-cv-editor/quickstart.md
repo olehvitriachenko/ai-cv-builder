@@ -53,7 +53,7 @@ Run the app (`GENERATION_AUTORUN=false PORT=3001 node dist/main.js`, `next start
 | Iteration | Check |
 |-----------|-------|
 | 1 | Structure and spacing of 05.1 and 05.6; all sections open; edit every field, add/remove an entry, a highlight, a link; completeness changes as fields fill; reload keeps everything; target role change shows in the list |
-| 2 | 05.7: open the category list, search, pick, type a custom name; add by button and Enter; refusals (blank, duplicate, too long); tap a suggestion; remove a chip; Move up/down; "+ Add skills"; the preview groups skills; reload keeps order |
+| 2 | 05.7: open the category list, search, pick, type a custom name; add by button and Enter; refusals (blank, duplicate, too long); tap a suggestion; remove a chip; drag categories by their handle (pointer/touch and keyboard), cancel with Escape; "+ Add skills"; the preview groups skills; reload keeps order |
 | 3 | 05.2 and 05.3: unanswered, answered, applied, dismissed, failed apply; unresolved count; complete state |
 | 4 | 05.4 and 05.5: Saving, saved, offline "Couldn't save · Retry", two-tab conflict, Review both versions, Keep my version, Use saved version; local text never lost |
 | 5 | 05.10: zoom limits, Fit page, expand, Esc and Close, focus returns; status line shows "Last saved version" while unsaved |

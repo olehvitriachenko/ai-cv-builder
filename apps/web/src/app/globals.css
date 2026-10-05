@@ -74,6 +74,7 @@ body {
 
   .cv-editor-motion :where([role="alert"], [role="status"]):not(.sr-only),
   .cv-editor-motion [role="listbox"],
+  .cv-editor-motion [data-sortable-category],
   .cv-editor-motion dialog[open],
   dialog.cv-editor-motion[open] {
     animation: editor-fade-in 180ms ease-out;
@@ -104,6 +105,12 @@ body {
 @keyframes editor-fade-out {
   from { opacity: 1; }
   to { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cv-editor-motion [data-sortable-category] {
+    transition: none !important;
+  }
 }
 
 /* A focused field scrolls into view above the phone's sticky "Preview CV" bar (about 76 px). */
