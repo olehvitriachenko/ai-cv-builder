@@ -3,7 +3,6 @@ import Anthropic, {
   APIError,
   APIUserAbortError,
   AuthenticationError,
-  BadRequestError,
   PermissionDeniedError,
 } from '@anthropic-ai/sdk';
 import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
@@ -45,33 +44,54 @@ export function createAnthropicClient(settings: { apiKey: string; timeoutMs: num
   return new Anthropic({ apiKey: settings.apiKey, maxRetries: 0, timeout: settings.timeoutMs });
 }
 
+/**
+ * Whether repeating the request may succeed. The provider's own `x-should-retry` header wins;
+ * without it the HTTP status decides. SDK retries are off (`maxRetries: 0`), so this only feeds
+ * the application's single, visible retry.
+ */
+export function isRetryable(error: unknown): boolean {
+  if (error instanceof APIUserAbortError) {
+    return false;
+  }
+
+  if (error instanceof APIConnectionError) {
+    // Includes APIConnectionTimeoutError.
+    return true;
+  }
+
+  if (!(error instanceof APIError)) {
+    return false;
+  }
+
+  const shouldRetry = error.headers?.get('x-should-retry');
+  if (shouldRetry === 'true') {
+    return true;
+  }
+  if (shouldRetry === 'false') {
+    return false;
+  }
+
+  const { status } = error;
+  return (
+    status === 408 || status === 409 || status === 429 || (status !== undefined && status >= 500)
+  );
+}
+
 function toProviderError(error: unknown): unknown {
   if (error instanceof APIUserAbortError) {
     // Our own deadline fired; the caller recognises its aborted signal.
     return error;
   }
   if (error instanceof AuthenticationError || error instanceof PermissionDeniedError) {
+    // A configuration problem is never transient, whatever the retry header says.
     return new ProviderError('NOT_CONFIGURED', String(error.status));
   }
-  if (error instanceof BadRequestError) {
-    return new ProviderError('BAD_REQUEST', String(error.status));
-  }
-  if (error instanceof APIConnectionError) {
-    // Includes APIConnectionTimeoutError.
-    return new ProviderError('TRANSIENT', error.constructor.name);
+  if (isRetryable(error)) {
+    const detail = error instanceof APIError ? (error.status ?? error.constructor.name) : '';
+    return new ProviderError('TRANSIENT', String(detail));
   }
   if (error instanceof APIError) {
-    const status = error.status;
-    if (
-      status === undefined ||
-      status === 408 ||
-      status === 409 ||
-      status === 429 ||
-      status >= 500
-    ) {
-      return new ProviderError('TRANSIENT', String(status));
-    }
-    return new ProviderError('BAD_REQUEST', String(status));
+    return new ProviderError('BAD_REQUEST', String(error.status ?? error.constructor.name));
   }
   return error;
 }

@@ -7,6 +7,7 @@ import {
 import {
   AnthropicCvGenerator,
   createAnthropicClient,
+  isRetryable,
   type AnthropicMessagesClient,
 } from './anthropic-cv-generator.js';
 import { ProviderError } from './cv-generator.js';
@@ -48,12 +49,12 @@ function setup(result: MessageResult | Error, apiKey: string | null = 'sk-test')
 
 const REQUEST = { sourceText: 'Ada worked at Acme Corp.', targetRole: 'Backend Engineer' };
 
-function apiError(status: number): APIError {
+function apiError(status: number, headers: Record<string, string> = {}): APIError {
   return APIError.generate(
     status,
     { error: { message: 'secret provider detail' } },
     undefined,
-    new Headers(),
+    new Headers(headers),
   );
 }
 
@@ -170,6 +171,8 @@ describe('AnthropicCvGenerator', () => {
       [400, 'BAD_REQUEST'],
       [404, 'BAD_REQUEST'],
       [422, 'BAD_REQUEST'],
+      [408, 'TRANSIENT'],
+      [409, 'TRANSIENT'],
       [429, 'TRANSIENT'],
       [500, 'TRANSIENT'],
       [529, 'TRANSIENT'],
@@ -189,6 +192,36 @@ describe('AnthropicCvGenerator', () => {
         const { generator } = setup(error);
         await expect(generator.generate(REQUEST)).rejects.toMatchObject({ kind: 'TRANSIENT' });
       }
+    });
+
+    it.each([
+      [400, 'true', 'TRANSIENT'],
+      [404, 'true', 'TRANSIENT'],
+      [429, 'false', 'BAD_REQUEST'],
+      [500, 'false', 'BAD_REQUEST'],
+      [529, 'false', 'BAD_REQUEST'],
+    ])(
+      'lets x-should-retry override the status: HTTP %i with %s maps to %s',
+      async (status, header, kind) => {
+        const { generator } = setup(apiError(status, { 'x-should-retry': header }));
+
+        await expect(generator.generate(REQUEST)).rejects.toMatchObject({ kind });
+      },
+    );
+
+    it.each([401, 403])(
+      'never treats HTTP %i as transient, even with x-should-retry: true',
+      async (status) => {
+        const { generator } = setup(apiError(status, { 'x-should-retry': 'true' }));
+
+        await expect(generator.generate(REQUEST)).rejects.toMatchObject({ kind: 'NOT_CONFIGURED' });
+      },
+    );
+
+    it('treats a provider error with no status and no retry header as not retryable', async () => {
+      const { generator } = setup(new APIError(undefined, undefined, 'boom', undefined));
+
+      await expect(generator.generate(REQUEST)).rejects.toMatchObject({ kind: 'BAD_REQUEST' });
     });
 
     it('lets an abort from our own signal propagate unchanged', async () => {
@@ -219,5 +252,47 @@ describe('AnthropicCvGenerator', () => {
         () => new AnthropicCvGenerator({ apiKey: undefined, model: 'm', timeoutMs: 1000 }),
       ).not.toThrow();
     });
+  });
+});
+
+describe('isRetryable', () => {
+  it('is false for our own abort, even though it is an APIError', () => {
+    expect(isRetryable(new APIUserAbortError())).toBe(false);
+  });
+
+  it('is true for connection failures and the SDK timeout', () => {
+    expect(isRetryable(new APIConnectionError({}))).toBe(true);
+    expect(isRetryable(new APIConnectionTimeoutError())).toBe(true);
+  });
+
+  it('is false for anything that is not an Anthropic API error', () => {
+    expect(isRetryable(new TypeError('boom'))).toBe(false);
+    expect(isRetryable('429')).toBe(false);
+    expect(isRetryable(undefined)).toBe(false);
+  });
+
+  it.each([408, 409, 429, 500, 502, 529])(
+    'is true for HTTP %i without a retry header',
+    (status) => {
+      expect(isRetryable(apiError(status))).toBe(true);
+    },
+  );
+
+  it.each([400, 401, 403, 404, 422])('is false for HTTP %i without a retry header', (status) => {
+    expect(isRetryable(apiError(status))).toBe(false);
+  });
+
+  it('lets the provider header win over the status in both directions', () => {
+    expect(isRetryable(apiError(400, { 'x-should-retry': 'true' }))).toBe(true);
+    expect(isRetryable(apiError(503, { 'x-should-retry': 'false' }))).toBe(false);
+  });
+
+  it('ignores an unrecognised header value and falls back to the status', () => {
+    expect(isRetryable(apiError(500, { 'x-should-retry': 'maybe' }))).toBe(true);
+    expect(isRetryable(apiError(400, { 'x-should-retry': 'maybe' }))).toBe(false);
+  });
+
+  it('is false for an API error without a status or headers', () => {
+    expect(isRetryable(new APIError(undefined, undefined, 'boom', undefined))).toBe(false);
   });
 });
