@@ -15,6 +15,7 @@ import {
   type PdfExtractionFailure,
 } from '../../pdf/pdf-text-extractor.service.js';
 import type { CreateCvInput } from '../schemas/cv.schemas.js';
+import { listCvsForUser, type CvListItem } from '../list/cv-list.query.js';
 import { canRetryGeneration } from '../retry-rule.js';
 import { cvDraftSchema, type CvDraft } from '../generation/draft.schema.js';
 import { GenerationRunner } from '../generation/generation-runner.service.js';
@@ -109,6 +110,11 @@ export class CvService {
     private readonly pdf: PdfTextExtractor,
     private readonly runner: GenerationRunner,
   ) {}
+
+  /** The caller's CVs for My CVs, most recently updated first. The owner is the session user. */
+  async list(userId: string): Promise<{ items: CvListItem[] }> {
+    return { items: await listCvsForUser(this.prisma, userId) };
+  }
 
   /** Start a generation from free text. */
   createFromText(userId: string, input: CreateCvInput): Promise<CvStatusResponse> {

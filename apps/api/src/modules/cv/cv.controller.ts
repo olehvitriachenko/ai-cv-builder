@@ -5,6 +5,7 @@ import type { AuthUser } from '../auth/auth.types.js';
 import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
 import { createCvSchema, cvIdSchema, type CreateCvInput } from './schemas/cv.schemas.js';
 import { readPdfUpload } from './upload/cv-upload.js';
+import type { CvListItem } from './list/cv-list.query.js';
 import { CvService, type CvResultResponse, type CvStatusResponse } from './services/cv.service.js';
 
 /**
@@ -14,6 +15,12 @@ import { CvService, type CvResultResponse, type CvStatusResponse } from './servi
 @Controller('cvs')
 export class CvController {
   constructor(private readonly cvs: CvService) {}
+
+  /** My CVs: the caller's CVs only, newest update first. No paging, no query parameters. */
+  @Get()
+  list(@CurrentUser() user: AuthUser): Promise<{ items: CvListItem[] }> {
+    return this.cvs.list(user.id);
+  }
 
   /** Start a generation from free text. 202: accepted, not completed. */
   @Post()
