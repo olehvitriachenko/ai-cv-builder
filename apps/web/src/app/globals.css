@@ -4,6 +4,9 @@
  * Design tokens from the Figma "Forma" UI kit (07.1 Foundations): light neutral canvas, Inter,
  * one restrained accent, 1px rules, 8px controls, 12px cards, 44px form controls.
  */
+/* Short viewports (small laptops, landscape phones): screens use a compact vertical rhythm. */
+@custom-variant short (@media (max-height: 780px));
+
 @theme inline {
   --color-canvas: #f7f8fa;
   --color-surface: #ffffff;

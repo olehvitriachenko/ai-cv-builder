@@ -7,6 +7,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { TextField } from "@/components/ui/field";
+import { PasswordField } from "@/components/ui/password-field";
 import { registerAccount } from "@/lib/api/auth";
 import { isApiError } from "@/lib/api/fetcher";
 
@@ -72,19 +73,21 @@ export function RegisterForm() {
     <form
       onSubmit={handleSubmit(onSubmit)}
       noValidate
-      className="flex flex-col gap-4"
+      className="flex flex-col gap-6 short:gap-4"
     >
       <TextField
-        label="Email"
+        label="Email address"
         type="email"
+        placeholder="you@example.com"
         autoComplete="email"
         inputMode="email"
         error={errors.email?.message}
         {...register("email")}
       />
-      <TextField
+      <PasswordField
         label="Password"
-        type="password"
+        placeholder="Create a password"
+        hint="Use at least 8 characters."
         autoComplete="new-password"
         error={errors.password?.message}
         {...register("password")}
@@ -95,7 +98,7 @@ export function RegisterForm() {
           {formError}
         </p>
       ) : null}
-      <Button type="submit" disabled={isSubmitting}>
+      <Button type="submit" stretch={false} className="w-full" disabled={isSubmitting}>
         {isSubmitting ? "Creating account…" : "Create account"}
       </Button>
     </form>
