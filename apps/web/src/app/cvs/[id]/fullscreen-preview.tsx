@@ -44,6 +44,7 @@ export function FullscreenPreview({
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
+  const backdropPress = useRef(false);
   const [area, setArea] = useState({ width: 0, height: 0 });
   const [manualZoom, setManualZoom] = useState<number | null>(null);
   const [height, setHeight] = useState(PAGE_HEIGHT);
@@ -175,6 +176,13 @@ export function FullscreenPreview({
 
         <div
           ref={stageRef}
+          onPointerDown={(event) => {
+            backdropPress.current = event.button === 0 && event.target === event.currentTarget;
+          }}
+          onClick={(event) => {
+            if (backdropPress.current && event.target === event.currentTarget) closeEditorDialog(dialogRef.current);
+            backdropPress.current = false;
+          }}
           className="flex min-h-0 flex-1 flex-col overflow-auto bg-stage px-4 py-3 sm:bg-transparent sm:px-8 sm:py-[21px]"
         >
           <div className="m-auto flex flex-col items-center gap-4">

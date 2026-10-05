@@ -95,12 +95,6 @@ export function PreviewPanel({
             </div>
             {onOpenFullscreen ? (
               <div className="absolute top-3 right-3 flex items-center gap-2 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 [@media(hover:none)]:opacity-100">
-                <span
-                  aria-hidden
-                  className="hidden h-11 items-center rounded-[10px] border border-line bg-surface px-5 text-[13px] font-semibold text-accent shadow-[0_6px_16px_rgba(40,51,71,0.08)] sm:flex"
-                >
-                  Open fullscreen
-                </span>
                 <button
                   ref={expandRef}
                   type="button"
