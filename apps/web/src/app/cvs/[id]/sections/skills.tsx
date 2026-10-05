@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
+import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import type { DraftFormValues, SkillCategoryFormEntry } from "@/lib/cv/draft-form";
 import { SKILL_CATALOGUE } from "@/lib/cv/skill-catalogue";
@@ -10,7 +11,6 @@ import {
   addCategory,
   categoryRefusalMessage,
   moveCategory,
-  needsMoreSkills,
   removeCategory,
   skillCount,
 } from "@/lib/cv/skills-form";
@@ -37,6 +37,7 @@ export function Skills() {
   const categories = useWatch({ control, name: "skillCategories" });
   const [newMessage, setNewMessage] = useState<string | null>(null);
   const [removing, setRemoving] = useState<string | null>(null);
+  const newCardRef = useRef<HTMLDivElement>(null);
 
   const total = skillCount(categories);
   const filled = categories.filter((entry) => entry.skills.some((item) => item.value.trim() !== "")).length;
@@ -95,12 +96,25 @@ export function Skills() {
         />
       ))}
       {categories.length < MAX_CATEGORIES ? (
-        <NewCategoryCard options={options} message={newMessage} onChoose={choose} />
+        <div ref={newCardRef}>
+          <NewCategoryCard options={options} message={newMessage} onChoose={choose} />
+        </div>
       ) : null}
-
-      {needsMoreSkills(total) ? (
-        <p className="text-xs leading-normal text-muted">It is suggested to add at least 5 skills</p>
-      ) : null}
+      {/* "+ Add skills": go to the New category card and open its category list. */}
+      <Button
+        type="button"
+        variant="text"
+        stretch={false}
+        className="w-full"
+        disabled={categories.length >= MAX_CATEGORIES}
+        onClick={() => {
+          const trigger = newCardRef.current?.querySelector<HTMLButtonElement>("button[aria-haspopup=listbox]");
+          trigger?.scrollIntoView({ block: "center" });
+          trigger?.click();
+        }}
+      >
+        + Add skills
+      </Button>
       {formError ? (
         <p role="alert" className="text-xs text-danger">
           {formError}
