@@ -29,13 +29,89 @@ model Session {
   @@index([expiresAt])
 }
 
+enum GenerationStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum SourceType {
+  FREE_TEXT
+  PDF
+}
+
+/// Generation failures only. Unreadable PDFs are rejected at ingestion and never reach this table.
+enum FailureReason {
+  PROVIDER_UNAVAILABLE
+  PROVIDER_NOT_CONFIGURED
+  INVALID_OUTPUT
+  TIMED_OUT
+  INTERRUPTED
+  UNKNOWN
+}
+
+enum QuestionSection {
+  CONTACT
+  SUMMARY
+  EXPERIENCE
+  EDUCATION
+  SKILLS
+}
+
+enum QuestionStatus {
+  OPEN
+  RESOLVED
+}
+
+/// The Cv row is also the generation job: its status moves only through compare-and-set updates
+/// that match both the expected status and `generationAttempts` (the fencing token).
 model Cv {
-  id         String   @id @default(cuid())
+  id         String @id @default(cuid())
   userId     String
-  targetRole String?
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  targetRole String
+
+  /// The free text, or the text extracted from the uploaded PDF. Untrusted; never logged.
+  sourceType SourceType
+  sourceText String
+
+  generationStatus    GenerationStatus
+  failureReason       FailureReason?
+  /// Safe debugging tokens only (status codes, error class names, rule ids and JSON paths).
+  failureDetail       String?
+  /// Incremented each time a claim moves the row to PROCESSING. Never reset: it is the fencing
+  /// token that stops a stale worker from completing a newer attempt.
+  generationAttempts  Int              @default(0)
+  processingStartedAt DateTime?
+  finishedAt          DateTime?
+
+  /// The validated CvDraft document; set exactly when the status is COMPLETED.
+  draft         Json?
+  promptVersion String?
+  aiModel       String?
+
+  user      User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  questions ClarificationQuestion[]
+  createdAt DateTime                @default(now())
+  updatedAt DateTime                @updatedAt
 
   @@index([userId])
+  @@index([generationStatus, createdAt])
+}
+
+model ClarificationQuestion {
+  id        String          @id @default(cuid())
+  cvId      String
+  section   QuestionSection
+  /// Id of the experience/education entry inside Cv.draft when the question concerns one entry.
+  /// A reference by value, not a foreign key: entries live inside the JSON document.
+  itemId    String?
+  missing   String
+  question  String
+  status    QuestionStatus  @default(OPEN)
+  position  Int
+  cv        Cv              @relation(fields: [cvId], references: [id], onDelete: Cascade)
+  createdAt DateTime        @default(now())
+
+  @@index([cvId])
 }
