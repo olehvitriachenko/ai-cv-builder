@@ -403,6 +403,28 @@ describe('CV input', () => {
       expect(empty.json().message).toMatch(/scanned|image/i);
     });
 
+    it('rejects more than 50 pages with the safe ingestion error and creates nothing', async () => {
+      const user = await registerUser(app);
+      const response = await upload(
+        user.cookie,
+        { targetRole: VALID_TARGET_ROLE },
+        pdfFile(
+          buildTextPdf(
+            Array.from({ length: 51 }, () => 'CV fact'),
+            1,
+          ),
+        ),
+      );
+      expect(response.statusCode).toBe(422);
+      expect(response.json()).toEqual({
+        statusCode: 422,
+        code: 'PDF_EXTRACTION_FAILED',
+        message: 'The PDF must have 50 pages or fewer.',
+      });
+      expect(await prisma.cv.count({ where: { userId: user.user.id } })).toBe(0);
+      expect(generator.calls).toHaveLength(0);
+    });
+
     it('refuses an unauthenticated upload', async () => {
       const before = await prisma.cv.count();
 

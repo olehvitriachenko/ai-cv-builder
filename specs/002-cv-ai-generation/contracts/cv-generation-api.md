@@ -55,7 +55,7 @@ Same body as before: `{ statusCode, code, message, fieldErrors? }`. New and rele
 | `code` | Status | Meaning |
 |--------|--------|---------|
 | `VALIDATION_ERROR` | 400 | Invalid input: wrong file type, oversize file, missing/blank/too short or too long fields, both sources, malformed request. `fieldErrors` keys: `targetRole`, `sourceText`, `file`, `source` |
-| `PDF_EXTRACTION_FAILED` | 422 | A file accepted as a PDF whose text cannot be parsed or is unusable: corrupt, password-protected, image-only or empty, or text outside the 50 to 20,000 character range. Nothing is created. The message states the safe reason; there is no `fieldErrors` |
+| `PDF_EXTRACTION_FAILED` | 422 | A file accepted as a PDF whose text cannot be parsed or is unusable: corrupt, password-protected, image-only or empty, more than 50 pages, or text outside the 50 to 20,000 character range. Nothing is created. The message states the safe reason; there is no `fieldErrors` |
 | `UNAUTHENTICATED` | 401 | No valid session |
 | `CV_NOT_FOUND` | 404 | The CV does not exist **or** belongs to someone else (identical) |
 | `GENERATION_NOT_READY` | 409 | The result was requested before the CV is `COMPLETED` |
@@ -123,7 +123,7 @@ No body.
 |--------|------|-------|
 | `202` | `CvStatus` | `status: "PENDING"`; failure fields cleared; `generationAttempts` is kept (it is the fencing token); generation re-runs on the stored source |
 | `400` / `401` / `404` | as above | |
-| `409` | `GENERATION_NOT_RETRYABLE` | The CV is not `FAILED`. Two quick retries still run one generation (the second sees a non-`FAILED` row) |
+| `409` | `GENERATION_NOT_RETRYABLE` | The CV is not `FAILED`, or another retry has already moved it past the failure this request observed (an overlapping retry cannot succeed across a fast `FAILED` -> retry -> `FAILED` cycle). Two quick retries still run one generation |
 
 ---
 

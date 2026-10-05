@@ -62,6 +62,28 @@ describe('PdfTextExtractor', () => {
     expect(String(failure)).not.toContain('Secret');
     expect(JSON.stringify(failure)).not.toContain('Secret');
   });
+
+  it('accepts exactly 50 pages with usable text', async () => {
+    const text = await extractor.extract(
+      buildTextPdf(
+        Array.from({ length: 50 }, () => 'CV fact'),
+        1,
+      ),
+    );
+    expect(text).toContain('CV fact');
+  });
+
+  it('rejects 51 pages even when both file and extracted text are small', async () => {
+    const failure = await failureOf(
+      extractor.extract(
+        buildTextPdf(
+          Array.from({ length: 51 }, () => 'CV fact'),
+          1,
+        ),
+      ),
+    );
+    expect(failure).toMatchObject({ kind: 'too_many_pages' });
+  });
 });
 
 describe('hasPdfSignature', () => {

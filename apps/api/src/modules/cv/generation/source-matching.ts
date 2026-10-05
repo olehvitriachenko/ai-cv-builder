@@ -139,7 +139,7 @@ export function indexSource(sourceText: string): SourceIndex {
 
     hasPhone: (phone) => {
       const digits = phone.normalize('NFKC').replace(/\P{Nd}/gu, '');
-      return digits.length >= MIN_PHONE_DIGITS && runs.some((run) => run.includes(digits));
+      return digits.length >= MIN_PHONE_DIGITS && runs.includes(digits);
     },
 
     hasLink: (link) => occursAsToken(stripLinkNoise(link).trim().replace(/\/+$/, ''), linkText),

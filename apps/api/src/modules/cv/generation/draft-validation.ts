@@ -132,6 +132,14 @@ export function validateGeneration(output: LlmCvOutput, sourceText: string): Gen
 
   if (structure.draft) {
     issues.push(...sourceIssues(structure.draft, indexSource(sourceText)));
+    // Contact details alone are not a CV: it needs a summary or at least one entry, or the
+    // model must have asked what is missing.
+    const { summary, experience, education, skills } = structure.draft;
+    const hasContent =
+      summary !== null || experience.length > 0 || education.length > 0 || skills.length > 0;
+    if (!hasContent && output.questions.length === 0) {
+      issues.push({ rule: 'empty_result', path: '' });
+    }
   }
 
   if (issues.length > 0 || !structure.draft) {

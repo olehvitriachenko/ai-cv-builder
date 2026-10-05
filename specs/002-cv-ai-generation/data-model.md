@@ -136,7 +136,7 @@ Rules enforced by compare-and-set (`UPDATE ... WHERE id = ? AND generationStatus
 - Only the process that moved `PENDING` -> `PROCESSING` runs the job; the claim returns the new `generationAttempts`, the fencing token.
 - A completion or failure is applied only if the row is still `PROCESSING` **and** `generationAttempts` equals the token the worker claimed. A job that finishes after being timed out, marked interrupted, or superseded by a retry cannot change the row; its result is discarded. Clarification questions are inserted in the same transaction, only after that compare-and-set succeeded, so a discarded result leaves nothing behind.
 - Startup interruption and the timeout sweep also apply only to rows that are still `PROCESSING`.
-- A retry applies only to a `FAILED` row of the authenticated owner. It does not reset `generationAttempts`.
+- A retry applies only to a `FAILED` row of the authenticated owner **whose `generationAttempts` equals the value the request observed when it read the row**. Because every attempt increments that counter, an overlapping retry that observed an older failure matches nothing after a newer retry has run and failed, and is refused (`409`). A retry does not reset `generationAttempts`.
 - `COMPLETED` is terminal in this feature.
 
 `COMPLETED` with open clarification questions is a normal, valid end state (FR-030). The draft and its questions are written in one transaction together with the `COMPLETED` transition, so a reader never sees `COMPLETED` without its draft, or questions without their draft.
@@ -147,6 +147,7 @@ Rules enforced by compare-and-set (`UPDATE ... WHERE id = ? AND generationStatus
 |-------|------|
 | `targetRole` | trimmed, 1 to 200 characters |
 | free text | trimmed, 50 to 20,000 characters |
-| PDF | at most 5 MiB, content must start with the PDF signature (not trusted from name or content type), exactly one file, no other source field; otherwise `400 VALIDATION_ERROR` |
+| PDF | at most 5 MiB (the page count is checked separately, see below), content must start with the PDF signature (not trusted from name or content type), exactly one file, no other source field; otherwise `400 VALIDATION_ERROR` |
+| PDF pages | at most 50, checked before any text is extracted; otherwise `422 PDF_EXTRACTION_FAILED` and nothing is created |
 | extracted PDF text | trimmed, 50 to 20,000 characters; otherwise the request is rejected with `422 PDF_EXTRACTION_FAILED` and nothing is created |
 | `userId` anywhere | ignored; identity comes from the session |

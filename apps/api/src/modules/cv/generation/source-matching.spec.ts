@@ -47,12 +47,21 @@ describe('contact details (strict)', () => {
   describe('phone', () => {
     it('ignores formatting differences', () => {
       expect(source.hasPhone('+1 415 555 0132')).toBe(true);
-      expect(source.hasPhone('(415) 555-0132')).toBe(true);
+      expect(source.hasPhone('+1 (415) 555-0132')).toBe(true);
       expect(source.hasPhone('14155550132')).toBe(true);
     });
 
     it('rejects a number that is not in the source', () => {
       expect(source.hasPhone('+1 415 555 9999')).toBe(false);
+    });
+
+    it.each(['(415) 555-0132', '5550132', '1415555'])('rejects a partial number: %s', (phone) => {
+      expect(source.hasPhone(phone)).toBe(false);
+    });
+
+    it('rejects a truncated number even when its digits occur in the source', () => {
+      expect(indexSource('Phone: +44 20 7946 0958').hasPhone('79460958')).toBe(false);
+      expect(indexSource('Phone: +44 20 7946 0958').hasPhone('44 (20) 7946-0958')).toBe(true);
     });
 
     it('rejects values with too few digits to be checked', () => {

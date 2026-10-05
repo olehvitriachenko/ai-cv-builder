@@ -7,6 +7,7 @@ import { configureApp } from './app.setup.js';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create<NestFastifyApplication>(AppModule, new FastifyAdapter());
+  app.enableShutdownHooks();
 
   await configureApp(app);
 

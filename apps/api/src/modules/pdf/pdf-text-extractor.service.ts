@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { extractText, getDocumentProxy } from 'unpdf';
-import { MAX_SOURCE_CHARS, MIN_SOURCE_CHARS } from '../../common/source-limits.js';
+import { MAX_PDF_PAGES, MAX_SOURCE_CHARS, MIN_SOURCE_CHARS } from '../../common/source-limits.js';
 
 const PDF_SIGNATURE = Buffer.from('%PDF-', 'latin1');
 const SIGNATURE_WINDOW = 1024;
@@ -10,7 +10,8 @@ export function hasPdfSignature(buffer: Buffer): boolean {
   return buffer.subarray(0, SIGNATURE_WINDOW).includes(PDF_SIGNATURE);
 }
 
-export type PdfExtractionFailure = 'unreadable' | 'encrypted' | 'empty' | 'too_long';
+export type PdfExtractionFailure =
+  'unreadable' | 'encrypted' | 'empty' | 'too_long' | 'too_many_pages';
 
 /** Carries only the failure kind; never document text or the underlying library message. */
 export class PdfExtractionError extends Error {
@@ -32,11 +33,17 @@ export class PdfTextExtractor {
       // pdf.js can detach the buffer it is given, so it gets a copy.
       const document = await getDocumentProxy(new Uint8Array(buffer));
       try {
+        if (document.numPages > MAX_PDF_PAGES) {
+          throw new PdfExtractionError('too_many_pages');
+        }
         text = (await extractText(document, { mergePages: true })).text;
       } finally {
         await document.loadingTask.destroy();
       }
     } catch (error) {
+      if (error instanceof PdfExtractionError) {
+        throw error;
+      }
       throw new PdfExtractionError(
         error instanceof Error && error.name === 'PasswordException' ? 'encrypted' : 'unreadable',
       );

@@ -16,6 +16,9 @@ import {
 
 const SWEEP_INTERVAL_MS = 30_000;
 
+/** Rolls back a claim if shutdown began while its database statement was in flight. */
+class ShutdownDuringClaim extends Error {}
+
 function describeError(error: unknown): string {
   return error instanceof Error ? error.constructor.name : typeof error;
 }
@@ -40,6 +43,7 @@ export class GenerationRunner implements OnApplicationBootstrap, OnModuleDestroy
   private timer: NodeJS.Timeout | undefined;
   private draining = false;
   private drainRequested = false;
+  private stopping = false;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -48,7 +52,7 @@ export class GenerationRunner implements OnApplicationBootstrap, OnModuleDestroy
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {
-    if (!this.options.autorun) {
+    if (this.stopping || !this.options.autorun) {
       return;
     }
 
@@ -59,6 +63,10 @@ export class GenerationRunner implements OnApplicationBootstrap, OnModuleDestroy
     }
     this.kick();
 
+    if (this.stopping) {
+      return;
+    }
+
     this.timer = setInterval(() => {
       this.sweep().catch((error: unknown) => {
         this.logger.error(`event=sweep_failed error=${describeError(error)}`);
@@ -68,6 +76,7 @@ export class GenerationRunner implements OnApplicationBootstrap, OnModuleDestroy
   }
 
   onModuleDestroy(): void {
+    this.stopping = true;
     clearInterval(this.timer);
     // Cancel in-flight provider calls. Their rows stay PROCESSING; the next start marks them
     // INTERRUPTED, exactly like a crash.
@@ -78,7 +87,7 @@ export class GenerationRunner implements OnApplicationBootstrap, OnModuleDestroy
 
   /** Starts pending work without waiting for it. Rejections are caught and logged, never lost. */
   kick(): void {
-    if (!this.options.autorun) {
+    if (this.stopping || !this.options.autorun) {
       return;
     }
     this.drain().catch((error: unknown) => {
@@ -88,6 +97,9 @@ export class GenerationRunner implements OnApplicationBootstrap, OnModuleDestroy
 
   /** Claims and starts the oldest PENDING rows while there is spare concurrency. */
   async drain(): Promise<void> {
+    if (this.stopping) {
+      return;
+    }
     if (this.draining) {
       this.drainRequested = true;
       return;
@@ -97,20 +109,20 @@ export class GenerationRunner implements OnApplicationBootstrap, OnModuleDestroy
       do {
         this.drainRequested = false;
         await this.drainOnce();
-      } while (this.drainRequested);
+      } while (!this.stopping && this.drainRequested);
     } finally {
       this.draining = false;
     }
   }
 
   private async drainOnce(): Promise<void> {
-    while (this.inFlight.size < this.options.concurrency) {
+    while (!this.stopping && this.inFlight.size < this.options.concurrency) {
       const next = await this.prisma.cv.findFirst({
         where: { generationStatus: 'PENDING' },
         orderBy: { createdAt: 'asc' },
         select: { id: true },
       });
-      if (!next) {
+      if (!next || this.stopping) {
         return;
       }
 
@@ -127,15 +139,34 @@ export class GenerationRunner implements OnApplicationBootstrap, OnModuleDestroy
    * can win for a given row.
    */
   private async claim(id: string): Promise<ClaimedJob | null> {
-    const [claimed] = await this.prisma.cv.updateManyAndReturn({
-      where: { id, generationStatus: 'PENDING' },
-      data: {
-        generationStatus: 'PROCESSING',
-        processingStartedAt: new Date(),
-        generationAttempts: { increment: 1 },
-      },
-      select: { id: true, generationAttempts: true, sourceText: true, targetRole: true },
-    });
+    if (this.stopping) {
+      return null;
+    }
+    const claimed = await this.prisma
+      .$transaction(async (tx) => {
+        if (this.stopping) {
+          throw new ShutdownDuringClaim();
+        }
+        const [row] = await tx.cv.updateManyAndReturn({
+          where: { id, generationStatus: 'PENDING' },
+          data: {
+            generationStatus: 'PROCESSING',
+            processingStartedAt: new Date(),
+            generationAttempts: { increment: 1 },
+          },
+          select: { id: true, generationAttempts: true, sourceText: true, targetRole: true },
+        });
+        if (this.stopping) {
+          throw new ShutdownDuringClaim();
+        }
+        return row;
+      })
+      .catch((error: unknown) => {
+        if (error instanceof ShutdownDuringClaim) {
+          return undefined;
+        }
+        throw error;
+      });
 
     if (!claimed) {
       return null;
@@ -152,6 +183,9 @@ export class GenerationRunner implements OnApplicationBootstrap, OnModuleDestroy
   }
 
   private start(job: ClaimedJob): void {
+    if (this.stopping) {
+      return;
+    }
     const task: Promise<void> = this.execute(job).finally(() => {
       this.inFlight.delete(task);
       this.kick();
@@ -161,6 +195,9 @@ export class GenerationRunner implements OnApplicationBootstrap, OnModuleDestroy
 
   /** Runs one claimed job under its deadline. Never rejects: errors are logged. */
   private async execute(job: ClaimedJob): Promise<void> {
+    if (this.stopping) {
+      return;
+    }
     const controller = new AbortController();
     this.controllers.add(controller);
     const deadline = setTimeout(() => controller.abort(DEADLINE_REASON), this.options.timeoutMs);
@@ -231,6 +268,9 @@ export class GenerationRunner implements OnApplicationBootstrap, OnModuleDestroy
   }
 
   private async sweep(): Promise<void> {
+    if (this.stopping) {
+      return;
+    }
     try {
       await this.failTimedOut();
     } catch (error) {

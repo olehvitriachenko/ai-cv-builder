@@ -76,21 +76,31 @@ export class GenerationProcessor {
    * Logs only event names, ids, attempt counts and reason codes.
    */
   async run(job: ClaimedJob, signal: AbortSignal): Promise<void> {
-    const produced = await this.produce(job, signal);
+    const result = await this.produce(job, signal);
+    const produced = signal.aborted ? this.cancelled(signal) : result;
 
     if (produced.kind === 'abandoned') {
       this.logger.warn(`event=generation_abandoned cvId=${job.id} attempt=${job.attempt}`);
     } else if (produced.kind === 'ok') {
-      await this.complete(job, produced);
+      await this.complete(job, produced, signal);
     } else {
       await this.fail(job, produced.reason, produced.detail);
     }
+  }
+
+  private cancelled(signal: AbortSignal): Produced {
+    return signal.reason === SHUTDOWN_REASON
+      ? { kind: 'abandoned' }
+      : failed('TIMED_OUT', DEADLINE_REASON);
   }
 
   private async produce(job: ClaimedJob, signal: AbortSignal): Promise<Produced> {
     let feedback: string[] | undefined;
 
     for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
+      if (signal.aborted) {
+        return this.cancelled(signal);
+      }
       let raw: unknown;
       try {
         raw = await this.generator.generate({
@@ -101,9 +111,7 @@ export class GenerationProcessor {
         });
       } catch (error) {
         if (signal.aborted) {
-          return signal.reason === SHUTDOWN_REASON
-            ? { kind: 'abandoned' }
-            : failed('TIMED_OUT', DEADLINE_REASON);
+          return this.cancelled(signal);
         }
         if (!(error instanceof ProviderError)) {
           return failed('UNKNOWN', errorName(error));
@@ -129,6 +137,9 @@ export class GenerationProcessor {
         }
       }
 
+      if (signal.aborted) {
+        return this.cancelled(signal);
+      }
       const checked = this.validate(raw, job.sourceText);
       if (checked.kind === 'ok') {
         return checked;
@@ -179,9 +190,11 @@ export class GenerationProcessor {
   private async complete(
     job: ClaimedJob,
     produced: Extract<Produced, { kind: 'ok' }>,
+    signal: AbortSignal,
   ): Promise<void> {
     try {
       const committed = await this.prisma.$transaction(async (tx) => {
+        signal.throwIfAborted();
         const updated = await tx.cv.updateMany({
           where: { id: job.id, generationStatus: 'PROCESSING', generationAttempts: job.attempt },
           data: {
@@ -192,6 +205,7 @@ export class GenerationProcessor {
             aiModel: this.generator.modelId,
           },
         });
+        signal.throwIfAborted();
         if (updated.count !== 1) {
           return false;
         }
@@ -200,6 +214,8 @@ export class GenerationProcessor {
             data: produced.questions.map((question) => ({ cvId: job.id, ...question })),
           });
         }
+        // Throwing rolls back both the draft and questions if cancellation occurred during I/O.
+        signal.throwIfAborted();
         return true;
       });
 
@@ -209,6 +225,12 @@ export class GenerationProcessor {
           : `event=generation_discarded cvId=${job.id} attempt=${job.attempt} outcome=completed`,
       );
     } catch (error) {
+      if (signal.aborted) {
+        if (signal.reason !== SHUTDOWN_REASON) {
+          await this.fail(job, 'TIMED_OUT', DEADLINE_REASON);
+        }
+        return;
+      }
       this.logger.error(
         `event=generation_persist_failed cvId=${job.id} attempt=${job.attempt} error=${errorName(error)}`,
       );

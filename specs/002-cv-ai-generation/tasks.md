@@ -231,6 +231,22 @@ Applied before implementation (backend phases 1-8 and the backend part of 10 are
 - [x] T053 *(done against the built API without a key, sections 2 and 3; section 4 needs the key, see T040)* Walk `specs/002-cv-ai-generation/quickstart.md` sections 2 and 3 against a running API **without a key** (free-text and upload `202`, validation `400` cases, `422` with an unchanged CV count, `FAILED` / `PROVIDER_NOT_CONFIGURED`, retry and `409`, ownership `404`s, the timeout and the restart-`INTERRUPTED` scenarios) and section 4 if T040 was done; record any mismatch with the contract. Depends on T052.
 - [ ] T054 Final review and documentation: tick AC-001 through AC-013 and SC-001 through SC-010; confirm constitution V, VI, VII and XIV; confirm the three decisions at the top of this file are reflected in code and tests (no `SOURCE_*` reasons, no `retryable`, one `/result` endpoint, startup `INTERRUPTED`); append to `specs/002-cv-ai-generation/plan.md` a short "Project-level follow-ups before final delivery" list: the README (constitution XVI) must repeat this feature's trade-offs (no queue and single-instance assumption, restart marks work interrupted, mechanical grounding limits, PDFs not stored, in-process PDF extraction, model cost), and full-stack `docker compose up` with `ANTHROPIC_API_KEY` from the environment (constitution XV) remains outstanding. Do not amend the constitution. Depends on T052, T053.
 
+
+---
+
+## Phase 11: Post-implementation hardening (independent audit fixes)
+
+**Purpose**: Backend reliability fixes confirmed by an independent audit after implementation. No UI, editor, export or list work.
+
+- [x] T055 Graceful shutdown: add a `stopping` state to `apps/api/src/modules/cv/generation/generation-runner.service.ts` so nothing is claimed or started once shutdown begins (`kick`, `drain`, the claim transaction, `start`, `execute`, the sweep and the follow-up `finally -> kick()` all check it; a claim in flight is rolled back), and call `app.enableShutdownHooks()` in `apps/api/src/main.ts`. Tests: `generation-runner.service.spec.ts`.
+- [x] T056 Cancellation: in `apps/api/src/modules/cv/generation/generation-processor.service.ts` a result resolved after the abort signal fired is discarded, and the completion transaction checks the signal before, during and after its writes so cancelled work rolls back and can never commit `COMPLETED` (deadline -> `FAILED` / `TIMED_OUT`; shutdown -> left for the next start). Tests: `generation-processor.service.spec.ts`, `generation-failures.e2e-spec.ts`.
+- [x] T057 Retry ABA: `CvService.retry` binds its conditional update to the `generationAttempts` value it observed, so an overlapping retry cannot succeed across a fast `FAILED` -> retry -> `FAILED` cycle; fencing of terminal writes is unchanged. Test: the delayed-overlapping-retry case in `generation-failures.e2e-spec.ts` (uses `test/helpers/delay-prisma-query.ts` and `deferred.ts`).
+- [x] T058 Empty result: `draft-validation.ts` rejects a draft with no summary, experience, education or skills unless it carries at least one clarification question (`empty_result`; contact details alone do not count). Tests: `draft-validation.spec.ts`.
+- [x] T059 Phone grounding: `source-matching.ts` accepts a phone only when its full normalised digit string equals a digit run of the source (formatting ignored; truncated or partial numbers rejected). Tests: `source-matching.spec.ts`.
+- [x] T060 PDF page cap: `MAX_PDF_PAGES = 50` in `apps/api/src/common/source-limits.ts`, checked from the page count before text extraction in `pdf-text-extractor.service.ts`, returned as the existing `422 PDF_EXTRACTION_FAILED` shape with no CV created. Tests: `pdf-text-extractor.service.spec.ts`, `cv-input.e2e-spec.ts`.
+- [x] T061 Prisma reliability: the API scripts that need the generated client run `prisma:generate` first (`build`, `start`, `start:dev`, `start:debug`, `lint`, `test`, `test:watch`, `test:cov`, `test:debug`, `test:e2e`, `typecheck`); migrations stay explicit.
+- [x] T062 Documentation: spec (FR-011, FR-017, FR-020, FR-033, input limits), contract, data-model, plan, research and quickstart updated for T055 to T061.
+
 ---
 
 ## Dependencies & Execution Order

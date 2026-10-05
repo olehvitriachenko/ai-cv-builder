@@ -1,9 +1,21 @@
+import { deferred } from './helpers/deferred.js';
+import { delayPrismaQuery } from './helpers/delay-prisma-query.js';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { ProviderError } from '../src/modules/ai/cv-generator.js';
 import { PrismaService } from '../src/infrastructure/index.js';
 import { GenerationRunner } from '../src/modules/cv/generation/generation-runner.service.js';
+import {
+  GenerationProcessor,
+  DEADLINE_REASON,
+  SHUTDOWN_REASON,
+} from '../src/modules/cv/generation/generation-processor.service.js';
 import { createTestApp } from './helpers/create-test-app.js';
-import { createCvFromText, getStatus } from './helpers/cvs.js';
+import {
+  createCvFromText,
+  getStatus,
+  VALID_SOURCE_TEXT,
+  VALID_TARGET_ROLE,
+} from './helpers/cvs.js';
 import { FakeCvGenerator } from './helpers/fake-cv-generator.js';
 import { validLlmOutput } from './helpers/llm-output.js';
 import { seedProcessing } from './helpers/seed.js';
@@ -171,11 +183,14 @@ describe('Generation failures, retry and recovery', () => {
     });
 
     it('ends FAILED / UNKNOWN when the result cannot be saved, discarding the draft', async () => {
-      generator.enqueueOutput(validLlmOutput());
+      const hold = generator.enqueueHold();
       const id = await createCvFromText(app, user.cookie);
+      const running = runner.runCv(id);
+      await hold.started;
       const spy = vi.spyOn(prisma, '$transaction').mockRejectedValueOnce(new Error('db went away'));
 
-      await runner.runCv(id);
+      hold.release(validLlmOutput());
+      await running;
 
       spy.mockRestore();
       await expectFailed(id, 'UNKNOWN', 'persist_failed');
@@ -183,6 +198,41 @@ describe('Generation failures, retry and recovery', () => {
   });
 
   describe('time limit', () => {
+    it.each([DEADLINE_REASON, SHUTDOWN_REASON])(
+      'discards successful output resolved after %s cancellation',
+      async (reason) => {
+        const id = await createCvFromText(app, user.cookie);
+        await seedProcessing(prisma, id);
+        const controller = new AbortController();
+        const generate = vi.spyOn(generator, 'generate').mockImplementationOnce(async () => {
+          // A non-cooperative provider resolves successfully even though cancellation won.
+          controller.abort(reason);
+          return validLlmOutput({
+            questions: [
+              { section: 'SUMMARY', itemIndex: null, missing: 'Focus', question: 'Which focus?' },
+            ],
+          });
+        });
+        try {
+          await app
+            .get(GenerationProcessor)
+            .run(
+              { id, attempt: 1, sourceText: VALID_SOURCE_TEXT, targetRole: VALID_TARGET_ROLE },
+              controller.signal,
+            );
+          expect((await rowOf(id)).draft).toBeNull();
+          expect(await prisma.clarificationQuestion.count({ where: { cvId: id } })).toBe(0);
+          if (reason === DEADLINE_REASON) {
+            await expectFailed(id, 'TIMED_OUT');
+          } else {
+            expect((await rowOf(id)).generationStatus).toBe('PROCESSING');
+            await runner.failInterrupted();
+          }
+        } finally {
+          generate.mockRestore();
+        }
+      },
+    );
     it('ends FAILED / TIMED_OUT when the provider call outlives the deadline', async () => {
       const tiny = await createTestApp({ generator, generation: { timeoutMs: 40 } });
       try {
@@ -334,6 +384,45 @@ describe('Generation failures, retry and recovery', () => {
       const responses = await Promise.all([retry(id), retry(id)]);
 
       expect(responses.map((r) => r.statusCode).sort((a, b) => a - b)).toEqual([202, 409]);
+    });
+
+    it('rejects a delayed overlapping retry after another retry starts and fails again', async () => {
+      generator.enqueueError(new ProviderError('NOT_CONFIGURED'));
+      const id = await createCvFromText(app, user.cookie);
+      await runner.runCv(id);
+      const firstAttempt = (await rowOf(id)).generationAttempts;
+
+      const entered = deferred<void>();
+      const release = deferred<void>();
+      const update = prisma.cv.updateManyAndReturn.bind(prisma.cv);
+      // Hold the first request AFTER its ownership/version read, before its conditional update.
+      const delayedUpdate = vi
+        .spyOn(prisma.cv, 'updateManyAndReturn')
+        .mockImplementationOnce((args) => {
+          entered.resolve();
+          return delayPrismaQuery(update(args), release.promise);
+        });
+      const delayed = retry(id).then((response) => response);
+      try {
+        await entered.promise;
+        expect((await retry(id)).statusCode).toBe(202);
+        generator.enqueueError(new ProviderError('NOT_CONFIGURED'));
+        await runner.runCv(id);
+        expect(await rowOf(id)).toMatchObject({
+          generationStatus: 'FAILED',
+          generationAttempts: firstAttempt + 1,
+        });
+        release.resolve();
+        expect((await delayed).statusCode).toBe(409);
+        expect(await rowOf(id)).toMatchObject({
+          generationStatus: 'FAILED',
+          generationAttempts: firstAttempt + 1,
+        });
+      } finally {
+        release.resolve();
+        await delayed;
+        delayedUpdate.mockRestore();
+      }
     });
 
     it('never resets generationAttempts: it is the fencing token', async () => {

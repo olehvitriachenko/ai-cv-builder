@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ApiError } from '../../common/http/api-error.js';
-import { MAX_SOURCE_CHARS } from '../../common/source-limits.js';
+import { MAX_PDF_PAGES, MAX_SOURCE_CHARS } from '../../common/source-limits.js';
 import type {
   FailureReason,
   GenerationStatus,
@@ -40,6 +40,7 @@ const STATUS_SELECT = {
   targetRole: true,
   sourceType: true,
   generationStatus: true,
+  generationAttempts: true,
   failureReason: true,
   createdAt: true,
   updatedAt: true,
@@ -89,6 +90,7 @@ export interface CvResultResponse {
 }
 
 const EXTRACTION_MESSAGES: Record<PdfExtractionFailure, string> = {
+  too_many_pages: `The PDF must have ${MAX_PDF_PAGES} pages or fewer.`,
   unreadable: 'The PDF could not be read. It may be corrupt.',
   encrypted: 'The PDF is password-protected. Upload an unprotected copy.',
   empty:
@@ -153,6 +155,10 @@ export class CvService {
    * the CV through this method (FR-031).
    */
   async findOwnedOrThrow(userId: string, cvId: string): Promise<CvStatusResponse> {
+    return toStatusResponse(await this.findOwnedRowOrThrow(userId, cvId));
+  }
+
+  private async findOwnedRowOrThrow(userId: string, cvId: string) {
     const cv = await this.prisma.cv.findFirst({
       where: { id: cvId, userId },
       select: STATUS_SELECT,
@@ -161,7 +167,7 @@ export class CvService {
     if (!cv) {
       throw new ApiError(404, 'CV_NOT_FOUND', 'CV not found');
     }
-    return toStatusResponse(cv);
+    return cv;
   }
 
   /**
@@ -218,10 +224,24 @@ export class CvService {
    * fencing token that keeps a stale worker of the previous attempt from touching the new one.
    */
   async retry(userId: string, cvId: string): Promise<CvStatusResponse> {
-    await this.findOwnedOrThrow(userId, cvId);
+    const observed = await this.findOwnedRowOrThrow(userId, cvId);
+    const notRetryable = new ApiError(
+      409,
+      'GENERATION_NOT_RETRYABLE',
+      'Only the observed failed generation can be retried',
+    );
+    if (observed.generationStatus !== 'FAILED') {
+      throw notRetryable;
+    }
 
     const [retried] = await this.prisma.cv.updateManyAndReturn({
-      where: { id: cvId, userId, generationStatus: 'FAILED' },
+      where: {
+        id: cvId,
+        userId,
+        generationStatus: 'FAILED',
+        // Bind this request to the failure it observed, even if another retry already failed.
+        generationAttempts: observed.generationAttempts,
+      },
       data: {
         generationStatus: 'PENDING',
         failureReason: null,
@@ -232,11 +252,7 @@ export class CvService {
       select: STATUS_SELECT,
     });
     if (!retried) {
-      throw new ApiError(
-        409,
-        'GENERATION_NOT_RETRYABLE',
-        'Only a failed generation can be retried',
-      );
+      throw notRetryable;
     }
 
     this.runner.kick();

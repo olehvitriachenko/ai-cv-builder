@@ -101,6 +101,79 @@ describe('validateGeneration', () => {
     expect(result.ok && result.draft.summary).toBe('Padded summary.');
   });
 
+  it('rejects an empty draft without clarification questions', () => {
+    const result = validateGeneration(
+      output({
+        contact: { fullName: null, email: null, phone: null, location: null, links: [] },
+        summary: null,
+        experience: [],
+        education: [],
+        skills: [],
+        questions: [],
+      }),
+      SOURCE,
+    );
+    expect(issuesOf(result)).toEqual(['(root): empty_result']);
+  });
+
+  it('rejects a draft with only contact details and no clarification questions', () => {
+    const result = validateGeneration(
+      output({
+        contact: {
+          fullName: null,
+          email: 'ada@example.com',
+          phone: null,
+          location: null,
+          links: [],
+        },
+        summary: null,
+        experience: [],
+        education: [],
+        skills: [],
+        questions: [],
+      }),
+      SOURCE,
+    );
+    expect(issuesOf(result)).toEqual(['(root): empty_result']);
+  });
+
+  it('accepts an empty draft when the model asks what is missing', () => {
+    const result = validateGeneration(
+      output({
+        contact: { fullName: null, email: null, phone: null, location: null, links: [] },
+        summary: null,
+        experience: [],
+        education: [],
+        skills: [],
+        questions: [
+          {
+            section: 'EXPERIENCE',
+            itemIndex: null,
+            missing: 'No roles given',
+            question: 'Where have you worked?',
+          },
+        ],
+      }),
+      SOURCE,
+    );
+    expect(result.ok).toBe(true);
+  });
+
+  it('accepts meaningful content without requiring a question', () => {
+    const result = validateGeneration(
+      output({
+        contact: { fullName: null, email: null, phone: null, location: null, links: [] },
+        summary: null,
+        experience: [],
+        education: [],
+        skills: ['Node.js'],
+        questions: [],
+      }),
+      SOURCE,
+    );
+    expect(result.ok).toBe(true);
+  });
+
   describe('structure', () => {
     it('rejects a blank string (null is how the model says unknown)', () => {
       const result = validateGeneration(output({ summary: '   ' }), SOURCE);

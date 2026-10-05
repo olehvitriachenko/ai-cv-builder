@@ -39,11 +39,11 @@ function assemble(pageStreams: string[]): Buffer {
 const LINES_PER_PAGE = 55;
 
 /** A real PDF whose text layer holds the given lines (ASCII only), 55 lines per page. */
-export function buildTextPdf(lines: string[]): Buffer {
+export function buildTextPdf(lines: string[], linesPerPage = LINES_PER_PAGE): Buffer {
   const pages: string[] = [];
-  for (let start = 0; start < Math.max(lines.length, 1); start += LINES_PER_PAGE) {
+  for (let start = 0; start < Math.max(lines.length, 1); start += linesPerPage) {
     const text = lines
-      .slice(start, start + LINES_PER_PAGE)
+      .slice(start, start + linesPerPage)
       .map((line) => `(${escapePdfText(line)}) Tj T*`)
       .join('\n');
     pages.push(`BT /F1 10 Tf 12 TL 40 800 Td\n${text}\nET`);
