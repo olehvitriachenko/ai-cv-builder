@@ -21,6 +21,10 @@ The design frames are the visual source of truth. Where two frames disagree (05.
 ### Session 2026-10-05
 
 - Q: How are existing CVs whose skills are a flat list brought to the new shape: one-time database migration or conversion at read time? → A: A one-time, repository-tracked database migration moves every stored draft to `schemaVersion` 2, mapping the flat skills list into a single default "Skills" category. After it, application code supports only the new draft shape; there is no runtime dual-format conversion. The migration is verified on a clean database, on a database with existing `002`/`003` drafts, on drafts with empty skills, and on drafts already at version 2 (which it must leave untouched).
+- Q: Does the AI group skills by category when it generates a new CV? → A: Yes. Generation groups the skills it finds under the predefined categories of the appendix; anything it cannot place goes to "Skills". Every skill must still be supported by the source text, and the grouping never adds a skill the source does not state.
+- Q: Which fields count toward the completeness score and for how much? → A: The fixed formula in the appendix (nine items summing to 100%); phone 10% and LinkedIn 5% match the design. The score is advisory and never blocks saving.
+- Q: How is a save conflict resolved in "Review both versions"? → A: By choosing one whole version: "Keep my version" saves the local document on top of the latest saved revision, "Use saved version" discards the local edits. Differences are highlighted per section for review only; there is no per-section choice and no automatic merge.
+- Q: How are skill categories reordered? → A: With Move up / Move down buttons in each category's header (keyboard and 320 px friendly); no drag-and-drop and no new dependency. The design's drag handle is replaced by these two icon buttons.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -59,7 +63,7 @@ In Skills & Technical Competencies the user builds skill groups. Each group is a
 3. **Given** a category with suggestions, **When** the user taps a suggested skill, **Then** it is added to that category; suggestions already present are not offered again. Suggestions are a fixed convenience list shown on the page and are never stored or sent anywhere until the user taps one.
 4. **Given** fewer than five skills in total, **Then** the hint "It is suggested to add at least 5 skills" is shown; it never blocks saving.
 5. **Given** added skills, **Then** they are shown as removable chips under their category name with a count ("3 skills"), and an empty category shows the dashed "No items added" state; a category that stays empty is not saved.
-6. **Given** two or more categories, **When** the user reorders them (see Assumptions), **Then** the new order is saved and used by the preview.
+6. **Given** two or more categories, **When** the user presses Move up or Move down on a category, **Then** it swaps with its neighbour (the first cannot move up, the last cannot move down), the new order is saved and used by the preview, and the controls work by keyboard.
 7. **Given** a CV created before this feature, **When** it is opened after the migration, **Then** its existing skills are shown in one category named "Skills" and nothing is lost; a CV that had no skills has no skill category.
 
 ---
@@ -93,7 +97,7 @@ The navigation bar shows the true save state (All changes saved, Saving, Couldn'
 
 1. **Given** a save in flight, **Then** the status reads Saving; **given** a stored save, **Then** it reads All changes saved; **given** a failed save, **Then** it reads Couldn't save with a Retry action and the preview says it shows the last saved version.
 2. **Given** a stale write, **Then** the notice "A newer saved version needs review" appears with "Current local · not saved" and "Saved account version" labels, nothing is overwritten, and the user can open **Review both versions**.
-3. **Given** the conflict review, **When** the user chooses a version, **Then** only that choice is stored and the other is discarded only by that choice; retrying the connection is separate from choosing a version.
+3. **Given** the conflict review, **When** the user chooses **Keep my version** or **Use saved version**, **Then** only that choice is stored and the other version is discarded only by that choice; retrying the connection is separate from choosing a version.
 
 ---
 
@@ -149,23 +153,23 @@ At 390 px and 320 px the editor is one column with a navigation bar (back to My 
 
 - **FR-001**: The editor MUST show a sticky navigation bar with the product mark, a `My CVs` breadcrumb back to the list, the CV title (target role) and owner line, the save state, a disabled Download PDF and a more-options menu; on mobile the same information is condensed as in frames 05.8 and 05.9.
 - **FR-002**: Section cards MUST all be visible without expanding (no accordion); on desktop the structured editor is the left column and the preview the sticky right column.
-- **FR-003**: The editor MUST show a completeness card with a percentage, a progress bar and the missing items, each with its percentage gain (for example `+10% Phone number`, `+5% LinkedIn`). The score MUST be a deterministic function of the current local draft, updated as the user types, and MUST NOT block saving or exporting.
+- **FR-003**: The editor MUST show a completeness card with a percentage, a progress bar and the missing items, each with its percentage gain (for example `+10% Phone number`, `+5% LinkedIn`), and the label "Needs details · N left" where N is the number of missing items. The score MUST be the fixed formula in the appendix (nine items, 100% in total), a deterministic function of the current local draft, updated as the user types, and MUST NOT block saving or exporting.
 
 **Content editing**
 
 - **FR-004**: Personal details MUST allow editing target role, full name, email, phone, location, LinkedIn, portfolio and additional links; the target role is stored with the CV (not in the draft), is subject to the same revision check as other edits, and MUST be non-blank and within its limit.
 - **FR-005**: The Professional summary MUST be editable text; no AI rewrite action is offered.
 - **FR-006**: Experience MUST support adding and removing entries and adding, editing and removing highlights; the end date MUST allow a **Present** choice; education MUST support adding and removing entries; all within the existing draft caps and validation.
-- **FR-007**: Skills MUST be stored grouped by category: a CV has an ordered list of categories, each with a name (1 to 60 characters, unique within the CV) and an ordered list of skills (existing skill limits apply). Empty categories MUST NOT be saved.
+- **FR-007**: Skills MUST be stored grouped by category: a CV has an ordered list of categories, each with a name (1 to 60 characters, unique within the CV) and an ordered list of skills (existing skill limits apply). Empty categories MUST NOT be saved. Categories MUST be reorderable with Move up / Move down controls (no drag-and-drop); the order is saved and used by the preview.
 - **FR-008**: The category field MUST offer a searchable list of predefined categories and accept a custom name; the skill input MUST add on the Add button and on Enter, trim input, and refuse blank, duplicate (case-insensitive across the CV) and over-long skills with a visible message.
 - **FR-009**: Suggested skills MUST be the static convenience list per predefined category defined in the appendix (4 to 6 per category), MUST be shown only until chosen, and MUST NOT be stored, sent to a server or generated by AI.
-- **FR-010**: A one-time, repository-tracked migration MUST move every stored draft to `schemaVersion` 2, mapping a flat skills list into one category named "Skills" (no category when the list is empty) in the original order, and MUST leave drafts that are already version 2 unchanged and never re-migrate them (running it twice has no further effect). After the migration the application MUST read, validate and write only the version 2 shape; it MUST NOT convert between shapes at runtime. AI generation MUST produce skills in the grouped shape using only skills stated in the source, and the answer-apply feature MUST be able to add a skill to a named category without removing others.
+- **FR-010**: A one-time, repository-tracked migration MUST move every stored draft to `schemaVersion` 2, mapping a flat skills list into one category named "Skills" (no category when the list is empty) in the original order, and MUST leave drafts that are already version 2 unchanged and never re-migrate them (running it twice has no further effect). After the migration the application MUST read, validate and write only the version 2 shape; it MUST NOT convert between shapes at runtime. AI generation MUST produce skills in the grouped shape using the predefined categories of the appendix (unplaceable skills go to "Skills") and only skills stated in the source, and the answer-apply feature MUST be able to add a skill to a named category without removing others.
 
 **Clarifications, saving and preview**
 
 - **FR-011**: Clarification behaviour (states, answer, dismiss, apply, atomicity, conflict) MUST remain exactly as defined in `003`; only the presentation changes. The AI Assistant card MUST show the unresolved count and per-question state as in frames 05.1 to 05.3.
 - **FR-012**: The save state MUST reflect the true outcome (Saved only after the server confirms) and show Saving, Saved and Couldn't save · Retry; local text MUST never be discarded on failure or conflict before the user decides.
-- **FR-013**: A conflict MUST show both the local version and the saved account version side by side or in sequence for review, never merge or overwrite automatically, and MUST keep retrying the connection separate from choosing a version.
+- **FR-013**: A conflict MUST show both the local version and the saved account version for review, with differences highlighted per section, and MUST let the user choose one whole version: **Keep my version** (saves the local document on top of the latest saved revision) or **Use saved version** (discards the local edits). There is no per-section choice and no automatic merge or overwrite; retrying the connection is separate from choosing a version.
 - **FR-014**: The preview MUST reflect local edits immediately, show Page N of M for the document, offer zoom controls and a full-screen view with Fit page and Esc to close, and state whether it shows the current or the last saved version.
 - **FR-015**: On phone widths the editor MUST use a single column with an Edit / Preview switch and a sticky Preview action and MUST NOT scroll horizontally at 320 px.
 
@@ -203,9 +207,7 @@ At 390 px and 320 px the editor is one column with a navigation bar (back to My 
 - The target role becomes editable through the existing draft save operation (user decision, recommended default); it keeps the existing length limit.
 - Skills grouped by category is the user's decision, based on reference screenshots (category card with drag handle, searchable category list, skill input with Add, suggestion chips, "No items added", "Add skills"). Predefined categories are the fixed list in the appendix (taken from the user's reference screenshots, in that order); custom names are allowed.
 - The draft shape change is versioned (`schemaVersion` 2); the migrated default category is named "Skills" and is editable by the user.
-- AI generation groups the skills it extracts under predefined category names; grouping is transformation of stated facts, never invention, and unknown grouping falls back to the "Skills" category.
-- Reordering categories uses simple move up/down controls (keyboard-friendly), not drag-and-drop; the design's drag handle is shown as a visual affordance only if drag-and-drop is later added. This is revisited in clarification.
-- Completeness weights: phone 10%, LinkedIn 5% as in the design; weights for the other items are chosen in planning and documented; the score is advisory only.
+- The completeness score is advisory only; its formula is fixed in the appendix.
 - The preview template stays the single "Classic · A4" template; zoom and full-screen are display-only and not stored.
 - The two frames showing a flat skills list (05.2, 05.3) are treated as design inconsistencies, not as a requirement for a flat list.
 - A stray icon button in the experience card (frame 05.1, next to **+ Add bullet**) is treated as the remove-entry action.
@@ -214,7 +216,7 @@ At 390 px and 320 px the editor is one column with a navigation bar (back to My 
 
 - PDF generation or export, multiple templates or template switching, version history, collaboration, public sharing.
 - AI rewriting of the summary or any other existing text ("Improve with AI"), AI-suggested skills ("Suggest skills" is not an AI action in this feature).
-- Drag-and-drop reordering, rich-text editing.
+- Drag-and-drop reordering, per-section conflict resolution or automatic merging, rich-text editing.
 
 ## Appendix: Predefined skill categories and suggested skills
 
@@ -260,3 +262,21 @@ The category list is copied from the user's reference screenshots, in the order 
 | 34 | Certifications & Methodologies | PMP, Scrum Master (PSM), ITIL, Six Sigma, AWS Certified, Agile / SAFe |
 | 35 | Design | Visual design, Typography, Interaction design, Prototyping, Brand design, Layout |
 | 36 | Design tools | Figma, Sketch, Adobe Photoshop, Adobe Illustrator, Adobe XD, Miro |
+
+## Appendix: Completeness score
+
+The score is the sum of the weights of the items that are satisfied by the current local draft; the missing items are listed with their weights (`+N% Item`). It is advisory and never blocks saving.
+
+| Item | Satisfied when | Weight |
+|------|----------------|--------|
+| Full name | Not blank | 15% |
+| Email | Not blank and a valid address | 10% |
+| Phone | Not blank | 10% |
+| Location | Not blank | 5% |
+| LinkedIn | A LinkedIn link is present | 5% |
+| Professional summary | Not blank | 15% |
+| Experience | At least one entry with a title, a company and a start date | 25% |
+| Education | At least one entry with an institution | 5% |
+| Skills | At least 5 skills in total | 10% |
+
+For the design's example (phone and LinkedIn missing) the score is 85% and the card reads "Needs details · 2 left".
