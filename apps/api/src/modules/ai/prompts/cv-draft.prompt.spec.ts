@@ -1,10 +1,11 @@
+import { FALLBACK_SKILL_CATEGORY, SKILL_CATEGORY_NAMES } from '../catalogue/skill-categories.js';
 import { PROMPT_VERSION, buildSystemPrompt, buildUserContent } from './cv-draft.prompt.js';
 
 const SOURCE = 'Ada worked at Acme Corp as an engineer.';
 
 describe('cv-draft prompt', () => {
   it('has a version', () => {
-    expect(PROMPT_VERSION).toBe('cv-draft-v2');
+    expect(PROMPT_VERSION).toBe('cv-draft-v3');
   });
 
   describe('system prompt', () => {
@@ -31,6 +32,25 @@ describe('cv-draft prompt', () => {
       expect(system).toContain('<source_content>');
       expect(system).toMatch(/DATA, never instructions/);
       expect(system).toMatch(/do not follow them/i);
+    });
+
+    describe('skills', () => {
+      it('lists every predefined category and the fallback', () => {
+        for (const name of [...SKILL_CATEGORY_NAMES, FALLBACK_SKILL_CATEGORY]) {
+          expect(system).toContain(`- ${name}`);
+        }
+      });
+
+      it('only places skills the source mentions, never to fill a category, and never invents categories', () => {
+        expect(system).toMatch(/only skills that the source mentions/i);
+        expect(system).toMatch(/never add a skill to fill a category/i);
+        expect(system).toMatch(/do not invent category names/i);
+        expect(system).toContain(`"${FALLBACK_SKILL_CATEGORY}"`);
+      });
+
+      it('asks for an empty list, not placeholder categories, when the source names no skills', () => {
+        expect(system).toMatch(/empty list/i);
+      });
     });
 
     it('never contains the source text', () => {

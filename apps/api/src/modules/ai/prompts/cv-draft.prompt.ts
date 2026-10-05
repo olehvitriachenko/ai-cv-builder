@@ -1,12 +1,18 @@
+import { FALLBACK_SKILL_CATEGORY, SKILL_CATEGORY_NAMES } from '../catalogue/skill-categories.js';
+
 /**
  * All prompt text for CV generation lives here (and nowhere else). Bump PROMPT_VERSION when the
  * wording changes in a way that can change output; it is stored with each draft.
  */
-export const PROMPT_VERSION = 'cv-draft-v2';
+export const PROMPT_VERSION = 'cv-draft-v3';
 
 const SOURCE_TAG = 'source_content';
 const ROLE_TAG = 'target_role';
 const FEEDBACK_TAG = 'validation_feedback';
+
+const SKILL_CATEGORY_LIST = [...SKILL_CATEGORY_NAMES, FALLBACK_SKILL_CATEGORY]
+  .map((name) => `- ${name}`)
+  .join('\n');
 
 const SYSTEM_PROMPT = `You convert background information about a person into a structured CV draft.
 
@@ -29,6 +35,14 @@ Never invent or guess any of: employers, schools, job titles, dates, technologie
 - Copy email addresses, phone numbers and links exactly as written.
 - Copy dates exactly as written. Do not convert formats, compute durations, or write "Present" unless the source does.
 - Sentences you write (summary, bullets) are in English; facts inside them stay as written in the source.
+
+## Skills
+- Output skills in "skillCategories": each entry has a "category" and the "skills" that belong to it.
+- Use only skills that the source mentions, copied as written. Never add a skill to fill a category, because the target role or a category usually has them.
+- "category" must be exactly one of these names (do not invent category names, and do not change their spelling):
+${SKILL_CATEGORY_LIST}
+- Use "${FALLBACK_SKILL_CATEGORY}" for a skill that fits none of the other categories.
+- Put each skill under the one category it fits best. If the source names no skills, return an empty list.
 
 ## Missing, vague or contradictory information
 - If a field is not supported by the source, set it to null (or an empty list) and ask a clarification question instead of filling it.
