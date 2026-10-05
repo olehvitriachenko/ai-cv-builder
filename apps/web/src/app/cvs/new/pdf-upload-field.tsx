@@ -58,11 +58,11 @@ export function PdfUploadField({ file, error, onChange }: PdfUploadFieldProps) {
         }`}
       >
         <Upload aria-hidden className="size-6 text-accent" strokeWidth={1.5} />
-        <p className="text-sm font-medium text-ink">
+        <p className="text-sm leading-[normal] font-medium text-ink">
           <span className="sm:hidden">Upload your existing CV</span>
           <span className="hidden sm:inline">Drop your CV here, or browse files</span>
         </p>
-        <p className="text-xs text-muted">PDF only · Up to {MAX_PDF_BYTES / (1024 * 1024)} MB</p>
+        <p className="text-xs leading-[normal] text-muted">PDF only · Up to {MAX_PDF_BYTES / (1024 * 1024)} MB</p>
         <input
           ref={inputRef}
           id={inputId}
@@ -80,14 +80,14 @@ export function PdfUploadField({ file, error, onChange }: PdfUploadFieldProps) {
           stretch={false}
           onClick={() => inputRef.current?.click()}
         >
-          {file ? "Choose another PDF" : "Choose PDF"}
+          Choose PDF
         </Button>
       </div>
 
       {file ? (
         <div
           className={`flex items-center gap-3 rounded-lg border p-3 ${
-            error ? "border-danger/25 bg-danger-tint" : "border-line bg-surface"
+            error ? "border-danger-wash-line bg-danger-wash" : "border-line bg-surface"
           }`}
         >
           <FileText
@@ -96,8 +96,8 @@ export function PdfUploadField({ file, error, onChange }: PdfUploadFieldProps) {
             strokeWidth={1.5}
           />
           <div className="flex min-w-0 flex-1 flex-col gap-1">
-            <p className="text-[13px] font-medium break-words text-ink">{file.name}</p>
-            <p id={errorId} className={`text-xs ${error ? "text-danger" : "text-muted"}`}>
+            <p className="text-[13px] leading-[normal] font-medium break-words text-ink">{file.name}</p>
+            <p id={errorId} className={`text-xs leading-[normal] ${error ? "text-danger" : "text-muted"}`}>
               {error ? <span className="sr-only">Error: </span> : null}
               {error ?? `${formatSize(file.size)} · Ready to generate`}
             </p>

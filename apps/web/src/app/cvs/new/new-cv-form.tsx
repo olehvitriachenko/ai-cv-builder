@@ -126,7 +126,7 @@ export function NewCvForm() {
     <form onSubmit={handleSubmit(onSubmit)} noValidate>
       <Card className="flex flex-col gap-8 p-6 sm:p-8">
         <section className="flex flex-col gap-4">
-          <h2 className="text-base font-semibold text-ink">What role are you targeting?</h2>
+          <h2 className="text-base leading-[normal] font-semibold text-ink">What role are you targeting?</h2>
           <TextField
             label="Target role"
             placeholder="e.g. Senior Frontend Engineer"
@@ -141,7 +141,7 @@ export function NewCvForm() {
 
         <section className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
-            <h2 className="text-base font-semibold text-ink">Tell us about your experience</h2>
+            <h2 className="text-base leading-[normal] font-semibold text-ink">Tell us about your experience</h2>
             <p className="text-[13px] leading-normal text-muted">Choose one way to get started.</p>
           </div>
 
