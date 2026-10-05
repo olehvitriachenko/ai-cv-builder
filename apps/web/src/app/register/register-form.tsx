@@ -8,7 +8,7 @@ import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { TextField } from "@/components/ui/field";
 import { registerAccount } from "@/lib/api/auth";
-import { ApiError } from "@/lib/api/fetcher";
+import { isApiError } from "@/lib/api/fetcher";
 
 // Mirrors the server rules for fast feedback; the server stays authoritative.
 const registerFormSchema = z.object({
@@ -45,13 +45,13 @@ export function RegisterForm() {
       router.replace("/");
       router.refresh();
     } catch (error) {
-      if (error instanceof ApiError && error.status === 409) {
+      if (isApiError(error, 409)) {
         setError("email", {
           message: "An account with this email is already registered.",
         });
         return;
       }
-      if (error instanceof ApiError && error.status === 400 && error.fieldErrors) {
+      if (isApiError(error, 400) && error.fieldErrors) {
         let mapped = false;
         for (const field of FIELDS) {
           const message = error.fieldErrors[field]?.[0];

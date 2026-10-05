@@ -8,7 +8,7 @@ import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { TextField } from "@/components/ui/field";
 import { signIn } from "@/lib/api/auth";
-import { ApiError } from "@/lib/api/fetcher";
+import { isApiError } from "@/lib/api/fetcher";
 
 const loginFormSchema = z.object({
   email: z.string().trim().min(1, "Email is required"),
@@ -34,7 +34,7 @@ export function LoginForm() {
       router.refresh();
     } catch (error) {
       // One message for every credential failure: it never says which part was wrong.
-      if (error instanceof ApiError && error.status === 401) {
+      if (isApiError(error, 401)) {
         setFormError("Invalid email or password.");
         return;
       }

@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { ApiError } from "@/lib/api/fetcher";
+import { ApiError, isApiError } from "@/lib/api/fetcher";
 import { getCvResult, getCvStatus, retryCv, type CvStatus } from "@/lib/api/cvs";
 import { pollInterval } from "@/lib/cv/poll";
 import { CvNotFound } from "./cv-not-found";
@@ -17,10 +17,6 @@ const TITLES = {
   PROCESSING: "Putting your experience into words",
   FAILED: "We couldn’t finish your draft",
 } as const;
-
-function isStatusError(error: unknown, status: number): boolean {
-  return error instanceof ApiError && error.status === status;
-}
 
 function retryErrorMessage(error: unknown): string {
   return error instanceof ApiError && error.code === "GENERATION_NOT_RETRYABLE"
@@ -45,7 +41,7 @@ export function GenerationView({ initialStatus }: { initialStatus: CvStatus }) {
     queryFn: () => getCvStatus(id),
     initialData: initialStatus,
     refetchInterval: (query) => pollInterval(query.state.data?.status),
-    retry: (count, error) => count < 3 && !isStatusError(error, 401) && !isStatusError(error, 404),
+    retry: (count, error) => count < 3 && !isApiError(error, 401) && !isApiError(error, 404),
   });
   const status = statusQuery.data;
 
@@ -65,7 +61,7 @@ export function GenerationView({ initialStatus }: { initialStatus: CvStatus }) {
       void queryClient.invalidateQueries({ queryKey: statusKey });
     },
     onError: (error) => {
-      if (isStatusError(error, 401)) {
+      if (isApiError(error, 401)) {
         router.replace("/login");
         return;
       }
@@ -73,14 +69,14 @@ export function GenerationView({ initialStatus }: { initialStatus: CvStatus }) {
     },
   });
 
-  const sessionExpired = isStatusError(statusQuery.error, 401);
+  const sessionExpired = isApiError(statusQuery.error, 401);
   useEffect(() => {
     if (sessionExpired) {
       router.replace("/login");
     }
   }, [sessionExpired, router]);
 
-  if (isStatusError(statusQuery.error, 404)) {
+  if (isApiError(statusQuery.error, 404)) {
     return <CvNotFound />;
   }
 
