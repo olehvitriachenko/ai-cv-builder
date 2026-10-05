@@ -1,5 +1,6 @@
 "use client";
 
+import { ANSWER_APPLIED_NOTICE } from "@/lib/cv/action-feedback";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useForm, useWatch } from "react-hook-form";
@@ -112,7 +113,7 @@ export function useCvEditor({
         flush: () => autosaver.flush(),
         apply: (revision) => applyQuestion(cvId, question.id, revision),
       });
-      onReplace(updated, "Answer applied. Your CV was updated.");
+      onReplace(updated, ANSWER_APPLIED_NOTICE);
     } catch (error) {
       if (error instanceof ApplyBlockedError) {
         throw error;

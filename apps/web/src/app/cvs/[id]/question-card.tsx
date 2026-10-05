@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { TextareaField } from "@/components/ui/field";
 import { answerQuestion, dismissQuestion, type ClarificationQuestion, type CvDraft } from "@/lib/api/cvs";
+import { expireActionFeedback } from "@/lib/cv/action-feedback";
 import { isApiError } from "@/lib/api/fetcher";
 import { ApplyBlockedError, ApplyFailureError, type ApplyAction, type ApplyFailure } from "@/lib/cv/apply-flow";
 import { CVS_QUERY_KEY } from "@/lib/cv/query-keys";
@@ -42,13 +43,14 @@ const KIND_PILL = "rounded-full bg-accent-tint px-2 py-0.5 text-[10px] leading-[
  * One clarification question of the AI assistant (Figma 07.1 to 07.3). The answer saves by itself,
  * separately from the CV; **Apply to CV** is the only thing that changes the CV
  * and **Dismiss** closes the question without changing it. Applied and dismissed questions
- * collapse to their question. Failures keep the answer and offer the recovery for their cause.
+ * collapse to their question, then disappear after brief feedback. Failures keep the answer and offer the recovery for their cause.
  */
 export function QuestionCard({
   cvId,
   question,
   draft,
   onChange,
+  onExpire,
   onApply,
   onReviewLatest,
   applyDisabled,
@@ -57,6 +59,7 @@ export function QuestionCard({
   question: ClarificationQuestion;
   draft: CvDraft;
   onChange: (question: ClarificationQuestion) => void;
+  onExpire: (id: string) => void;
   /** Applies this question to the CV (saving pending edits first). Rejects with the reason shown here. */
   onApply: (question: ClarificationQuestion) => Promise<void>;
   /** Loads the latest saved version of the CV into the editor. */
@@ -67,6 +70,11 @@ export function QuestionCard({
   const queryClient = useQueryClient();
   const view = questionView(question);
   const context = questionContext(question, draft);
+  const [keepVisible, setKeepVisible] = useState(false);
+  useEffect(() => {
+    if (!view.resolved || keepVisible) return;
+    return expireActionFeedback(() => onExpire(question.id));
+  }, [view.resolved, keepVisible, question.id, onExpire]);
   const answerRef = useRef<HTMLTextAreaElement>(null);
   const [text, setText] = useState(question.answer ?? "");
   const [applying, setApplying] = useState(false);
@@ -177,6 +185,12 @@ export function QuestionCard({
     const applied = question.status === "APPLIED";
     return (
       <li
+        onMouseEnter={() => setKeepVisible(true)}
+        onMouseLeave={() => setKeepVisible(false)}
+        onFocus={() => setKeepVisible(true)}
+        onBlur={(event) => {
+          if (!event.currentTarget.contains(event.relatedTarget)) setKeepVisible(false);
+        }}
         className={`flex flex-col gap-2 rounded-[10px] border p-3 ${
           applied ? "border-[#d7e9e1] bg-[#f7fbf9]" : "border-line bg-surface"
         }`}
@@ -248,12 +262,13 @@ export function QuestionCard({
           variant={applyEnabled ? "primary" : "secondary"}
           stretch={false}
           disabled={!applyEnabled}
+          className="motion-safe:transition-[background-color,color,border-color,opacity,transform] motion-safe:duration-150 motion-safe:active:scale-[0.98]"
           onClick={() => void apply()}
         >
           {!applyEnabled && !applying ? <Download aria-hidden className="size-4" strokeWidth={1.75} /> : null}
           {applying ? "Applying…" : "Apply to CV"}
         </Button>
-        <Button type="button" variant="text" stretch={false} disabled={busy} onClick={() => dismiss.mutate()}>
+        <Button type="button" variant="text" stretch={false} disabled={busy} className="motion-safe:transition-[background-color,color,opacity,transform] motion-safe:duration-150 motion-safe:active:scale-[0.98]" onClick={() => dismiss.mutate()}>
           {dismiss.isPending ? "Dismissing…" : "Dismiss"}
         </Button>
         {saveState === "error" ? (

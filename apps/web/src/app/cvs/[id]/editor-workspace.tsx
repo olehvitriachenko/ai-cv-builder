@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { FormProvider } from "react-hook-form";
 import type { CvResult } from "@/lib/api/cvs";
+import { ANSWER_APPLIED_NOTICE } from "@/lib/cv/action-feedback";
+import { ActionNotice } from "./action-notice";
 import { prepareDownload } from "@/lib/cv/download-flow";
 import { deleteSubject } from "@/lib/cv/delete-flow";
 import { DownloadPdfButton } from "../download-pdf-button";
@@ -162,9 +164,7 @@ export function EditorWorkspace({
               />
             ) : null}
             {notice ? (
-              <p role="status" className="rounded-lg bg-canvas p-3 text-[13px] leading-normal text-ink">
-                {notice}
-              </p>
+              <ActionNotice key={notice} message={notice} transient={notice === ANSWER_APPLIED_NOTICE} />
             ) : null}
 
             <CompletenessCard values={editor.values} />

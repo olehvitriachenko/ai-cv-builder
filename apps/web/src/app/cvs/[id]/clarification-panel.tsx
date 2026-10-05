@@ -1,9 +1,10 @@
 "use client";
 
 import { Sparkles } from "lucide-react";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Card } from "@/components/ui/card";
 import type { ClarificationQuestion, CvDraft } from "@/lib/api/cvs";
+import { withAssistantTransition } from "@/lib/cv/action-feedback";
 import { assistantSummary } from "@/lib/cv/question-form";
 import { QuestionCard } from "./question-card";
 
@@ -29,13 +30,19 @@ export function ClarificationPanel({
 }) {
   const [questions, setQuestions] = useState(initialQuestions);
   const summary = assistantSummary(questions);
+  const [hiddenQuestions, setHiddenQuestions] = useState<string[]>([]);
+  const hideResolved = useCallback((id: string) => {
+    withAssistantTransition(() => setHiddenQuestions((current) => [...current, id]));
+  }, []);
 
   function replace(next: ClarificationQuestion) {
-    setQuestions((current) => current.map((question) => (question.id === next.id ? next : question)));
+    const update = () => setQuestions((current) => current.map((question) => (question.id === next.id ? next : question)));
+    if (next.status === "DISMISSED") withAssistantTransition(update);
+    else update();
   }
 
   return (
-    <Card className="flex flex-col gap-3 p-4">
+    <Card className="flex flex-col gap-3 p-4 [view-transition-name:cv-assistant]">
       <div className="flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
           <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-accent-tint">
@@ -58,13 +65,14 @@ export function ClarificationPanel({
         <>
           <p className="text-xs leading-normal text-muted">{summary.line}</p>
           <ul className="flex flex-col gap-4">
-            {questions.map((question) => (
+            {questions.filter((question) => !hiddenQuestions.includes(question.id)).map((question) => (
               <QuestionCard
                 key={question.id}
                 cvId={cvId}
                 question={question}
                 draft={draft}
                 onChange={replace}
+                onExpire={hideResolved}
                 onApply={onApply}
                 onReviewLatest={onReviewLatest}
                 applyDisabled={applyDisabled}
