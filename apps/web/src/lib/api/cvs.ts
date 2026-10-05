@@ -175,3 +175,16 @@ export function dismissQuestion(cvId: string, questionId: string): Promise<Clari
     schema: clarificationQuestionSchema,
   });
 }
+
+/**
+ * `POST /api/cvs/:id/questions/:questionId/apply`: writes an answered question into the CV and
+ * marks it applied, atomically. `revision` is the one the person is looking at. Returns the new
+ * result (draft, revision, questions); the server's reply replaces the client's state.
+ */
+export function applyQuestion(cvId: string, questionId: string, revision: number): Promise<CvResult> {
+  return apiFetch(`/cvs/${encodeURIComponent(cvId)}/questions/${encodeURIComponent(questionId)}/apply`, {
+    method: "POST",
+    body: { revision },
+    schema: cvResultSchema,
+  });
+}

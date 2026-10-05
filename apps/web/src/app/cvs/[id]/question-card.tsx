@@ -2,6 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { TextareaField } from "@/components/ui/field";
@@ -37,11 +38,17 @@ export function QuestionCard({
   question,
   draft,
   onChange,
+  onApply,
+  applyDisabled,
 }: {
   cvId: string;
   question: ClarificationQuestion;
   draft: CvDraft;
   onChange: (question: ClarificationQuestion) => void;
+  /** Applies this question to the CV (saving pending edits first). Rejects with the reason shown here. */
+  onApply: (question: ClarificationQuestion) => Promise<void>;
+  /** Another apply is running or the editor is busy. */
+  applyDisabled: boolean;
 }) {
   const queryClient = useQueryClient();
   const view = questionView(question);
@@ -67,8 +74,23 @@ export function QuestionCard({
       refreshList();
     },
   });
-  const busy = save.isPending || dismiss.isPending;
-  const problem = save.isError ? failureMessage(save.error) : dismiss.isError ? failureMessage(dismiss.error) : null;
+  const [applying, setApplying] = useState(false);
+  const [applyProblem, setApplyProblem] = useState<string | null>(null);
+  const busy = save.isPending || dismiss.isPending || applying || applyDisabled;
+  const problem =
+    applyProblem ?? (save.isError ? failureMessage(save.error) : dismiss.isError ? failureMessage(dismiss.error) : null);
+
+  async function apply() {
+    setApplying(true);
+    setApplyProblem(null);
+    try {
+      await onApply(question);
+    } catch (error) {
+      setApplyProblem(error instanceof Error ? error.message : "We couldn’t apply that answer. Nothing was changed; try again.");
+    } finally {
+      setApplying(false);
+    }
+  }
 
   return (
     <li className={`flex flex-col gap-2 rounded-[10px] border p-3 ${style.card}`}>
@@ -94,7 +116,18 @@ export function QuestionCard({
             {...register("answer")}
           />
           <div className="flex flex-wrap items-center gap-3">
-            <Button type="submit" size="compact" stretch={false} disabled={busy}>
+            {view.canApply ? (
+              <Button type="button" size="compact" stretch={false} disabled={busy} onClick={() => void apply()}>
+                {applying ? "Applying…" : "Apply answer"}
+              </Button>
+            ) : null}
+            <Button
+              type="submit"
+              variant={view.canApply ? "secondary" : "primary"}
+              size="compact"
+              stretch={false}
+              disabled={busy}
+            >
               {save.isPending ? "Saving…" : question.status === "ANSWERED" ? "Update answer" : "Save answer"}
             </Button>
             <Button type="button" variant="text" size="compact" stretch={false} disabled={busy} onClick={() => dismiss.mutate()}>
@@ -103,7 +136,7 @@ export function QuestionCard({
           </div>
           {question.status === "ANSWERED" ? (
             <p className="text-[11px] leading-normal text-muted">
-              Answer saved. Your CV hasn’t changed yet.
+              Answer saved. Your CV hasn’t changed yet; apply it when you’re ready.
             </p>
           ) : (
             <p className="text-[11px] leading-normal text-muted">

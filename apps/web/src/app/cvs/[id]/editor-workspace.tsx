@@ -7,7 +7,8 @@ import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { FormProvider, useForm, useWatch } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { isApiError } from "@/lib/api/fetcher";
-import { saveDraft, type CvResult } from "@/lib/api/cvs";
+import { applyQuestion, saveDraft, type ClarificationQuestion, type CvResult } from "@/lib/api/cvs";
+import { ApplyBlockedError, applyAnswer, applyErrorOutcome } from "@/lib/cv/apply-flow";
 import { DraftAutosaver } from "@/lib/cv/autosave";
 import { cvFormSchema, toDraft, toFormValues, type DraftFormValues } from "@/lib/cv/draft-form";
 import { ClarificationPanel } from "./clarification-panel";
@@ -31,14 +32,17 @@ export function EditorWorkspace({
   cvId,
   targetRole,
   result,
+  notice,
   fetchLatest,
   onReplace,
 }: {
   cvId: string;
   targetRole: string;
   result: CvResult;
+  /** A message from the previous action (for example "Answer applied"), shown once. */
+  notice: string | null;
   fetchLatest: () => Promise<CvResult>;
-  onReplace: (result: CvResult) => void;
+  onReplace: (result: CvResult, notice?: string) => void;
 }) {
   const [autosaver] = useState(
     () =>
@@ -59,6 +63,7 @@ export function EditorWorkspace({
   const [view, setView] = useState<MobileView>("editor");
   const [conflictBusy, setConflictBusy] = useState(false);
   const [conflictError, setConflictError] = useState<string | null>(null);
+  const [applying, setApplying] = useState(false);
   // The last draft handed to the autosaver. Opening the editor (the effect also runs once on mount)
   // therefore saves nothing, while reverting an edit still saves, because it differs from this.
   const lastSent = useRef(JSON.stringify(result.draft));
@@ -98,6 +103,39 @@ export function EditorWorkspace({
     window.addEventListener("beforeunload", warn);
     return () => window.removeEventListener("beforeunload", warn);
   }, [unsaved]);
+
+  /**
+   * Applies an answered question. Pending edits are saved first so the apply runs on the latest
+   * revision. On success the server's result replaces the form (the server is authoritative); when
+   * the CV or the question changed elsewhere, the latest version is loaded instead.
+   */
+  async function handleApply(question: ClarificationQuestion): Promise<void> {
+    setApplying(true);
+    try {
+      const updated = await applyAnswer({
+        blockedReason: invalid ? "Fix the highlighted fields first, then apply the answer." : null,
+        flush: () => autosaver.flush(),
+        apply: (revision) => applyQuestion(cvId, question.id, revision),
+      });
+      onReplace(updated, "Answer applied. Your CV was updated.");
+    } catch (error) {
+      if (error instanceof ApplyBlockedError) {
+        throw error;
+      }
+      const outcome = applyErrorOutcome(error);
+      if (outcome.reload) {
+        try {
+          onReplace(await fetchLatest(), outcome.message);
+          return;
+        } catch {
+          // Could not reload either: fall through and show the message on the card.
+        }
+      }
+      throw new Error(outcome.message);
+    } finally {
+      setApplying(false);
+    }
+  }
 
   async function resolveConflict(keepMine: boolean) {
     setConflictBusy(true);
@@ -192,12 +230,27 @@ export function EditorWorkspace({
               />
             ) : null}
 
-            <ClarificationPanel cvId={cvId} initialQuestions={result.questions} draft={draft} />
-            <ContactSection />
-            <SummarySection />
-            <ExperienceSection />
-            <EducationSection />
-            <SkillsSection />
+            {notice ? (
+              <p role="status" className="rounded-lg bg-canvas p-3 text-[13px] leading-normal text-ink">
+                {notice}
+              </p>
+            ) : null}
+
+            <ClarificationPanel
+              cvId={cvId}
+              initialQuestions={result.questions}
+              draft={draft}
+              onApply={handleApply}
+              applyDisabled={applying}
+            />
+            {/* While an apply runs the form is read-only, so nothing is typed over the server's result. */}
+            <fieldset disabled={applying} className="m-0 flex min-w-0 flex-col gap-3 border-0 p-0">
+              <ContactSection />
+              <SummarySection />
+              <ExperienceSection />
+              <EducationSection />
+              <SkillsSection />
+            </fieldset>
             <p className="text-[10px] leading-normal text-muted">
               You’re in control. Review AI wording, dates and claims before downloading.
             </p>

@@ -104,6 +104,8 @@ describe('applyFieldAnswer', () => {
   it('rejects a value that does not fit the field', () => {
     expect(applyFieldAnswer(emptyDraft(), 'CONTACT_EMAIL', null, 'not an email')).toEqual({ ok: false, reason: 'INVALID_VALUE' });
     expect(applyFieldAnswer(emptyDraft(), 'CONTACT_PHONE', null, '1'.repeat(41))).toEqual({ ok: false, reason: 'INVALID_VALUE' });
+    expect(applyFieldAnswer(emptyDraft(), 'CONTACT_PHONE', null, 'call me maybe')).toEqual({ ok: false, reason: 'INVALID_VALUE' });
+    expect(applyFieldAnswer(emptyDraft(), 'CONTACT_PHONE', null, '123')).toEqual({ ok: false, reason: 'INVALID_VALUE' });
     expect(applyFieldAnswer(emptyDraft(), 'EXPERIENCE_START_DATE', 'exp-1', 'x'.repeat(41))).toEqual({ ok: false, reason: 'INVALID_VALUE' });
     expect(applyFieldAnswer(emptyDraft(), 'CONTACT_FULL_NAME', null, 'x'.repeat(121))).toEqual({ ok: false, reason: 'INVALID_VALUE' });
     expect(applyFieldAnswer(emptyDraft(), 'CONTACT_LINK', null, 'x'.repeat(201))).toEqual({ ok: false, reason: 'INVALID_VALUE' });

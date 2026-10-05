@@ -30,11 +30,13 @@ interface FieldRule {
 }
 
 const isEmail = (value: string) => z.email().safeParse(value).success;
+/** A phone number needs at least 5 digits (the same floor generation uses to check one). */
+const isPhone = (value: string) => value.replace(/\D/g, '').length >= 5;
 
 const CONTACT_RULES = {
   CONTACT_FULL_NAME: { key: 'fullName', rule: { max: 120 } },
   CONTACT_EMAIL: { key: 'email', rule: { max: 254, valid: isEmail } },
-  CONTACT_PHONE: { key: 'phone', rule: { max: 40 } },
+  CONTACT_PHONE: { key: 'phone', rule: { max: 40, valid: isPhone } },
   CONTACT_LOCATION: { key: 'location', rule: { max: 120 } },
 } as const satisfies Partial<Record<QuestionField, { key: string; rule: FieldRule }>>;
 

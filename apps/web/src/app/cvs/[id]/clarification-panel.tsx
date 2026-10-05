@@ -16,10 +16,14 @@ export function ClarificationPanel({
   cvId,
   initialQuestions,
   draft,
+  onApply,
+  applyDisabled,
 }: {
   cvId: string;
   initialQuestions: ClarificationQuestion[];
   draft: CvDraft;
+  onApply: (question: ClarificationQuestion) => Promise<void>;
+  applyDisabled: boolean;
 }) {
   const [questions, setQuestions] = useState(initialQuestions);
   const unresolved = unresolvedCount(questions);
@@ -58,11 +62,19 @@ export function ClarificationPanel({
         <>
           <div className="flex flex-col gap-1 text-[11px] leading-normal text-muted">
             <p>Review each item below. Answer when you can, or dismiss what no longer applies.</p>
-            <p className="text-[10px]">AI never invents facts. Nothing changes your CV until you apply it.</p>
+            <p className="text-[10px]">AI never invents facts. Nothing changes your CV until you apply it, and it only ever adds to what you already wrote.</p>
           </div>
           <ul className="flex flex-col gap-2.5">
             {questions.map((question) => (
-              <QuestionCard key={question.id} cvId={cvId} question={question} draft={draft} onChange={replace} />
+              <QuestionCard
+                key={question.id}
+                cvId={cvId}
+                question={question}
+                draft={draft}
+                onChange={replace}
+                onApply={onApply}
+                applyDisabled={applyDisabled}
+              />
             ))}
           </ul>
         </>
