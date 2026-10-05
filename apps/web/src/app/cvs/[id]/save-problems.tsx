@@ -1,21 +1,43 @@
-import { ButtonLink, Button } from "@/components/ui/button";
+import { TriangleAlert } from "lucide-react";
+import { Button, ButtonLink } from "@/components/ui/button";
 import type { SaveState } from "@/lib/cv/autosave";
 
 /**
- * "Your latest edits couldn't be saved" (Figma 09.2): the edits stay in the editor, the preview
- * shows the last saved version, and retrying never overwrites another version. Announced as an
- * alert without taking focus from the field the person is typing in.
+ * "Your latest edits couldn't be saved" (Figma 09.2), its offline form "Offline · Your draft is
+ * retained on this device" and the retrying form "Reconnecting…" (11.1, 00.4 "Connection state"):
+ * the edits stay in the editor, the preview shows the last saved version, and retrying never
+ * overwrites another version. Announced as an alert without taking focus from the field the
+ * person is typing in.
  */
-export function SaveErrorNotice({ onRetry }: { onRetry: () => void }) {
+export function SaveErrorNotice({
+  offline,
+  retrying,
+  onRetry,
+}: {
+  offline: boolean;
+  retrying: boolean;
+  onRetry: () => void;
+}) {
   return (
     <div role="alert" className="flex flex-col items-start gap-3 rounded-xl border border-danger-wash-line bg-surface p-4">
-      <p className="text-sm leading-[normal] font-semibold text-danger">Your latest edits couldn’t be saved</p>
-      <p className="text-xs leading-normal text-muted">
-        Current edits remain in this editor. The preview shows the last saved version. Retrying will not overwrite
-        another version.
-      </p>
-      <Button type="button" variant="text" stretch={false} onClick={onRetry}>
-        Retry connection
+      {retrying ? (
+        <p className="text-sm leading-normal text-ink">Reconnecting… Your draft is retained. No version is overwritten.</p>
+      ) : offline ? (
+        <p className="flex items-start gap-1.5 text-sm leading-normal text-ink">
+          <TriangleAlert aria-hidden className="mt-0.5 size-3.5 shrink-0" strokeWidth={2} />
+          <span>Offline · Your draft is retained on this device. Changes are not yet saved to the server.</span>
+        </p>
+      ) : (
+        <>
+          <p className="text-sm leading-[normal] font-semibold text-danger">Your latest edits couldn’t be saved</p>
+          <p className="text-xs leading-normal text-muted">
+            Current edits remain in this editor. The preview shows the last saved version. Retrying will not
+            overwrite another version.
+          </p>
+        </>
+      )}
+      <Button type="button" variant={retrying || offline ? "secondary" : "text"} stretch={false} className={retrying ? "" : "text-accent!"} disabled={retrying} onClick={onRetry}>
+        {retrying ? "Retrying connection…" : "Retry connection"}
       </Button>
     </div>
   );

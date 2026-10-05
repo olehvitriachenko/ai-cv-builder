@@ -37,7 +37,7 @@ export function CompletenessCard({ values }: { values: DraftFormValues }) {
   }, [summary]);
 
   return (
-    <section aria-label="CV completeness" className="flex flex-col gap-2.5 rounded-xl border border-line bg-surface p-4 sm:px-4 sm:py-3">
+    <section aria-label="CV completeness" className="flex flex-col gap-2 rounded-xl border border-line bg-surface p-4 sm:px-4 sm:py-3">
       {/* Phone (Figma 05.2): the status badge, the percentage, and the missing items as a list. */}
       <div className="flex flex-col gap-2.5 sm:hidden">
         <div className="flex items-center justify-between gap-3">
@@ -45,10 +45,10 @@ export function CompletenessCard({ values }: { values: DraftFormValues }) {
             <p className="text-sm leading-[normal] font-semibold text-ink">CV completeness</p>
             <span
               className={`rounded-full px-2 py-[3px] text-[10px] leading-[normal] font-semibold whitespace-nowrap ${
-                left === 0 ? "bg-success-tint text-success" : "bg-accent-tint text-accent"
+                left === 0 ? "bg-success-tint text-success" : percent === 0 ? "bg-canvas text-muted" : "bg-accent-tint text-accent"
               }`}
             >
-              {left === 0 ? "Complete" : "In progress"}
+              {left === 0 ? "Ready for PDF" : percent === 0 ? "Not started" : "In progress"}
             </span>
           </div>
           <p className="shrink-0 text-sm leading-[normal] font-bold text-accent">{percent}%</p>
@@ -69,13 +69,17 @@ export function CompletenessCard({ values }: { values: DraftFormValues }) {
       <div className="hidden items-center justify-between gap-3 sm:flex">
         <div className="flex min-w-0 items-center gap-2">
           <p className="text-xs leading-[normal] font-semibold text-ink">CV completeness</p>
-          {left > 0 ? (
-            <span className="rounded-full bg-warning-tint px-2 py-[3px] text-[10px] leading-[normal] font-semibold whitespace-nowrap text-warning">
-              Needs details · {left} left
+          {left === 0 ? (
+            <span className="rounded-full bg-success-tint px-2 py-[3px] text-[10px] leading-[normal] font-semibold whitespace-nowrap text-success">
+              Ready for PDF
+            </span>
+          ) : percent === 0 ? (
+            <span className="rounded-full bg-canvas px-2 py-[3px] text-[10px] leading-[normal] font-semibold whitespace-nowrap text-muted">
+              Not started
             </span>
           ) : (
-            <span className="rounded-full bg-success-tint px-2 py-[3px] text-[10px] leading-[normal] font-semibold whitespace-nowrap text-success">
-              Complete
+            <span className="rounded-full bg-warning-tint px-2 py-[3px] text-[10px] leading-[normal] font-semibold whitespace-nowrap text-warning">
+              Needs details · {left} left
             </span>
           )}
         </div>

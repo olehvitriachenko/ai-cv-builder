@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { FormProvider } from "react-hook-form";
 import type { CvResult } from "@/lib/api/cvs";
 import { prepareDownload } from "@/lib/cv/download-flow";
@@ -48,6 +48,21 @@ export function EditorWorkspace({
   const [view, setView] = useState<MobileView>("editor");
   const [downloadMessage, setDownloadMessage] = useState<string | null>(null);
   const [fullscreen, setFullscreen] = useState(false);
+  const offline = useOffline();
+  const [retrying, setRetrying] = useState(false);
+  // The notice stays while a retry runs, so "Retrying connection…" is visible; any outcome ends it.
+  // (State adjusted while rendering, as React recommends, not in an effect.)
+  const [seenStatus, setSeenStatus] = useState(saveState.status);
+  if (seenStatus !== saveState.status) {
+    setSeenStatus(saveState.status);
+    if (saveState.status !== "saving") {
+      setRetrying(false);
+    }
+  }
+  const retry = () => {
+    setRetrying(true);
+    autosaver.retry();
+  };
   const expandRef = useRef<HTMLButtonElement>(null);
 
   const name = draft.contact.fullName;
@@ -64,7 +79,7 @@ export function EditorWorkspace({
             <SaveIndicator
               state={saveState}
               invalid={invalid}
-              onRetry={() => autosaver.retry()}
+              onRetry={retry}
               onReview={() => void editor.openReview()}
             />
           }
@@ -131,7 +146,13 @@ export function EditorWorkspace({
                 {downloadMessage}
               </p>
             ) : null}
-            {saveState.status === "error" ? <SaveErrorNotice onRetry={() => autosaver.retry()} /> : null}
+            {saveState.status === "error" || (retrying && saveState.status === "saving") ? (
+              <SaveErrorNotice
+                offline={offline}
+                retrying={retrying && saveState.status === "saving"}
+                onRetry={retry}
+              />
+            ) : null}
             {saveState.status === "conflict" && saveState.failure ? (
               <ConflictNotice
                 failure={saveState.failure}
@@ -250,5 +271,21 @@ function PreviewBar({ view, onSwitch }: { view: MobileView; onSwitch: (view: Mob
         {action.label}
       </button>
     </div>
+  );
+}
+
+/** Whether the browser reports no connection (the notice then says "Offline"). */
+function useOffline(): boolean {
+  return useSyncExternalStore(
+    (notify) => {
+      window.addEventListener("online", notify);
+      window.addEventListener("offline", notify);
+      return () => {
+        window.removeEventListener("online", notify);
+        window.removeEventListener("offline", notify);
+      };
+    },
+    () => !navigator.onLine,
+    () => false,
   );
 }

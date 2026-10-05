@@ -23,6 +23,35 @@ export function experienceHeading(entry: {
   return dates === "" ? name : `${name} · ${dates}`;
 }
 
+/** Whether a role holds anything the person typed; an untouched new role needs no confirmation to remove. */
+export function experienceHasContent(entry: {
+  employer: string;
+  title: string;
+  location: string;
+  startDate: string;
+  endDate: string;
+  bullets: readonly { value: string }[];
+}): boolean {
+  return (
+    [entry.employer, entry.title, entry.location, entry.startDate, entry.endDate].some(filled) ||
+    entry.bullets.some((bullet) => filled(bullet.value))
+  );
+}
+
+/** The sentence under "Remove this experience?": what else goes with the role. */
+export function experienceRemovalText(entry: { bullets: readonly { value: string }[] }): string {
+  const highlights = entry.bullets.filter((bullet) => filled(bullet.value)).length;
+  if (highlights === 0) {
+    return "This removes the experience from this CV.";
+  }
+  if (highlights === 1) {
+    return "This removes the experience and its highlight from this CV.";
+  }
+  return highlights === 2
+    ? "This removes the experience and both highlights from this CV."
+    : `This removes the experience and all ${highlights} highlights from this CV.`;
+}
+
 export function educationHeading(entry: { institution: string; qualification: string }): string {
   if (filled(entry.institution)) {
     return entry.institution.trim();

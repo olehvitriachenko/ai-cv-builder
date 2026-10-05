@@ -57,6 +57,7 @@ export function PreviewPanel({
   const zoom = manualZoom ?? Math.min(DESIGN_ZOOM, fitScale(stageWidth, A4_WIDTH_PX));
   const pages = estimatePages(height, PAGE_HEIGHT);
   const status = previewStatus({ saveStatus, invalid });
+  const measured = stageWidth > 0;
   const onHeight = useCallback((next: number) => setHeight(next), []);
 
   return (
@@ -80,11 +81,17 @@ export function PreviewPanel({
       </div>
 
       <div className="flex flex-col items-center gap-4 rounded-xl bg-stage px-4 pt-4 pb-5 sm:px-6">
-        <p className="text-center text-[11px] text-muted">{status.short} · {status.detail}</p>
+        <p className="text-center text-[11px] text-muted">
+          {measured ? `${status.short} · ${status.detail}` : "Last saved version · Preview loading…"}
+        </p>
         <div ref={stageRef} className="group relative flex w-full justify-center overflow-x-auto">
           <div className="relative">
             <div className="rounded-sm transition-shadow group-hover:shadow-[0_0_0_2px_rgba(69,73,190,0.2)] group-focus-within:shadow-[0_0_0_2px_rgba(69,73,190,0.2)]">
-              <ScaledSheet draft={draft} targetRole={targetRole} zoom={zoom} height={height} onHeight={onHeight} />
+              {measured ? (
+                <ScaledSheet draft={draft} targetRole={targetRole} zoom={zoom} height={height} onHeight={onHeight} />
+              ) : (
+                <PreviewSkeleton />
+              )}
             </div>
             {onOpenFullscreen ? (
               <div className="absolute top-3 right-3 flex items-center gap-2 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 [@media(hover:none)]:opacity-100">
@@ -112,5 +119,17 @@ export function PreviewPanel({
       <p className="text-center text-[11px] text-muted">A clean, selectable-text PDF. No watermarks.</p>
       <p className="text-center text-[11px] text-muted">Preview stays in view while you edit.</p>
     </section>
+  );
+}
+
+/** "Preview state / Loading" (Figma 11.1): a white sheet with grey bars until the stage is measured. */
+function PreviewSkeleton() {
+  return (
+    <div aria-busy className="flex aspect-[660/933] w-[min(660px,100%)] min-w-[280px] flex-col gap-3.5 bg-surface p-10 shadow-[0_8px_28px_rgba(40,51,71,0.08)]">
+      <span className="h-5 w-[170px] rounded bg-skeleton" />
+      {Array.from({ length: 8 }, (_, index) => (
+        <span key={index} className="h-2.5 w-full rounded-full bg-skeleton" />
+      ))}
+    </div>
   );
 }

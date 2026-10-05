@@ -75,7 +75,7 @@ Verified in a browser against the running development servers with a throwaway a
 
 - Editing the target role, phone and LinkedIn updates the title, the preview and the completeness score (85% to 100%, "Complete") at once; three edits produce one debounced `PUT`; the CV's `targetRole` and the draft change together in one revision bump; the My CVs list shows the new role; after a reload everything is back, links split into LinkedIn / Portfolio and merged again in the same order.
 - Opening the editor saves nothing. An invalid link ("not a url" gives "Enter a valid URL.") or an empty new role / education entry blocks saving ("Fix the highlighted fields to save", no `PUT`) and shows its message on the field; fixing it saves.
-- Add and remove (all immediate, no confirmation): role, highlight, link, education entry. The End date select shows **Date ended** only for a specific date.
+- Add and remove: role (asks first when it holds something, from the design-parity pass), highlight, link, education entry (immediate). The End date select shows **Date ended** only for a specific date.
 - The more-options menu offers exactly Back to My CVs and Delete CV; Escape closes it and returns focus; Delete CV opens the confirmation dialog naming the CV, Cancel returns focus to the trigger.
 - Download PDF in the new navigation is the feature-004 flow unchanged: busy state with the header still 80 px, the file name follows the edited role, and a failure shows its message in the page instead of growing the header.
 - `localStorage` and `sessionStorage` hold nothing.
@@ -166,4 +166,15 @@ Figma: `05.2` (390), `05.3` (320), `10.3` and `10.4` (full-screen preview), `11.
 | The sticky bar hides when the visual viewport shrinks (keyboard) and returns; the last section's action ("+ Add education") ends above the bar | pass |
 
 Not run: a real on-screen keyboard (a phone or the iOS Simulator); the keyboard rule is checked by resizing the visual viewport.
+
+## Design-parity pass (after the structured editor, from the completed Figma file)
+
+Done against the reorganised file (sections 05 to 11 and the UI kit 00.3, 00.4): the preview zoom is a percentage of an A4 sheet at 794 px (the design sheet is 83%), the page footer, the section gaps, dates and "(expected)" in the document; Education status; "+" and "×" as text glyphs; placeholder colour #667085 (4.97:1); removal confirmation for a role that holds something; the offline and retrying forms of the save notice; the preview loading skeleton; the more-options menu as buttons; the delete dialog focus contract of 11.2 (Cancel first, then Delete CV, then Close); completeness badges Not started, Needs details and Ready for PDF.
+
+| Check | Result |
+|-------|--------|
+| Browser (Playwright, throwaway account): the role removal dialog names the role and what goes with it, Cancel has the focus and keeps it, confirm removes it; the delete dialog opens on Cancel and Tab goes Cancel, Delete CV, Close; with the network off a failed save shows "Offline · Your draft is retained on this device", and after reconnecting Retry connection saves the same text | pass |
+| Web gates | `tsc --noEmit`, `lint` clean; 23 files, 255 tests |
+
+Not built, on purpose: the read-only editor panel while generating or after a failed generation (11.1, 00.4; the editor opens only for completed CVs and generation has its own screens), the feature-flagged "PDF Coming soon" state (PDF export exists), the proposed 100-point scoring table of 11.1 and the 30% to 200% zoom bounds ("approval required" in the design; the specification's weights and 50% to 150% stay).
 

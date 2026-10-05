@@ -42,8 +42,10 @@ export function EditorMenu({ cvId, subject }: { cvId: string; subject: string })
     };
   }, [open]);
 
+  // Figma 11.1 "More options / Open menu": Back to My CVs is an outlined button, Delete CV the
+  // destructive one, both full width and 44 px high.
   const item =
-    "flex h-11 w-full items-center rounded-lg px-3 text-left text-sm font-medium focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent";
+    "flex h-11 w-full items-center justify-center rounded-lg border px-3 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
 
   return (
     <div ref={rootRef} className="relative shrink-0">
@@ -62,9 +64,9 @@ export function EditorMenu({ cvId, subject }: { cvId: string; subject: string })
       {open ? (
         <div
           id={panelId}
-          className="absolute top-full right-0 z-30 mt-2 flex w-56 flex-col gap-1 rounded-xl border border-line bg-surface p-2"
+          className="absolute top-full right-0 z-30 mt-2 flex w-56 flex-col gap-2 rounded-xl border border-line bg-surface p-2"
         >
-          <Link href="/cvs" className={`${item} text-ink hover:bg-canvas`}>
+          <Link href="/cvs" className={`${item} border-line bg-surface text-accent hover:bg-canvas`}>
             Back to My CVs
           </Link>
           <button
@@ -73,7 +75,7 @@ export function EditorMenu({ cvId, subject }: { cvId: string; subject: string })
               setOpen(false);
               setConfirming(true);
             }}
-            className={`${item} text-danger hover:bg-danger-tint`}
+            className={`${item} border-danger bg-danger text-white hover:opacity-90`}
           >
             Delete CV
           </button>

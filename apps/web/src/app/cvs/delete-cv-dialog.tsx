@@ -71,20 +71,11 @@ export function DeleteCvDialog({
       }}
       className="m-auto w-[min(484px,calc(100vw-32px))] rounded-xl border border-line bg-surface p-0 text-ink backdrop:bg-ink/40"
     >
-      <div className="flex flex-col gap-6 p-6">
+      <div className="relative flex flex-col gap-6 p-6">
         <div className="flex items-start justify-between gap-3">
           <h2 id={`delete-title-${cvId}`} className="text-xl font-semibold text-ink">
             Delete this CV?
           </h2>
-          <button
-            type="button"
-            aria-label="Close"
-            onClick={requestClose}
-            disabled={remove.isPending}
-            className="-m-1 flex size-8 shrink-0 items-center justify-center rounded-lg text-muted hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-60"
-          >
-            <X aria-hidden className="size-[18px]" strokeWidth={1.75} />
-          </button>
         </div>
 
         <div className="flex flex-col gap-4 text-sm leading-[1.6] text-muted [overflow-wrap:anywhere]">
@@ -100,7 +91,7 @@ export function DeleteCvDialog({
         ) : null}
 
         <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-          <Button type="button" variant="secondary" onClick={requestClose} disabled={remove.isPending}>
+          <Button type="button" variant="secondary" autoFocus onClick={requestClose} disabled={remove.isPending}>
             Cancel
           </Button>
           <Button
@@ -115,6 +106,16 @@ export function DeleteCvDialog({
             {remove.isPending ? "Deleting…" : "Delete CV"}
           </Button>
         </div>
+        {/* After the buttons in the DOM so Tab goes Cancel, Delete CV, Close (Figma 11.2); drawn at the top right. */}
+        <button
+          type="button"
+          aria-label="Close"
+          onClick={requestClose}
+          disabled={remove.isPending}
+          className="absolute top-4 right-4 flex size-11 items-center justify-center rounded-lg text-muted hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-60"
+        >
+          <X aria-hidden className="size-[18px]" strokeWidth={1.75} />
+        </button>
       </div>
     </dialog>
   );

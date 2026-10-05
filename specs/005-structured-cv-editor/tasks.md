@@ -23,7 +23,7 @@ description: "Task list for Structured CV Editor"
 ## Locked decisions (do not reopen; from the plan review)
 
 1. **More menu** contains exactly **Back to My CVs** and **Delete CV**. Delete CV opens the existing confirmation dialog; whole-CV deletion always requires confirmation.
-2. **Removing** an experience entry, education entry, highlight, link, skill or category is **immediate, no confirmation** (autosave stores it).
+2. **Removing** an education entry, highlight, link or skill is **immediate, no confirmation** (autosave stores it). Removing an experience that holds something, and a category that holds skills, **asks first** (the completed Figma file, 00.4 "Removal confirmation"; this replaced the original "all immediate" decision).
 3. The skill categories and suggestions live in **one** file, `CAT/skill-categories.json`, consumed by both apps through thin typed accessors. An incomplete list never blocks implementation; the four suspected gaps are added later by editing that file.
 4. **Skills are prompt-grounded only.** No task may claim, test or document mechanical grounding of skills; the limit is documented (T088).
 5. The database CHECK is exactly `CHECK (draft IS NULL OR (jsonb_typeof(draft) = 'object' AND COALESCE(draft ->> 'schemaVersion', '') = '2'))` and must not break the generation lifecycle (verified in T028 and T029).
@@ -128,9 +128,9 @@ US2 to US5 depend on US1 (they fill its layout) but not on each other and can be
 
 **Known differences between the frames and the locked decisions (Phase 3 follows the locked decisions; revisit only on the owner's word)**:
 
-1. 06.2 section 05 shows confirmation dialogs for "Remove this experience?" and "Remove this category?". Locked decision 2 keeps removal immediate. Phase 3 removes immediately (the dialogs are not built).
+1. 06.2 section 05 and 00.4 show confirmation dialogs for "Remove this experience?" and "Remove this category?". Both are built (a role or category that holds nothing is removed at once); the original locked decision of immediate removal was changed to match the completed design.
 2. 06.2 shows an extra-link row with **Label** and **URL**; the draft stores a link as one string, so only the URL is edited and stored (the label cannot persist).
-3. 06.2 shows an **Employment status** select with a separate End date field and, for education, an **Education status** select with an optional **Expected graduation**, while 05.1 and 06.1 show the compact `[Start date | End date ▾ Present]` row and an education row with only start and end year. Phase 3 follows 05.1/06.1 (the frames T048 measures): an **End date** select (`Present` or `Specific date`, which then shows a **Date ended** field) mapped onto the existing `endDate` text, and education whose ongoing state is derived from the end year (`Present` or a future year), with no extra stored field and no status select.
+3. 06.2 shows an **Employment status** select with a separate End date field and, for education, an **Education status** select with an optional **Expected graduation**, while 05.1 and 06.1 show the compact `[Start date | End date ▾ Present]` row. Built: the compact experience row with an **End date** select (`Present` or `End date`, which then shows a **Date ended** field) mapped onto the existing `endDate` text, and for education the **Education status** select (Completed or Currently studying) with a disabled End year and an optional **Expected graduation**, stored in the same `endDate` (`Present` or the expected year).
 4. 11.2 draws the header title on one line without the owner line; 05.1 has the owner line. Phase 3 follows 05.1 (title and owner line, ellipsis) inside the 80 px header.
 5. The preview toolbar, zoom, "Up to date" status line and footer note in 05.1/10.x are Phase 5/7; the AI Assistant card is shown with its current look until Phase 5.
 

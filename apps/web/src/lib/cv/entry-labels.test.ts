@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { educationCount, educationHeading, experienceCount, experienceHeading, studyLine } from "./entry-labels";
+import {
+  educationCount,
+  educationHeading,
+  experienceCount,
+  experienceHasContent,
+  experienceHeading,
+  experienceRemovalText,
+  studyLine,
+} from "./entry-labels";
 
 const TODAY = new Date("2026-06-01T00:00:00Z");
 
@@ -48,5 +56,31 @@ describe("studyLine", () => {
   it("states the ongoing study and the expected completion when there is one", () => {
     expect(studyLine("Present")).toBe("Currently studying");
     expect(studyLine("2029")).toBe("Currently studying · Expected completion in 2029");
+  });
+});
+
+describe("experience removal", () => {
+  const role = (bullets: string[], fields: Partial<Record<"employer" | "title" | "location" | "startDate" | "endDate", string>> = {}) => ({
+    employer: "",
+    title: "",
+    location: "",
+    startDate: "",
+    endDate: "",
+    ...fields,
+    bullets: bullets.map((value) => ({ value })),
+  });
+
+  it("says what goes with the role, counting only filled highlights", () => {
+    expect(experienceRemovalText(role([]))).toBe("This removes the experience from this CV.");
+    expect(experienceRemovalText(role(["One", "  "]))).toBe("This removes the experience and its highlight from this CV.");
+    expect(experienceRemovalText(role(["One", "Two"]))).toBe("This removes the experience and both highlights from this CV.");
+    expect(experienceRemovalText(role(["One", "Two", "Three"]))).toBe("This removes the experience and all 3 highlights from this CV.");
+  });
+
+  it("asks for confirmation only when the role holds something", () => {
+    expect(experienceHasContent(role([]))).toBe(false);
+    expect(experienceHasContent(role([" "]))).toBe(false);
+    expect(experienceHasContent(role([], { employer: "Kilona" }))).toBe(true);
+    expect(experienceHasContent(role(["Built it"]))).toBe(true);
   });
 });
