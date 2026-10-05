@@ -8,6 +8,7 @@
   "type": "module",
   "scripts": {
     "build": "pnpm run prisma:generate && nest build",
+    "dev": "pnpm run start:dev",
     "deploy": "nest deploy",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "pnpm run prisma:generate && nest start",
