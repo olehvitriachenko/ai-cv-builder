@@ -3,7 +3,7 @@ import {
   MAX_SOURCE_CHARS,
   MAX_TARGET_ROLE_CHARS,
   MIN_SOURCE_CHARS,
-} from '../../common/source-limits.js';
+} from '../../../common/source-limits.js';
 
 function requiredText(label: string) {
   return z.string({

@@ -1,23 +1,23 @@
 import { Injectable } from '@nestjs/common';
-import { ApiError } from '../../common/http/api-error.js';
-import { MAX_PDF_PAGES, MAX_SOURCE_CHARS } from '../../common/source-limits.js';
+import { ApiError } from '../../../common/http/api-error.js';
+import { MAX_PDF_PAGES, MAX_SOURCE_CHARS } from '../../../common/source-limits.js';
 import type {
   FailureReason,
   GenerationStatus,
   QuestionSection,
   QuestionStatus,
   SourceType,
-} from '../../generated/prisma/enums.js';
-import { PrismaService } from '../../infrastructure/index.js';
+} from '../../../generated/prisma/enums.js';
+import { PrismaService } from '../../../infrastructure/index.js';
 import {
   PdfExtractionError,
   PdfTextExtractor,
   type PdfExtractionFailure,
-} from '../pdf/pdf-text-extractor.service.js';
-import type { CreateCvInput } from './cv.schemas.js';
-import { cvDraftSchema, type CvDraft } from './generation/draft.schema.js';
-import { GenerationRunner } from './generation/generation-runner.service.js';
-import type { PdfUploadInput } from './cv-upload.js';
+} from '../../pdf/pdf-text-extractor.service.js';
+import type { CreateCvInput } from '../schemas/cv.schemas.js';
+import { cvDraftSchema, type CvDraft } from '../generation/draft.schema.js';
+import { GenerationRunner } from '../generation/generation-runner.service.js';
+import type { PdfUploadInput } from '../upload/cv-upload.js';
 
 /**
  * Public status resource of a CV (the polling target). Deliberately has no `userId`,

@@ -1,9 +1,9 @@
 import type { FastifyRequest } from 'fastify';
-import { errorCode } from '../../common/errors.js';
-import { ApiError, type FieldErrors } from '../../common/http/api-error.js';
-import { MAX_PDF_BYTES } from '../../common/source-limits.js';
-import { hasPdfSignature } from '../pdf/pdf-text-extractor.service.js';
-import { targetRoleSchema } from './cv.schemas.js';
+import { errorCode } from '../../../common/errors.js';
+import { ApiError, type FieldErrors } from '../../../common/http/api-error.js';
+import { MAX_PDF_BYTES } from '../../../common/source-limits.js';
+import { hasPdfSignature } from '../../pdf/pdf-text-extractor.service.js';
+import { targetRoleSchema } from '../schemas/cv.schemas.js';
 
 export interface PdfUploadInput {
   targetRole: string;
