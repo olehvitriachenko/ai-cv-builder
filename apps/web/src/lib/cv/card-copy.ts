@@ -22,24 +22,23 @@ export function cardMessage(item: Pick<CvListItem, "displayStatus" | "openQuesti
 export interface CardActions {
   /** The main action: where the user goes next. */
   primary: "open" | "progress" | "retry" | "none";
-  /** Always disabled until the PDF export feature exists; hidden where the CV has no content. */
-  downloadPdf: "disabled" | "hidden";
   delete: "enabled" | "disabled";
 }
 
 /**
  * Which actions a card offers. Retry availability is the server's decision (`canRetry`), never
- * assumed from the status here. Generating CVs cannot be deleted.
+ * assumed from the status here. Generating CVs cannot be deleted. Download PDF is on every card of
+ * the Figma design and disabled until the PDF export feature exists, so it is not decided here.
  */
 export function cardActions(item: Pick<CvListItem, "status" | "displayStatus" | "canRetry">): CardActions {
   const generating = item.status === "PENDING" || item.status === "PROCESSING";
   if (generating) {
-    return { primary: "progress", downloadPdf: "hidden", delete: "disabled" };
+    return { primary: "progress", delete: "disabled" };
   }
   if (item.displayStatus === "FAILED") {
-    return { primary: item.canRetry ? "retry" : "none", downloadPdf: "hidden", delete: "enabled" };
+    return { primary: item.canRetry ? "retry" : "none", delete: "enabled" };
   }
-  return { primary: "open", downloadPdf: "disabled", delete: "enabled" };
+  return { primary: "open", delete: "enabled" };
 }
 
 /** "5 Oct 2026, 10:42". Empty for an unparseable date rather than "Invalid Date". */

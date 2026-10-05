@@ -40,13 +40,9 @@ describe("cardName", () => {
 });
 
 describe("cardActions", () => {
-  it("offers Open and a disabled Download PDF on Draft and Completed cards, and Delete", () => {
+  it("offers Open and Delete on Draft and Completed cards", () => {
     for (const displayStatus of ["DRAFT", "COMPLETED"] as const) {
-      expect(cardActions(item({ displayStatus }))).toEqual({
-        primary: "open",
-        downloadPdf: "disabled",
-        delete: "enabled",
-      });
+      expect(cardActions(item({ displayStatus }))).toEqual({ primary: "open", delete: "enabled" });
     }
   });
 
@@ -54,7 +50,6 @@ describe("cardActions", () => {
     for (const status of ["PENDING", "PROCESSING"] as const) {
       expect(cardActions(item({ status, displayStatus: "PROCESSING" }))).toEqual({
         primary: "progress",
-        downloadPdf: "hidden",
         delete: "disabled",
       });
     }
@@ -64,12 +59,10 @@ describe("cardActions", () => {
     const failed = { status: "FAILED", displayStatus: "FAILED", failureReason: "TIMED_OUT" } as const;
     expect(cardActions(item({ ...failed, canRetry: true }))).toEqual({
       primary: "retry",
-      downloadPdf: "hidden",
       delete: "enabled",
     });
     expect(cardActions(item({ ...failed, canRetry: false }))).toEqual({
       primary: "none",
-      downloadPdf: "hidden",
       delete: "enabled",
     });
   });
