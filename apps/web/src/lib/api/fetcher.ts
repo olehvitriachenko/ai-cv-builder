@@ -29,13 +29,18 @@ const errorBodySchema = z.object({
 
 export interface ApiFetchOptions<TBody = undefined> {
   method?: HttpMethod;
+  /** JSON-serialised, except `FormData`, which is sent as multipart (the browser sets the boundary). */
   body?: TBody;
   /** Incoming `cookie` header to forward. Only needed for server-side calls. */
   cookie?: string;
 }
 
+function serializeBody(body: unknown): BodyInit {
+  return body instanceof FormData ? body : JSON.stringify(body);
+}
+
 /**
- * Transport only: JSON in, Zod-validated JSON out, errors normalised to `ApiError`.
+ * Transport only: JSON (or FormData) in, Zod-validated JSON out, errors normalised to `ApiError`.
  * A response body is only returned when the caller supplies a schema for it, so nothing is
  * forced into a type with a cast. Calls without a schema resolve to `void`.
  */
@@ -52,7 +57,7 @@ export async function apiFetch<TResponse, TBody = undefined>(
   options: ApiFetchOptions<TBody> & { schema?: z.ZodType<TResponse> } = {},
 ): Promise<TResponse | void> {
   const headers: Record<string, string> = { Accept: 'application/json' };
-  if (options.body !== undefined) {
+  if (options.body !== undefined && !(options.body instanceof FormData)) {
     headers['Content-Type'] = 'application/json';
   }
   if (options.cookie) {
@@ -64,7 +69,7 @@ export async function apiFetch<TResponse, TBody = undefined>(
     response = await fetch(`${API_BASE_URL}${path}`, {
       method: options.method ?? 'GET',
       headers,
-      body: options.body === undefined ? undefined : JSON.stringify(options.body),
+      body: options.body === undefined ? undefined : serializeBody(options.body),
       credentials: 'include',
       cache: 'no-store',
     });

@@ -24,12 +24,19 @@ export function SignOutButton() {
   }
 
   return (
-    <div className="flex flex-col gap-2">
-      <Button type="button" onClick={onClick} disabled={pending}>
+    <div className="flex flex-col items-end gap-1">
+      <Button
+        type="button"
+        variant="secondary"
+        size="compact"
+        stretch={false}
+        onClick={onClick}
+        disabled={pending}
+      >
         {pending ? "Signing out…" : "Sign out"}
       </Button>
       {failed ? (
-        <p role="alert" className="text-sm text-red-700 dark:text-red-400">
+        <p role="alert" className="text-xs text-danger">
           <span className="font-medium">Error: </span>
           Could not sign out. Please try again.
         </p>
