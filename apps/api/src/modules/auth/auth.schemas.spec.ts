@@ -1,4 +1,4 @@
-import { registerSchema } from './auth.schemas.js';
+import { loginSchema, registerSchema } from './auth.schemas.js';
 
 const validPassword = 'correct horse battery';
 
@@ -67,5 +67,43 @@ describe('registerSchema', () => {
     expect(registerSchema.safeParse({}).success).toBe(false);
     expect(registerSchema.safeParse({ email: 123, password: true }).success).toBe(false);
     expect(registerSchema.safeParse(undefined).success).toBe(false);
+  });
+});
+
+describe('loginSchema', () => {
+  it('normalises the email the same way as registration', () => {
+    const result = loginSchema.parse({ email: '  Ada@Example.COM ', password: 'x' });
+
+    expect(result.email).toBe('ada@example.com');
+  });
+
+  it('does not enforce an email format, so a malformed address is just a failed login', () => {
+    expect(loginSchema.safeParse({ email: 'not-an-email', password: 'x' }).success).toBe(true);
+  });
+
+  it('requires a non-empty email of at most 254 characters', () => {
+    expect(loginSchema.safeParse({ email: '', password: 'x' }).success).toBe(false);
+    expect(loginSchema.safeParse({ email: '   ', password: 'x' }).success).toBe(false);
+    expect(loginSchema.safeParse({ email: 'a'.repeat(254), password: 'x' }).success).toBe(true);
+    expect(loginSchema.safeParse({ email: 'a'.repeat(255), password: 'x' }).success).toBe(false);
+  });
+
+  it('requires a password of 1 to 128 characters', () => {
+    expect(loginSchema.safeParse({ email: 'a@b.co', password: '' }).success).toBe(false);
+    expect(loginSchema.safeParse({ email: 'a@b.co', password: 'x' }).success).toBe(true);
+    expect(loginSchema.safeParse({ email: 'a@b.co', password: 'x'.repeat(128) }).success).toBe(
+      true,
+    );
+    expect(loginSchema.safeParse({ email: 'a@b.co', password: 'x'.repeat(129) }).success).toBe(
+      false,
+    );
+  });
+
+  it('rejects missing values and strips unknown keys', () => {
+    expect(loginSchema.safeParse({}).success).toBe(false);
+    expect(loginSchema.parse({ email: 'a@b.co', password: 'x', userId: 'z' })).toEqual({
+      email: 'a@b.co',
+      password: 'x',
+    });
   });
 });

@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ApiError } from '../../common/http/api-error.js';
 import { Prisma } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../infrastructure/index.js';
-import type { RegisterInput } from './auth.schemas.js';
+import type { LoginInput, RegisterInput } from './auth.schemas.js';
 import type { AuthUser } from './auth.types.js';
 import { PasswordService } from './password.service.js';
 import { SessionService } from './session.service.js';
@@ -54,5 +54,39 @@ export class AuthService {
       }
       throw error;
     }
+  }
+
+  /**
+   * Unknown email and wrong password are indistinguishable: the same error, and a dummy
+   * password verification keeps the work done similar when the user does not exist.
+   * `input.email` is already normalised.
+   */
+  async login(input: LoginInput): Promise<AuthResult> {
+    const user = await this.prisma.user.findUnique({
+      where: { email: input.email },
+      select: { id: true, email: true, passwordHash: true },
+    });
+
+    const passwordMatches = user
+      ? await this.passwords.verify(user.passwordHash, input.password)
+      : await this.passwords.verifyDummy(input.password);
+
+    if (!user || !passwordMatches) {
+      this.logger.warn('auth.login.failed');
+      throw new ApiError(401, 'INVALID_CREDENTIALS', 'Invalid email or password');
+    }
+
+    const session = await this.sessions.create(user.id);
+
+    this.logger.log(`auth.login userId=${user.id}`);
+    return { user: { id: user.id, email: user.email }, ...session };
+  }
+
+  /** Idempotent: revokes the session when there is one; there is nothing to do otherwise. */
+  async logout(rawToken: string | undefined): Promise<void> {
+    if (rawToken) {
+      await this.sessions.revoke(rawToken);
+    }
+    this.logger.log('auth.logout');
   }
 }

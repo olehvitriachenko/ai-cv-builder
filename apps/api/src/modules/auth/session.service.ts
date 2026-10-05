@@ -29,6 +29,19 @@ export class SessionService {
     };
   }
 
+  /** Persists a new session for the user and returns the raw token for the cookie. */
+  async create(userId: string): Promise<Pick<IssuedSession, 'token' | 'expiresAt'>> {
+    const { token, tokenHash, expiresAt } = this.issue();
+
+    await this.prisma.session.create({ data: { userId, tokenHash, expiresAt } });
+    return { token, expiresAt };
+  }
+
+  /** Ends the session for this raw token. Never throws when it does not exist. */
+  async revoke(rawToken: string): Promise<void> {
+    await this.prisma.session.deleteMany({ where: { tokenHash: hashSessionToken(rawToken) } });
+  }
+
   /**
    * Resolves a raw cookie value to its user, or `null` when the session is unknown, expired or
    * gone. An expired row found here is deleted. Sessions of deleted users cascade away, so a
