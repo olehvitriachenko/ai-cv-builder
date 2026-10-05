@@ -47,5 +47,12 @@ export const answerBodySchema = z.object({
 
 export type AnswerBody = z.output<typeof answerBodySchema>;
 
+/** The revision of the CV the person is looking at when they apply (optimistic concurrency). */
+export const applyBodySchema = z.object({
+  revision: z.number({ error: 'Revision is required' }).int().nonnegative(),
+});
+
+export type ApplyBody = z.output<typeof applyBodySchema>;
+
 /** Route parameter: Prisma generates cuid ids. */
 export const questionIdSchema = z.cuid({ error: 'Invalid question id' });

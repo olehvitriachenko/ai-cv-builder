@@ -257,7 +257,7 @@ describe('PUT /api/cvs/:id/draft (manual editing)', () => {
       }),
     ]);
 
-    expect([one.statusCode, two.statusCode].sort()).toEqual([200, 409]);
+    expect([one.statusCode, two.statusCode].sort((x, y) => x - y)).toEqual([200, 409]);
     const result = await readResult(user.cookie, id);
     expect(result.revision).toBe(1);
     expect(['Writer one', 'Writer two']).toContain(result.draft.summary);

@@ -11,8 +11,10 @@ import { llmCvOutputSchema } from '../schemas/llm-cv-output.schema.js';
 import { PROMPT_VERSION, buildSystemPrompt, buildUserContent } from '../prompts/cv-draft.prompt.js';
 
 /**
- * The ONLY file that imports the Anthropic SDK. Everything provider-specific stays here: the
- * request shape, structured output, error classification and the missing-key behaviour.
+ * Together with `anthropic-answer-applier.ts` (which reuses the client factory and the error
+ * mapping below), the only code that imports the Anthropic SDK. Everything provider-specific stays
+ * in `ai/services`: the request shape, structured output, error classification and the missing-key
+ * behaviour.
  */
 
 /** Thinking tokens count toward max_tokens; the structured CV itself is a few thousand tokens. */
@@ -77,7 +79,8 @@ export function isRetryable(error: unknown): boolean {
   );
 }
 
-function toProviderError(error: unknown): unknown {
+/** Maps an SDK failure to the app's `ProviderError` (safe tokens only); shared by both adapters. */
+export function toProviderError(error: unknown): unknown {
   if (error instanceof APIUserAbortError) {
     // Our own deadline fired; the caller recognises its aborted signal.
     return error;

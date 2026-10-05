@@ -119,6 +119,7 @@ Body `{ revision: number }`: the revision the user is looking at. Applies an `AN
 | `409` | `QUESTION_STATE_CONFLICT` | The question is not `ANSWERED` (includes the second of two concurrent applies) |
 | `409` | `REVISION_CONFLICT` | The revision is stale, before the AI call or at commit time. Nothing changes |
 | `409` | `TARGET_NOT_APPLICABLE` | The target entry was removed, the target value is already filled, or the summary is already present. Nothing changes; the user edits manually or dismisses |
+| `422` | `ANSWER_INVALID_FOR_FIELD` | A question with a `field` was answered with something that does not fit that field (not an email, longer than the field allows, blank). Nothing changes; the user edits the answer, or dismisses and edits the CV by hand |
 | `422` | `APPLY_OUTPUT_INVALID` | AI output failed structure, unsupported-fact or no-overwrite validation after the single retry. Nothing changes |
 | `503` | `AI_UNAVAILABLE` | Provider error, timeout or missing key. Nothing changes; deterministic questions are unaffected |
 
