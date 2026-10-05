@@ -94,8 +94,10 @@ export function refusalMessage(refusal: SkillRefusal, skill: string): string {
 }
 
 /** The sentence shown under the category field when a category cannot be chosen. */
-export function categoryRefusalMessage(refusal: CategoryRefusal): string {
+export function categoryRefusalMessage(refusal: CategoryRefusal | { reason: "taken"; category: string }): string {
   switch (refusal.reason) {
+    case "taken":
+      return `${refusal.category} is already a category in this CV.`;
     case "blank":
       return "Choose or enter a category name.";
     case "too_long":
@@ -140,6 +142,33 @@ export function addCategory(
     return { ok: false, refusal: { reason: "limit", max: MAX_CATEGORIES } };
   }
   return { ok: true, categories: [...categories, { id, name: trimmed, skills: [] }], id, created: true };
+}
+
+export type RenameResult =
+  | { ok: true; categories: SkillCategoryFormEntry[] }
+  | { ok: false; refusal: CategoryRefusal | { reason: "taken"; category: string } };
+
+/** Gives a category another name; a name another category already has is refused (skills never merge). */
+export function renameCategory(
+  categories: readonly SkillCategoryFormEntry[],
+  categoryId: string,
+  name: string,
+): RenameResult {
+  const trimmed = name.trim();
+  if (trimmed === "") {
+    return { ok: false, refusal: { reason: "blank" } };
+  }
+  if (trimmed.length > MAX_CATEGORY_NAME_LENGTH) {
+    return { ok: false, refusal: { reason: "too_long", max: MAX_CATEGORY_NAME_LENGTH } };
+  }
+  const other = categories.find((entry) => entry.id !== categoryId && sameText(entry.name, trimmed));
+  if (other !== undefined) {
+    return { ok: false, refusal: { reason: "taken", category: other.name } };
+  }
+  return {
+    ok: true,
+    categories: categories.map((entry) => (entry.id === categoryId ? { ...entry, name: trimmed } : entry)),
+  };
 }
 
 export function removeCategory(categories: readonly SkillCategoryFormEntry[], categoryId: string): SkillCategoryFormEntry[] {

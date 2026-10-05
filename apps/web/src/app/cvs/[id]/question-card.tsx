@@ -1,12 +1,11 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Download } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { TextareaField } from "@/components/ui/field";
 import { answerQuestion, dismissQuestion, type ClarificationQuestion, type CvDraft } from "@/lib/api/cvs";
-import { expireActionFeedback } from "@/lib/cv/action-feedback";
+import { expireActionFeedback, FEEDBACK_FADE_MS } from "@/lib/cv/action-feedback";
 import { isApiError } from "@/lib/api/fetcher";
 import { ApplyBlockedError, ApplyFailureError, type ApplyAction, type ApplyFailure } from "@/lib/cv/apply-flow";
 import { CVS_QUERY_KEY } from "@/lib/cv/query-keys";
@@ -71,10 +70,16 @@ export function QuestionCard({
   const view = questionView(question);
   const context = questionContext(question, draft);
   const [keepVisible, setKeepVisible] = useState(false);
+  const [leaving, setLeaving] = useState(false);
   useEffect(() => {
-    if (!view.resolved || keepVisible) return;
-    return expireActionFeedback(() => onExpire(question.id));
-  }, [view.resolved, keepVisible, question.id, onExpire]);
+    if (!view.resolved || keepVisible || leaving) return;
+    return expireActionFeedback(() => setLeaving(true));
+  }, [view.resolved, keepVisible, leaving]);
+  useEffect(() => {
+    if (!leaving) return;
+    const timer = window.setTimeout(() => onExpire(question.id), FEEDBACK_FADE_MS);
+    return () => window.clearTimeout(timer);
+  }, [leaving, question.id, onExpire]);
   const answerRef = useRef<HTMLTextAreaElement>(null);
   const [text, setText] = useState(question.answer ?? "");
   const [applying, setApplying] = useState(false);
@@ -110,8 +115,8 @@ export function QuestionCard({
     // `save` is stable enough; the inputs that decide whether to save are listed.
   }, [text, question.answer, view.canAnswer, saving, saveFailed, save]);
 
-  // Auto-grow: the field starts one line high, like the design, and follows the text.
-  useEffect(() => {
+  // Resize before paint so the textarea never flashes back to its one-line height.
+  useLayoutEffect(() => {
     const element = answerRef.current;
     if (element) {
       element.style.height = "auto";
@@ -185,13 +190,14 @@ export function QuestionCard({
     const applied = question.status === "APPLIED";
     return (
       <li
+        inert={leaving}
         onMouseEnter={() => setKeepVisible(true)}
         onMouseLeave={() => setKeepVisible(false)}
         onFocus={() => setKeepVisible(true)}
         onBlur={(event) => {
           if (!event.currentTarget.contains(event.relatedTarget)) setKeepVisible(false);
         }}
-        className={`flex flex-col gap-2 rounded-[10px] border p-3 ${
+        className={`flex flex-col gap-2 rounded-[10px] border p-3 motion-safe:transition-opacity motion-safe:duration-150 ${leaving ? "opacity-0" : "opacity-100"} ${
           applied ? "border-[#d7e9e1] bg-[#f7fbf9]" : "border-line bg-surface"
         }`}
       >
@@ -228,7 +234,7 @@ export function QuestionCard({
             <span className={KIND_PILL}>Factual</span>
             <p className="min-w-0 text-[11px] leading-[normal] break-words text-muted">{context}</p>
           </div>
-          <span className="shrink-0 text-[10px] leading-[normal] font-semibold text-accent">{view.label}</span>
+          <span className="w-20 shrink-0 text-right text-[10px] leading-[normal] font-semibold text-accent">{view.label}</span>
         </div>
         <p className="text-[13px] leading-[1.4] font-semibold break-words text-ink">{question.question}</p>
         <TextareaField
@@ -256,19 +262,18 @@ export function QuestionCard({
         </div>
       ) : null}
 
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="grid grid-cols-2 items-center gap-2 sm:flex sm:flex-wrap">
         <Button
           type="button"
           variant={applyEnabled ? "primary" : "secondary"}
           stretch={false}
           disabled={!applyEnabled}
-          className="motion-safe:transition-[background-color,color,border-color,opacity,transform] motion-safe:duration-150 motion-safe:active:scale-[0.98]"
+          className="w-full whitespace-nowrap sm:w-32"
           onClick={() => void apply()}
         >
-          {!applyEnabled && !applying ? <Download aria-hidden className="size-4" strokeWidth={1.75} /> : null}
           {applying ? "Applying…" : "Apply to CV"}
         </Button>
-        <Button type="button" variant="text" stretch={false} disabled={busy} className="motion-safe:transition-[background-color,color,opacity,transform] motion-safe:duration-150 motion-safe:active:scale-[0.98]" onClick={() => dismiss.mutate()}>
+        <Button type="button" variant="text" stretch={false} disabled={busy} className="w-full whitespace-nowrap sm:w-32" onClick={() => dismiss.mutate()}>
           {dismiss.isPending ? "Dismissing…" : "Dismiss"}
         </Button>
         {saveState === "error" ? (

@@ -12,7 +12,7 @@ export function SkillChip({ skill, onRemove }: { skill: string; onRemove: () => 
         type="button"
         aria-label={`Remove ${skill}`}
         onClick={onRemove}
-        className="flex size-11 shrink-0 items-center justify-center rounded-lg border border-white text-sm leading-none font-semibold text-accent hover:bg-accent-tint focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent"
+        className="flex size-11 shrink-0 items-center justify-center rounded-lg border border-white text-sm leading-none font-semibold text-[#707887] hover:bg-accent-tint hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent"
       >
         <span aria-hidden>×</span>
       </button>

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { computeCompleteness } from "@/lib/cv/completeness";
+import { revealMissingItem } from "./section-links";
 import type { DraftFormValues } from "@/lib/cv/draft-form";
 
 /** What to do for a missing item, as the phone layout lists it ("+10% · Add phone number"). */
@@ -59,8 +60,10 @@ export function CompletenessCard({ values }: { values: DraftFormValues }) {
         {left > 0 ? (
           <ul aria-label="Missing details" className="flex flex-col gap-1">
             {missing.map((item) => (
-              <li key={item.id} className="flex items-center gap-1.5 text-[11px] leading-[normal] text-muted">
-                <span aria-hidden className="size-[5px] shrink-0 rounded-full bg-[#f79009]" />+{item.gain}% · {actionLabel(item)}
+              <li key={item.id}>
+                <button type="button" onClick={() => revealMissingItem(item.id)} className="flex min-h-11 w-full items-center gap-1.5 rounded-lg text-left text-[11px] leading-[normal] text-muted hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent motion-safe:transition-colors">
+                  <span aria-hidden className="size-[5px] shrink-0 rounded-full bg-[#f79009]" />+{item.gain}% · {actionLabel(item)}
+                </button>
               </li>
             ))}
           </ul>
@@ -98,11 +101,10 @@ export function CompletenessCard({ values }: { values: DraftFormValues }) {
       {left > 0 ? (
         <ul aria-label="Missing details" className="hidden flex-wrap gap-1.5 sm:flex">
           {missing.map((item) => (
-            <li
-              key={item.id}
-              className="rounded-full border border-line bg-canvas px-2 py-0.5 text-[11px] leading-[normal] text-muted"
-            >
-              +{item.gain}% {item.label}
+            <li key={item.id}>
+              <button type="button" onClick={() => revealMissingItem(item.id)} aria-label={actionLabel(item)} className="rounded-full border border-line bg-canvas px-2 py-0.5 text-[11px] leading-[normal] text-muted hover:border-accent-line hover:bg-accent-tint hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent motion-safe:transition-colors">
+                +{item.gain}% {item.label}
+              </button>
             </li>
           ))}
         </ul>

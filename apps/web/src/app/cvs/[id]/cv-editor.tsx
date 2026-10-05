@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { withAssistantTransition } from "@/lib/cv/action-feedback";
 import { getCvResult, type CvResult } from "@/lib/api/cvs";
 import { EditorWorkspace } from "./editor-workspace";
 
@@ -24,7 +23,7 @@ export function CvEditor({ cvId, initialResult }: { cvId: string; initialResult:
       result={version.result}
       fetchLatest={() => getCvResult(cvId)}
       notice={version.notice}
-      onReplace={(result, notice) => withAssistantTransition(() => setVersion((current) => ({ key: current.key + 1, result, notice: notice ?? null })))}
+      onReplace={(result, notice) => setVersion((current) => ({ key: current.key + 1, result, notice: notice ?? null }))}
     />
   );
 }

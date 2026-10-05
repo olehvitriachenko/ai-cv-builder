@@ -13,6 +13,7 @@ import {
   refusalMessage,
   removeCategory,
   removeSkill,
+  renameCategory,
   skillCount,
   suggestionStates,
 } from "./skills-form";
@@ -149,6 +150,36 @@ describe("addCategory", () => {
 
     expect(addCategory(twelve, "One more", "x")).toEqual({ ok: false, refusal: { reason: "limit", max: MAX_CATEGORIES } });
     expect(addCategory(twelve, "name 3", "x").ok).toBe(true);
+  });
+});
+
+describe("renameCategory", () => {
+  it("renames one category and keeps its skills and place", () => {
+    const result = renameCategory(base(), "c", "  Cloud & Infrastructure ");
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(names(result.categories)).toEqual(["Programming Languages", "Frameworks", "Cloud & Infrastructure"]);
+    }
+  });
+
+  it("allows keeping the same name in another case", () => {
+    expect(renameCategory(base(), "b", "FRAMEWORKS").ok).toBe(true);
+  });
+
+  it("refuses a name another category has, naming it, and a blank or too long name", () => {
+    expect(renameCategory(base(), "c", "frameworks")).toEqual({
+      ok: false,
+      refusal: { reason: "taken", category: "Frameworks" },
+    });
+    expect(renameCategory(base(), "c", " ")).toEqual({ ok: false, refusal: { reason: "blank" } });
+    expect(renameCategory(base(), "c", "y".repeat(61))).toEqual({ ok: false, refusal: { reason: "too_long", max: 60 } });
+  });
+
+  it("explains a taken name in words", () => {
+    expect(categoryRefusalMessage({ reason: "taken", category: "Frameworks" })).toBe(
+      "Frameworks is already a category in this CV.",
+    );
   });
 });
 

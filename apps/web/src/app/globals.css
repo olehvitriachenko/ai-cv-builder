@@ -66,24 +66,3 @@ body {
     scroll-padding-bottom: 7rem;
   }
 }
-
-/* Apply/dismiss morph the assistant without cross-fading the entire editor. */
-::view-transition-old(root),
-::view-transition-new(root) {
-  animation: none;
-}
-
-::view-transition-group(cv-assistant),
-::view-transition-old(cv-assistant),
-::view-transition-new(cv-assistant) {
-  animation-duration: 220ms;
-  animation-timing-function: ease-out;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  ::view-transition-group(cv-assistant),
-  ::view-transition-old(cv-assistant),
-  ::view-transition-new(cv-assistant) {
-    animation: none;
-  }
-}

@@ -189,8 +189,8 @@ export function EditorWorkspace({
             </p>
           </div>
 
-          {/* Sticky on desktop; the panel scrolls inside when the sheet is taller than the window. */}
-          <div className={`${previewPane} min-w-0 flex-1 flex-col lg:sticky lg:top-28 lg:max-h-[calc(100dvh-8rem)] lg:overflow-y-auto`}>
+          {/* Sticky on desktop; tall documents use the page scroll rather than a nested scrollbar. */}
+          <div className={`${previewPane} min-w-0 flex-1 flex-col lg:sticky lg:top-28`}>
             <PreviewPanel
               draft={draft}
               targetRole={targetRole}

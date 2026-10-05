@@ -20,7 +20,7 @@ export function SectionCard({
   children: ReactNode;
 }) {
   return (
-    <section id={id} aria-label={title} className="flex scroll-mt-24 flex-col gap-4 rounded-xl border border-line bg-surface p-4">
+    <section id={id} aria-label={title} className="flex scroll-mt-24 flex-col gap-4 rounded-xl border border-line bg-surface p-4 [&_button]:scroll-mt-24 [&_input]:scroll-mt-24 [&_select]:scroll-mt-24 [&_textarea]:scroll-mt-24">
       <header className="flex flex-col gap-2">
         {aside ? (
           <div className="flex items-baseline justify-between gap-3">
