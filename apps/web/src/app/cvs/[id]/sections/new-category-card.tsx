@@ -1,5 +1,6 @@
 "use client";
 
+import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";
 import { FieldFrame } from "@/components/ui/field";
@@ -14,10 +15,13 @@ export function NewCategoryCard({
   options,
   message,
   onChoose,
+  onDismiss,
 }: {
   options: readonly string[];
   message: string | null;
   onChoose: (name: string) => void;
+  /** Removes the empty card; "+ Add skills" brings it back. */
+  onDismiss: () => void;
 }) {
   return (
     <section aria-label="New category" className="flex flex-col gap-3 rounded-xl border border-line bg-canvas p-4">
@@ -28,6 +32,16 @@ export function NewCategoryCard({
         options={options}
         {...CATEGORY_COMBOBOX}
         onSelect={onChoose}
+        trailing={
+          <button
+            type="button"
+            aria-label="Remove empty category"
+            onClick={onDismiss}
+            className="flex size-11 shrink-0 items-center justify-center rounded-lg border border-line bg-surface text-muted hover:border-danger hover:bg-danger-tint hover:text-danger focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          >
+            <Trash2 aria-hidden className="size-[18px]" strokeWidth={1.75} />
+          </button>
+        }
       />
       {message ? (
         <p role="alert" className="text-xs text-danger">

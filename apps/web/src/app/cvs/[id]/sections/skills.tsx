@@ -38,6 +38,8 @@ export function Skills() {
   const [newMessage, setNewMessage] = useState<string | null>(null);
   const [removing, setRemoving] = useState<string | null>(null);
   const newCardRef = useRef<HTMLDivElement>(null);
+  // The empty "New category" card can be removed; "+ Add skills" brings it back.
+  const [newVisible, setNewVisible] = useState(true);
 
   const total = skillCount(categories);
   const filled = categories.filter((entry) => entry.skills.some((item) => item.value.trim() !== "")).length;
@@ -95,9 +97,9 @@ export function Skills() {
           }
         />
       ))}
-      {categories.length < MAX_CATEGORIES ? (
+      {categories.length < MAX_CATEGORIES && newVisible ? (
         <div ref={newCardRef}>
-          <NewCategoryCard options={options} message={newMessage} onChoose={choose} />
+          <NewCategoryCard options={options} message={newMessage} onChoose={choose} onDismiss={() => setNewVisible(false)} />
         </div>
       ) : null}
       {/* "+ Add skills": go to the New category card and open its category list. */}
@@ -108,9 +110,13 @@ export function Skills() {
         className="w-full"
         disabled={categories.length >= MAX_CATEGORIES}
         onClick={() => {
-          const trigger = newCardRef.current?.querySelector<HTMLButtonElement>("button[aria-haspopup=listbox]");
-          trigger?.scrollIntoView({ block: "center" });
-          trigger?.click();
+          setNewVisible(true);
+          // The card may have just been brought back: open its list after it is on screen.
+          setTimeout(() => {
+            const trigger = newCardRef.current?.querySelector<HTMLButtonElement>("button[aria-haspopup=listbox]");
+            trigger?.scrollIntoView({ block: "center" });
+            trigger?.click();
+          }, 0);
         }}
       >
         + Add skills
