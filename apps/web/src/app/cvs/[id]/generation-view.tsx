@@ -94,7 +94,7 @@ export function GenerationView({ initialStatus }: { initialStatus: CvStatus }) {
   const connectionTrouble = statusQuery.isError && !failed;
 
   return (
-    <div className="mx-auto flex w-full max-w-[1120px] flex-col gap-8 px-4 py-8 sm:px-8 sm:py-14 lg:px-12">
+    <div className="mx-auto flex w-full max-w-[1008px] flex-col gap-6 px-6 pt-6 pb-8 sm:gap-8 sm:pt-14 sm:pb-16">
       <GenerationIntro
         badge={<StatusBadge status={status.status} />}
         title={TITLES[status.status]}
@@ -123,7 +123,7 @@ export function GenerationView({ initialStatus }: { initialStatus: CvStatus }) {
         <div className="hidden lg:block">
           <DraftSkeleton
             caption={failed ? "Draft not created yet" : "Your CV is taking shape"}
-            note={failed ? "Retry to build your draft." : "Your draft will appear here."}
+            note={failed ? "Retry to build your editable draft." : "You’ll be able to edit every section next."}
           />
         </div>
       </div>

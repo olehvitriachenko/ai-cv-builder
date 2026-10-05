@@ -1,6 +1,7 @@
-import { Body, Controller, Delete, Get, HttpCode, Param, Post, Put, Req } from '@nestjs/common';
-import type { FastifyRequest } from 'fastify';
+import { Body, Controller, Delete, Get, HttpCode, Param, Post, Put, Req, Res } from '@nestjs/common';
+import type { FastifyReply, FastifyRequest } from 'fastify';
 import { ZodValidationPipe } from '../../common/http/zod-validation.pipe.js';
+import { contentDisposition } from '../pdf/export/pdf-filename.js';
 import type { AuthUser } from '../auth/auth.types.js';
 import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
 import { createCvSchema, cvIdSchema, type CreateCvInput } from './schemas/cv.schemas.js';
@@ -10,6 +11,7 @@ import { readPdfUpload } from './upload/cv-upload.js';
 import type { CvListItem } from './list/cv-list.query.js';
 import { ClarificationService, type QuestionResponse } from './services/clarification.service.js';
 import { CvEditorService, type DraftSaveResponse } from './services/cv-editor.service.js';
+import { CvExportService } from './services/cv-export.service.js';
 import { CvService, type CvResultResponse, type CvStatusResponse } from './services/cv.service.js';
 
 /**
@@ -22,6 +24,7 @@ export class CvController {
     private readonly cvs: CvService,
     private readonly editor: CvEditorService,
     private readonly clarifications: ClarificationService,
+    private readonly exports: CvExportService,
   ) {}
 
   /** My CVs: the caller's CVs only, newest update first. No paging, no query parameters. */
@@ -68,6 +71,25 @@ export class CvController {
     @Param('id', new ZodValidationPipe(cvIdSchema)) id: string,
   ): Promise<CvResultResponse> {
     return this.cvs.getResult(user.id, id);
+  }
+
+  /**
+   * The latest saved draft as an A4 PDF download. Same ownership and "not ready" rules as
+   * `/result`; read-only, and never cached.
+   */
+  @Get(':id/pdf')
+  async exportPdf(
+    @CurrentUser() user: AuthUser,
+    @Param('id', new ZodValidationPipe(cvIdSchema)) id: string,
+    @Res({ passthrough: true }) reply: FastifyReply,
+  ): Promise<Buffer> {
+    const { bytes, filename } = await this.exports.export(user.id, id);
+    void reply
+      .header('Content-Type', 'application/pdf')
+      .header('Content-Disposition', contentDisposition(filename))
+      .header('Cache-Control', 'private, no-store')
+      .header('X-Content-Type-Options', 'nosniff');
+    return bytes;
   }
 
   /**

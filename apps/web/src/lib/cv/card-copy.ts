@@ -28,7 +28,7 @@ export interface CardActions {
 /**
  * Which actions a card offers. Retry availability is the server's decision (`canRetry`), never
  * assumed from the status here. Generating CVs cannot be deleted. Download PDF is on every card of
- * the Figma design and disabled until the PDF export feature exists, so it is not decided here.
+ * the Figma design; whether it is available is decided in `download-flow.ts`, so it is not decided here.
  */
 export function cardActions(item: Pick<CvListItem, "status" | "displayStatus" | "canRetry">): CardActions {
   const generating = item.status === "PENDING" || item.status === "PROCESSING";
