@@ -114,3 +114,29 @@ export function getCvResult(id: string): Promise<CvResult> {
 export function retryCv(id: string): Promise<CvStatus> {
   return apiFetch(`/cvs/${encodeURIComponent(id)}/retry`, { method: "POST", schema: cvStatusSchema });
 }
+
+export const displayStatusSchema = z.enum(["PROCESSING", "FAILED", "DRAFT", "COMPLETED"]);
+export type DisplayStatus = z.infer<typeof displayStatusSchema>;
+
+/** One My CVs card, as the server derives it: the client never inspects drafts or questions. */
+export const cvListItemSchema = z.object({
+  id: z.string(),
+  targetRole: z.string(),
+  status: generationStatusSchema,
+  displayStatus: displayStatusSchema,
+  failureReason: failureReasonSchema.nullable(),
+  /** Server-decided: true only when `POST /cvs/:id/retry` would be accepted. */
+  canRetry: z.boolean(),
+  updatedAt: z.string(),
+  candidateName: z.string().nullable(),
+  openQuestionsCount: z.number().int().nonnegative(),
+});
+export type CvListItem = z.infer<typeof cvListItemSchema>;
+
+export const cvListSchema = z.object({ items: z.array(cvListItemSchema) });
+export type CvList = z.infer<typeof cvListSchema>;
+
+/** `GET /api/cvs`: the caller's CVs, newest update first. `cookie` is only for server-side calls. */
+export function listCvs(cookie?: string): Promise<CvList> {
+  return apiFetch("/cvs", { schema: cvListSchema, cookie });
+}

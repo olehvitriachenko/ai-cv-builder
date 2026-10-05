@@ -30,7 +30,7 @@ export function LoginForm() {
     setFormError(null);
     try {
       await signIn(values);
-      router.replace("/");
+      router.replace("/cvs");
       router.refresh();
     } catch (error) {
       // One message for every credential failure: it never says which part was wrong.

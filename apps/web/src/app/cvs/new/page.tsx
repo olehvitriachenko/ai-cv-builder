@@ -11,11 +11,11 @@ export default function NewCvPage() {
   return (
     <div className="mx-auto flex w-full max-w-[800px] flex-1 flex-col gap-6 px-4 pt-8 pb-12 sm:px-6">
         <Link
-          href="/"
+          href="/cvs"
           className="flex w-fit items-center gap-2 rounded text-[13px] text-muted hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
         >
           <ArrowLeft aria-hidden className="size-4" strokeWidth={1.75} />
-          Home
+          Back to My CVs
         </Link>
 
         <div className="flex flex-col gap-2">

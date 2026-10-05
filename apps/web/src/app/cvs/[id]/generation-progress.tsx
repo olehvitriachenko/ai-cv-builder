@@ -162,13 +162,13 @@ export function GenerationProgress({ status, onRetry, retrying, retryError }: Ge
               <RotateCw aria-hidden className="size-4" strokeWidth={1.75} />
               {retrying ? "Retrying…" : "Retry generation"}
             </Button>
-            <ButtonLink href="/cvs/new" variant="secondary">
-              Start a new CV
+            <ButtonLink href="/cvs" variant="secondary">
+              Back to My CVs
             </ButtonLink>
           </>
         ) : (
-          <ButtonLink href="/" variant="secondary">
-            Back to home
+          <ButtonLink href="/cvs" variant="secondary">
+            Back to My CVs
           </ButtonLink>
         )}
       </div>

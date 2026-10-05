@@ -42,7 +42,7 @@ export function RegisterForm() {
     setFormError(null);
     try {
       await registerAccount(values);
-      router.replace("/");
+      router.replace("/cvs");
       router.refresh();
     } catch (error) {
       if (isApiError(error, 409)) {

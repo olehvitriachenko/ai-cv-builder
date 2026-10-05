@@ -8,9 +8,15 @@ export function CvNotFound() {
       <Card className="flex flex-col items-start gap-4 p-8">
         <h1 className="text-xl font-semibold text-ink">We couldn’t find this CV</h1>
         <p className="text-sm leading-[1.6] text-muted">
-          It may have been removed, or the link may be wrong. You can start a new CV instead.
+          It may have been removed, or the link may be wrong. You can go back to your CVs or start a
+          new one.
         </p>
-        <ButtonLink href="/cvs/new">Start a new CV</ButtonLink>
+        <div className="flex w-full flex-col gap-3 sm:flex-row">
+          <ButtonLink href="/cvs">Back to My CVs</ButtonLink>
+          <ButtonLink href="/cvs/new" variant="secondary">
+            Start a new CV
+          </ButtonLink>
+        </div>
       </Card>
     </div>
   );
