@@ -35,7 +35,7 @@ export function useCvEditor({
   cvId: string;
   result: CvResult;
   fetchLatest: () => Promise<CvResult>;
-  onReplace: (result: CvResult, notice?: string) => void;
+  onReplace: (result: CvResult, notice?: string, appliedQuestionId?: string) => void;
 }) {
   const [autosaver] = useState(
     () =>
@@ -113,7 +113,7 @@ export function useCvEditor({
         flush: () => autosaver.flush(),
         apply: (revision) => applyQuestion(cvId, question.id, revision),
       });
-      onReplace(updated, ANSWER_APPLIED_NOTICE);
+      onReplace(updated, ANSWER_APPLIED_NOTICE, question.id);
     } catch (error) {
       if (error instanceof ApplyBlockedError) {
         throw error;

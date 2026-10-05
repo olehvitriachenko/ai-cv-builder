@@ -35,6 +35,7 @@ export function EditorWorkspace({
   cvId,
   result,
   notice,
+  appliedQuestionId,
   fetchLatest,
   onReplace,
 }: {
@@ -42,8 +43,9 @@ export function EditorWorkspace({
   result: CvResult;
   /** A message from the previous action (for example "Answer applied"), shown once. */
   notice: string | null;
+  appliedQuestionId: string | null;
   fetchLatest: () => Promise<CvResult>;
-  onReplace: (result: CvResult, notice?: string) => void;
+  onReplace: (result: CvResult, notice?: string, appliedQuestionId?: string) => void;
 }) {
   const editor = useCvEditor({ cvId, result, fetchLatest, onReplace });
   const { form, saveState, draft, targetRole, invalid, autosaver } = editor;
@@ -171,6 +173,7 @@ export function EditorWorkspace({
             <ClarificationPanel
               cvId={cvId}
               initialQuestions={result.questions}
+              appliedQuestionId={appliedQuestionId}
               draft={draft}
               onApply={editor.handleApply}
               onReviewLatest={editor.reviewLatest}

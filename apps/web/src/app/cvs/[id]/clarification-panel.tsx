@@ -4,7 +4,7 @@ import { Sparkles } from "lucide-react";
 import { useCallback, useState } from "react";
 import { Card } from "@/components/ui/card";
 import type { ClarificationQuestion, CvDraft } from "@/lib/api/cvs";
-import { assistantSummary, questionAlreadyFilled } from "@/lib/cv/question-form";
+import { assistantSummary, questionAlreadyFilled, questionView } from "@/lib/cv/question-form";
 import { QuestionCard } from "./question-card";
 
 /**
@@ -15,6 +15,7 @@ import { QuestionCard } from "./question-card";
 export function ClarificationPanel({
   cvId,
   initialQuestions,
+  appliedQuestionId,
   draft,
   onApply,
   onReviewLatest,
@@ -22,6 +23,8 @@ export function ClarificationPanel({
 }: {
   cvId: string;
   initialQuestions: ClarificationQuestion[];
+  /** Only this action's applied card gets a fresh TTL after the workspace remounts. */
+  appliedQuestionId: string | null;
   draft: CvDraft;
   onApply: (question: ClarificationQuestion) => Promise<void>;
   onReviewLatest: () => Promise<void>;
@@ -30,7 +33,9 @@ export function ClarificationPanel({
   const [questions, setQuestions] = useState(initialQuestions);
   const relevantQuestions = questions.filter((question) => !questionAlreadyFilled(question, draft));
   const summary = assistantSummary(relevantQuestions);
-  const [hiddenQuestions, setHiddenQuestions] = useState<string[]>([]);
+  const [hiddenQuestions, setHiddenQuestions] = useState<string[]>(() =>
+    initialQuestions.filter((question) => questionView(question).resolved && question.id !== appliedQuestionId).map((question) => question.id),
+  );
   const hideResolved = useCallback((id: string) => {
     setHiddenQuestions((current) => [...current, id]);
   }, []);

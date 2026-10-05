@@ -10,10 +10,11 @@ import { EditorWorkspace } from "./editor-workspace";
  * form. Everything the user sees after a reload comes from the server.
  */
 export function CvEditor({ cvId, initialResult }: { cvId: string; initialResult: CvResult }) {
-  const [version, setVersion] = useState<{ key: number; result: CvResult; notice: string | null }>({
+  const [version, setVersion] = useState<{ key: number; result: CvResult; notice: string | null; appliedQuestionId: string | null }>({
     key: 0,
     result: initialResult,
     notice: null,
+    appliedQuestionId: null,
   });
 
   return (
@@ -23,7 +24,8 @@ export function CvEditor({ cvId, initialResult }: { cvId: string; initialResult:
       result={version.result}
       fetchLatest={() => getCvResult(cvId)}
       notice={version.notice}
-      onReplace={(result, notice) => setVersion((current) => ({ key: current.key + 1, result, notice: notice ?? null }))}
+      appliedQuestionId={version.appliedQuestionId}
+      onReplace={(result, notice, appliedQuestionId) => setVersion((current) => ({ key: current.key + 1, result, notice: notice ?? null, appliedQuestionId: appliedQuestionId ?? null }))}
     />
   );
 }
