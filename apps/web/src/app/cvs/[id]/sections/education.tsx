@@ -1,18 +1,14 @@
 "use client";
 
 import { GraduationCap } from "lucide-react";
-import { useState } from "react";
 import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
 import { Button } from "@/components/ui/button";
-import { SelectField, TextField } from "@/components/ui/field";
+import { TextField } from "@/components/ui/field";
 import {
-  PRESENT,
-  expectedGraduation,
-  isCurrentlyStudying,
   newEducationEntry,
   type DraftFormValues,
 } from "@/lib/cv/draft-form";
-import { educationCount, educationHeading, studyLine } from "@/lib/cv/entry-labels";
+import { educationCount, educationHeading } from "@/lib/cv/entry-labels";
 import { maxEducationYear } from "@/lib/cv/dates";
 import { useEditorMotion } from "@/lib/cv/use-editor-motion";
 import { DateField } from "./date-field";
@@ -23,16 +19,9 @@ import { SectionCard } from "./section-card";
 const MAX_ENTRIES = 10;
 const PLACEHOLDER = "placeholder:text-muted!";
 
-type StudyStatus = "completed" | "studying";
-
 /**
- * One education entry (05.1, 06.2): institution, degree, **Education status**, start year and the
- * end of the study. "Currently studying" disables the end year ("Not applicable") and asks for an
- * optional expected graduation; nothing extra is stored: the draft's end date is `Present` or the
- * expected graduation while studying, and the end year otherwise. The status starts from that stored
- * end date and is then the person's choice (kept locally, so typing "203" into the expected
- * graduation does not flip it). The entry's details text stays in the draft untouched (the design
- * has no field for it).
+ * Two directly editable years. A future end year is expected graduation; Present preserves
+ * ongoing education without requiring a separate status control or an invented end year.
  */
 function EducationEntry({
   index,
@@ -46,21 +35,8 @@ function EducationEntry({
   const { control, register, formState, setValue } = useFormContext<DraftFormValues>();
   const entry = useWatch({ control, name: `education.${index}` });
   const errors = formState.errors.education?.[index];
-  const [status, setStatus] = useState<StudyStatus>(() => (isCurrentlyStudying(entry.endDate) ? "studying" : "completed"));
-  const studying = status === "studying";
   const dateMotionRef = useEditorMotion();
   const endField = `education.${index}.endDate` as const;
-
-  function changeStatus(next: StudyStatus) {
-    setStatus(next);
-    const options = { shouldDirty: true, shouldValidate: true };
-    if (next === "studying") {
-      // An expected graduation already typed (a future year) is kept; anything else becomes Present.
-      setValue(endField, isCurrentlyStudying(entry.endDate) ? entry.endDate : PRESENT, options);
-    } else if (isCurrentlyStudying(entry.endDate)) {
-      setValue(endField, "", options);
-    }
-  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -86,11 +62,7 @@ function EducationEntry({
         error={errors?.qualification?.message}
         {...register(`education.${index}.qualification`)}
       />
-      <SelectField label="Education status" value={status} onChange={(event) => changeStatus(event.target.value as StudyStatus)}>
-        <option value="completed">Completed</option>
-        <option value="studying">Currently studying</option>
-      </SelectField>
-      <div ref={dateMotionRef} className={`grid grid-cols-1 gap-4 sm:gap-3 ${studying ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
+      <div ref={dateMotionRef} className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-3">
         <DateField
           label="Start year"
           name={`education.${index}.startDate`}
@@ -100,40 +72,16 @@ function EducationEntry({
           maxYear={new Date().getFullYear()}
           error={errors?.startDate?.message}
         />
-        {studying ? (
-          <>
-            <TextField label="End year" placeholder="Not applicable" disabled value="" readOnly />
-            <DateField
-              label="Expected graduation (optional)"
-              name={endField}
-              yearOnly
-              maxYear={maxEducationYear()}
-              error={errors?.endDate?.message}
-              value={expectedGraduation(entry.endDate)}
-              onChange={(value) =>
-                setValue(endField, value.trim() === "" ? PRESENT : value, {
-                  shouldDirty: true,
-                  shouldValidate: true,
-                })
-              }
-            />
-          </>
-        ) : (
-          <DateField
-            label="End year"
-            name={endField}
-            yearOnly
-            maxYear={maxEducationYear()}
-            value={entry.endDate}
-            onChange={(value) => {
-              if (isCurrentlyStudying(value)) setStatus("studying");
-              setValue(endField, value, { shouldDirty: true, shouldValidate: true });
-            }}
-            error={errors?.endDate?.message}
-          />
-        )}
+        <TextField
+          label="End year"
+          placeholder="e.g. 2028 or Present"
+          autoComplete="off"
+          className={PLACEHOLDER}
+          hint={`Future years (up to ${maxEducationYear()}) mean expected graduation. Use Present if still studying.`}
+          error={errors?.endDate?.message}
+          {...register(endField)}
+        />
       </div>
-      {studying ? <p className="text-xs leading-normal text-muted">{studyLine(entry.endDate)}</p> : null}
     </div>
   );
 }
