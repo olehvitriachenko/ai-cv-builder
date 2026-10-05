@@ -59,7 +59,7 @@ Same body as before: `{ statusCode, code, message, fieldErrors? }`. New and rele
 | `UNAUTHENTICATED` | 401 | No valid session |
 | `CV_NOT_FOUND` | 404 | The CV does not exist **or** belongs to someone else (identical) |
 | `GENERATION_NOT_READY` | 409 | The result was requested before the CV is `COMPLETED` |
-| `GENERATION_NOT_RETRYABLE` | 409 | Retry requested for a CV that is not `FAILED` (or a pre-feature row that has no stored source) |
+| `GENERATION_NOT_RETRYABLE` | 409 | Retry requested for a CV that is not `FAILED` |
 | `INTERNAL_ERROR` | 500 | Unexpected failure; generic message |
 
 ---
@@ -121,7 +121,7 @@ No body.
 
 | Status | Body | Notes |
 |--------|------|-------|
-| `202` | `CvStatus` | `status: "PENDING"`; failure fields cleared; attempts reset; generation re-runs on the stored source |
+| `202` | `CvStatus` | `status: "PENDING"`; failure fields cleared; `generationAttempts` is kept (it is the fencing token); generation re-runs on the stored source |
 | `400` / `401` / `404` | as above | |
 | `409` | `GENERATION_NOT_RETRYABLE` | The CV is not `FAILED`. Two quick retries still run one generation (the second sees a non-`FAILED` row) |
 

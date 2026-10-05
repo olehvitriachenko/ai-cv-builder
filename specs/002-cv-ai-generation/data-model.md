@@ -20,16 +20,16 @@ PostgreSQL via Prisma, one new migration. The `Cv` table gains the generation li
 
 ## `Cv` (extended)
 
-Existing columns (`id`, `userId`, `targetRole`, `createdAt`, `updatedAt`, FK to `User` with cascade) are kept. `targetRole` stays nullable in the database so old rows remain valid, but the API always requires it for new CVs.
+Existing columns (`id`, `userId`, `createdAt`, `updatedAt`, FK to `User` with cascade) are kept. `targetRole` becomes `NOT NULL`. Existing rows were development placeholders and are deleted by the migration (decision M1), so all new generation fields can be `NOT NULL` from the start.
 
 | Column | Type | Rules |
 |--------|------|-------|
-| `generationStatus` | `GenerationStatus`, not null | Set explicitly on every insert. Existing rows are backfilled to `FAILED` / `UNKNOWN` |
-| `sourceType` | `SourceType`, nullable | Always set for new CVs; null only for pre-feature rows |
-| `sourceText` | text, nullable | The free text or the text extracted from the PDF, trimmed, 50 to 20,000 characters. Always set for new CVs; null only for pre-feature rows. **Untrusted content**; never logged. The original PDF is never stored |
+| `generationStatus` | `GenerationStatus`, not null | Set explicitly on every insert (no default) |
+| `sourceType` | `SourceType`, not null | How the source was supplied |
+| `sourceText` | text, not null | The free text or the text extracted from the PDF, trimmed, 50 to 20,000 characters. **Untrusted content**; never logged. The original PDF is never stored |
 | `failureReason` | `FailureReason`, nullable | Set exactly when status is `FAILED` |
 | `failureDetail` | text, nullable, at most 200 characters | Safe debugging tokens only: HTTP status code, error class name, validation rule ids and JSON paths. Never messages, values or source text |
-| `generationAttempts` | int, default 0 | Incremented each time processing starts (initial run, each manual retry). Kept for diagnosis only; no logic depends on it |
+| `generationAttempts` | int, default 0 | **Fencing token.** Incremented by the claim (`PENDING` -> `PROCESSING`) and **never reset**, not even by a retry. Every terminal write matches the value its worker claimed, so a stale worker of an earlier attempt can never complete, fail or add questions to a newer attempt |
 | `processingStartedAt` | timestamp, nullable | Set when claimed; the reference for the timeout |
 | `finishedAt` | timestamp, nullable | Set on `COMPLETED` or `FAILED`; cleared on retry |
 | `draft` | JSON, nullable | The validated `CvDraft` (below). Set exactly when status is `COMPLETED` |
@@ -40,9 +40,11 @@ Relations: has many `ClarificationQuestion`.
 
 ### Database invariants (CHECK constraints added in the migration)
 
-1. `COMPLETED` implies `draft IS NOT NULL`.
-2. `FAILED` implies `failureReason IS NOT NULL`, and a non-`FAILED` row has `failureReason IS NULL`.
-3. `PENDING` or `PROCESSING` implies `sourceText IS NOT NULL` (a job always has something to process).
+1. `(generationStatus = 'COMPLETED') = (draft IS NOT NULL)`: a completed row has its draft, and only a completed row has one.
+2. `(generationStatus = 'FAILED') = (failureReason IS NOT NULL)`: a failed row has a reason, and only a failed row has one.
+3. `PROCESSING` implies `processingStartedAt IS NOT NULL`, so the timeout sweep can always reach it.
+
+(A job always has something to process because `sourceText` is `NOT NULL`.)
 
 Prisma cannot express CHECK constraints, so they are written as raw SQL in the migration file (constitution IX: invariants in the database where appropriate).
 
@@ -52,8 +54,8 @@ Prisma cannot express CHECK constraints, so they are written as raw SQL in the m
 
 ### Migration notes
 
-- One migration: create the enums, add the columns, backfill existing rows (`generationStatus = 'FAILED'`, `failureReason = 'UNKNOWN'`, `finishedAt = now()`), add the CHECK constraints and the index, create `ClarificationQuestion`.
-- Backfilling avoids leaving old rows as `PENDING` forever (they have no source). There is no data loss.
+- One migration, generated with `prisma migrate dev --create-only` and then edited: `DELETE FROM "Cv"` first (decision M1: existing rows are development placeholders, legacy CVs are not preserved or backfilled), then the generated enums, columns (`NOT NULL`), index and `ClarificationQuestion` table, then the CHECK constraints.
+- Verified on a clean database, on a database that held legacy placeholder rows, and against `schema.prisma` (no drift).
 
 ## `ClarificationQuestion` (new)
 
@@ -119,22 +121,22 @@ The model fills a looser, JSON-Schema-friendly shape: the same sections **withou
 create (free text, or PDF with usable text) -> PENDING
 create (PDF that cannot be used)            -> nothing is created (422 / 400 at ingestion)
 
-PENDING     --claim (compare-and-set, attempts+1)-->            PROCESSING
+PENDING     --claim (compare-and-set, attempts+1 = fencing token)--> PROCESSING
 PROCESSING  --valid output, compare-and-set + store draft-->   COMPLETED
 PROCESSING  --failure after bounded retry, or abort-->         FAILED (reason)
 PROCESSING  --older than the timeout (sweep / in-process)-->   FAILED (TIMED_OUT)
 PROCESSING  --found at application start-->                    FAILED (INTERRUPTED)
-FAILED      --owner retry (stored source present)-->           PENDING   (failure fields and timestamps cleared)
+FAILED      --owner retry-->                                   PENDING   (failure fields and timestamps cleared; attempts kept)
 ```
 
 A `PROCESSING` row is **never** moved back to `PENDING` automatically: its in-flight request was lost with the process, and the user decides whether to retry.
 
 Rules enforced by compare-and-set (`UPDATE ... WHERE id = ? AND generationStatus = <expected>`, success = exactly one row):
 
-- Only the process that moved `PENDING` -> `PROCESSING` runs the job.
-- A completion or failure is applied only if the row is still `PROCESSING`. A job that finishes after being timed out or marked interrupted cannot overwrite `FAILED`; its result is discarded. A stale or duplicate worker therefore cannot change a terminal state.
+- Only the process that moved `PENDING` -> `PROCESSING` runs the job; the claim returns the new `generationAttempts`, the fencing token.
+- A completion or failure is applied only if the row is still `PROCESSING` **and** `generationAttempts` equals the token the worker claimed. A job that finishes after being timed out, marked interrupted, or superseded by a retry cannot change the row; its result is discarded. Clarification questions are inserted in the same transaction, only after that compare-and-set succeeded, so a discarded result leaves nothing behind.
 - Startup interruption and the timeout sweep also apply only to rows that are still `PROCESSING`.
-- A retry applies only to a `FAILED` row of the authenticated owner that still has a stored source (every CV created by this feature does).
+- A retry applies only to a `FAILED` row of the authenticated owner. It does not reset `generationAttempts`.
 - `COMPLETED` is terminal in this feature.
 
 `COMPLETED` with open clarification questions is a normal, valid end state (FR-030). The draft and its questions are written in one transaction together with the `COMPLETED` transition, so a reader never sees `COMPLETED` without its draft, or questions without their draft.

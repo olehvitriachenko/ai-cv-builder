@@ -294,6 +294,17 @@ Vertical slice early: after step 4 the whole backend lifecycle works against a f
 - **Why original PDFs are not persisted**: FR-012 and privacy. The extracted text is the only needed input, for generation and for retry. Storing files would add storage, cleanup, malware and retention concerns for no benefit. The cost is that an unreadable PDF has to be re-uploaded; since the request is rejected at ingestion, nothing is stored and the user simply uploads a better file.
 - **Limits of mechanical hallucination detection**: the deterministic checks catch fabricated contact details and organisations, which are the most damaging inventions, and tolerate legitimate reformatting. They cannot prove that a bullet, a date, a title, a skill or a metric is faithful; the prompt contract and clarification questions carry that. Token-set name matching can in principle accept a different organisation whose name tokens all appear in the source (rare for a user's own text). The user can edit everything, so the draft is a proposal, not a record.
 
+### Decisions Applied During Backend Implementation (analysis fixes)
+
+These supersede any conflicting text above; details are in [research.md](./research.md) and the header of [tasks.md](./tasks.md).
+
+1. `generationAttempts` is a **fencing token**: terminal writes match status and token; retry never resets it; questions are inserted only after a successful completion CAS, in the same transaction.
+2. Runner promise rejections are caught and logged; shutdown aborts in-flight calls and leaves the rows for the startup sweep.
+3. Matching is **Unicode-aware**, keeps **proper names exact**, has **no acronym/abbreviation heuristics**, and uses **local token windows** for organisations (spec FR-033's "abbreviation" example is deliberately unsupported for now).
+4. Migration created with `migrate dev --create-only`, SQL edited, then applied. **M1:** legacy placeholder `Cv` rows are deleted; new generation fields are `NOT NULL`.
+5. **Real adapter only**; tests override the `CvGenerator` port; no interim generator. `CvGenerator` exposes `modelId` (and `promptVersion`). SDK request timeout (`ANTHROPIC_TIMEOUT_MS`). Missing key reports `NOT_CONFIGURED` without crashing the app.
+6. A real-API smoke test is required before delivery and is manual only (`pnpm --filter api test:smoke`).
+
 ### Decisions Applied Before Tasks (stakeholder review)
 
 1. **Unusable PDF** is an ingestion failure: `422 PDF_EXTRACTION_FAILED`, no CV created. Invalid type, size or request is `400`. The source-less failed CV, the request-time failure reasons and the `retryable` flag are gone from the spec, data model, API and tests.
