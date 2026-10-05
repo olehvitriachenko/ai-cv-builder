@@ -1,11 +1,11 @@
 import { Body, Controller, Get, HttpCode, Param, Post, Req } from '@nestjs/common';
 import type { FastifyRequest } from 'fastify';
-import { ZodValidationPipe } from '../../../common/http/zod-validation.pipe.js';
-import type { AuthUser } from '../../auth/auth.types.js';
-import { CurrentUser } from '../../auth/decorators/current-user.decorator.js';
-import { createCvSchema, cvIdSchema, type CreateCvInput } from '../schemas/cv.schemas.js';
-import { readPdfUpload } from '../upload/cv-upload.js';
-import { CvService, type CvResultResponse, type CvStatusResponse } from '../services/cv.service.js';
+import { ZodValidationPipe } from '../../common/http/zod-validation.pipe.js';
+import type { AuthUser } from '../auth/auth.types.js';
+import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
+import { createCvSchema, cvIdSchema, type CreateCvInput } from './schemas/cv.schemas.js';
+import { readPdfUpload } from './upload/cv-upload.js';
+import { CvService, type CvResultResponse, type CvStatusResponse } from './services/cv.service.js';
 
 /**
  * Protected by the global auth guard. Caller identity comes only from `@CurrentUser()`; no

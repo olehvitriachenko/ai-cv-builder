@@ -1,18 +1,18 @@
 import { Body, Controller, Get, HttpCode, Post, Req, Res } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { FastifyReply, FastifyRequest } from 'fastify';
-import { ZodValidationPipe } from '../../../common/http/zod-validation.pipe.js';
+import { ZodValidationPipe } from '../../common/http/zod-validation.pipe.js';
 import {
   loginSchema,
   registerSchema,
   type LoginInput,
   type RegisterInput,
-} from '../schemas/auth.schemas.js';
-import type { AuthUser } from '../auth.types.js';
-import { AuthService } from '../services/auth.service.js';
-import { CurrentUser } from '../decorators/current-user.decorator.js';
-import { Public } from '../decorators/public.decorator.js';
-import { clearSessionCookie, readSessionCookie, setSessionCookie } from '../session/session-cookie.js';
+} from './schemas/auth.schemas.js';
+import type { AuthUser } from './auth.types.js';
+import { AuthService } from './services/auth.service.js';
+import { CurrentUser } from './decorators/current-user.decorator.js';
+import { Public } from './decorators/public.decorator.js';
+import { clearSessionCookie, readSessionCookie, setSessionCookie } from './session/session-cookie.js';
 
 @Controller('auth')
 export class AuthController {

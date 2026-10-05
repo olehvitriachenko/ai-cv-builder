@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
-import { AuthController } from './controllers/auth.controller.js';
+import { AuthController } from './auth.controller.js';
 import { AuthGuard } from './guards/auth.guard.js';
 import { AuthService } from './services/auth.service.js';
 import { PasswordService } from './services/password.service.js';
