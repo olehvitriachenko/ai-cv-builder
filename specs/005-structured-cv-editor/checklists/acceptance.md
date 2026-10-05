@@ -222,3 +222,7 @@ Not built, on purpose: the read-only editor panel while generating or after a fa
 - `Cv.revision` is written only in `CvEditorService.updateDraft` and `ClarificationService.commitApply`.
 - The logging e2e specs keep CV content out of logs and errors.
 
+## Highlights as one bullet field (Figma "Experience item / Kilona", node 41:22352)
+
+The role's highlights are one **Highlights** field, one highlight per line with a bullet, hint "Press Enter to add a bullet." (replacing the per-highlight rows, **+ Add bullet** and the per-row remove). Enter starts the next bullet (also in the middle of a line, which splits it), Backspace on an empty bullet removes it, empty lines are ignored, the lines are the role's `bullets`, and more than 12 shows "At most 12 bullet points per role." Unit: `highlights-text.test.ts` (14 tests). Browser (Playwright): the field shows the saved bullets, Enter, Backspace and a mid-line Enter behave as described, the draft stores separate highlights, the preview shows them, reload keeps them, the limit message appears. Web suite 25 files, 275 tests.
+
