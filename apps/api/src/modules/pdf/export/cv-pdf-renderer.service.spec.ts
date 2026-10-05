@@ -63,18 +63,18 @@ function hasControlCharacters(text: string): boolean {
 
 function emptyDraft(): CvDraft {
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     contact: { fullName: null, email: null, phone: null, location: null, links: [] },
     summary: null,
     experience: [],
     education: [],
-    skills: [],
+    skillCategories: [],
   };
 }
 
 function typicalDraft(): CvDraft {
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     contact: {
       fullName: 'Ada Lovelace',
       email: 'ada@example.com',
@@ -104,7 +104,9 @@ function typicalDraft(): CvDraft {
         details: 'First class honours',
       },
     ],
-    skills: ['Node.js', 'PostgreSQL', 'TypeScript'],
+    skillCategories: [
+      { id: 'cat-1', name: 'Backend', skills: ['Node.js', 'PostgreSQL', 'TypeScript'] },
+    ],
   };
 }
 
@@ -141,7 +143,7 @@ describe('CvPdfRenderer', () => {
       'Built REST APIs in Node.js',
       'BSc Computer Science',
       'State University',
-      'Node.js · PostgreSQL · TypeScript',
+      'Backend: Node.js · PostgreSQL · TypeScript',
     ];
     let cursor = -1;
     for (const part of order) {
@@ -228,7 +230,7 @@ describe('CvPdfRenderer', () => {
         },
       ],
       education: [],
-      skills: ['Мова: українська', 'Español'],
+      skillCategories: [{ id: 'cat-1', name: 'Мови', skills: ['Українська', 'Español'] }],
     };
 
     const { flat } = await readPdf(await renderer.render({ draft, targetRole: 'Інженер' }));
@@ -241,7 +243,7 @@ describe('CvPdfRenderer', () => {
       'ТОВ «Приклад»',
       'Старший інженер',
       'Розробила REST API на Node.js',
-      'Мова: українська · Español',
+      'Мови: Українська · Español',
     ]) {
       expect(flat, text).toContain(text);
     }
@@ -403,9 +405,60 @@ describe('CvPdfRenderer', () => {
     }
   });
 
+  it('shows a lone default "Skills" category as one unlabelled list under the Skills heading', async () => {
+    const draft: CvDraft = {
+      ...typicalDraft(),
+      skillCategories: [
+        { id: 'skills-default', name: 'Skills', skills: ['Node.js', 'PostgreSQL', 'TypeScript'] },
+      ],
+    };
+
+    const { flat } = await readPdf(await renderer.render({ draft, targetRole: 'Engineer' }));
+
+    expect(flat.toUpperCase()).toContain('SKILLS');
+    expect(flat).toContain('Node.js · PostgreSQL · TypeScript');
+    expect(flat).not.toContain('Skills:');
+  });
+
+  it('shows each skill category as "<name>: <skills>" in order, one block per category', async () => {
+    const draft: CvDraft = {
+      ...typicalDraft(),
+      skillCategories: [
+        { id: 'a', name: 'Languages', skills: ['TypeScript', 'Go'] },
+        { id: 'b', name: 'Databases', skills: ['PostgreSQL'] },
+        { id: 'c', name: 'Skills', skills: ['Mentoring'] },
+      ],
+    };
+
+    const { flat } = await readPdf(await renderer.render({ draft, targetRole: 'Engineer' }));
+
+    let cursor = -1;
+    for (const part of [
+      'Languages: TypeScript · Go',
+      'Databases: PostgreSQL',
+      'Skills: Mentoring',
+    ]) {
+      const at = flat.indexOf(part, cursor + 1);
+      expect(at, `"${part}" should appear after the previous block`).toBeGreaterThan(cursor);
+      cursor = at;
+    }
+  });
+
+  it('leaves out the Skills section when no category holds a skill', async () => {
+    const draft: CvDraft = {
+      ...typicalDraft(),
+      skillCategories: [{ id: 'a', name: 'Languages', skills: [] }],
+    };
+
+    const { flat } = await readPdf(await renderer.render({ draft, targetRole: 'Engineer' }));
+
+    expect(flat.toUpperCase()).not.toContain('SKILLS');
+    expect(flat).not.toContain('Languages');
+  });
+
   it('renders the maximum draft the product allows', async () => {
     const draft: CvDraft = {
-      schemaVersion: 1,
+      schemaVersion: 2,
       contact: {
         fullName: 'N'.repeat(120),
         email: `${'e'.repeat(60)}@example.com`,
@@ -436,9 +489,13 @@ describe('CvPdfRenderer', () => {
         endDate: 'D'.repeat(40),
         details: 'd'.repeat(300),
       })),
-      skills: Array.from({ length: 60 }, (_, index) =>
-        `Skill ${index} ${'s'.repeat(50)}`.slice(0, 60),
-      ),
+      skillCategories: Array.from({ length: 12 }, (_, category) => ({
+        id: `cat-${category}`,
+        name: `Category ${category}`,
+        skills: Array.from({ length: 5 }, (_, skill) =>
+          `Skill ${category * 5 + skill} ${'s'.repeat(50)}`.slice(0, 60),
+        ),
+      })),
     };
 
     const { pages, flat } = await readPdf(
@@ -447,6 +504,7 @@ describe('CvPdfRenderer', () => {
 
     expect(pages.length).toBeGreaterThan(5);
     expect(flat).toContain('Bullet 29-11');
+    expect(flat).toContain('Category 11:');
     expect(flat).toContain('Skill 59');
     for (const page of pages) {
       for (const item of page.items) {

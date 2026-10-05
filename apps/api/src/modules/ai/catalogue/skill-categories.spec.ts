@@ -1,6 +1,7 @@
 import {
   FALLBACK_SKILL_CATEGORY,
   SKILL_CATEGORY_NAMES,
+  canonicalSkillCategoryName,
   isKnownSkillCategory,
   parseSkillCategoryNames,
 } from './skill-categories.js';
@@ -40,6 +41,18 @@ describe('isKnownSkillCategory', () => {
   it('rejects anything else', () => {
     expect(isKnownSkillCategory('Underwater Basket Weaving')).toBe(false);
     expect(isKnownSkillCategory('')).toBe(false);
+  });
+});
+
+describe('canonicalSkillCategoryName', () => {
+  it('returns the catalogue spelling for any letter case and surrounding spaces', () => {
+    expect(canonicalSkillCategoryName('  data & ANALYTICS ')).toBe('Data & Analytics');
+    expect(canonicalSkillCategoryName('skills')).toBe('Skills');
+  });
+
+  it('returns undefined for a name that is neither a catalogue name nor the fallback', () => {
+    expect(canonicalSkillCategoryName('My own tools')).toBeUndefined();
+    expect(canonicalSkillCategoryName('')).toBeUndefined();
   });
 });
 

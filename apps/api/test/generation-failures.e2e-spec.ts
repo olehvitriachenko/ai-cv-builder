@@ -67,7 +67,8 @@ describe('Generation failures, retry and recovery', () => {
     const cases: [string, unknown][] = [
       ['malformed text instead of the structure', 'this is not json'],
       ['null', null],
-      ['wrong types', { ...base, skills: 'Node.js' }],
+      ['wrong types', { ...base, skillCategories: 'Node.js' }],
+      ['a category outside the catalogue', { ...base, skillCategories: [{ category: 'Underwater Basket Weaving', skills: ['Node.js'] }] }],
       ['a missing section', { ...base, experience: undefined }],
       [
         'a contact detail absent from the source',

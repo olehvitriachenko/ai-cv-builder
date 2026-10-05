@@ -11,7 +11,7 @@ export interface DraftSaveResponse {
 }
 
 /**
- * Manual editing of a COMPLETED CV's draft. The body has already been validated with the draft
+ * Manual editing of a COMPLETED CV's draft (and, optionally, its target role). The body has already been validated with the draft
  * schema; this class only decides whether the write may happen.
  */
 @Injectable()
@@ -37,7 +37,12 @@ export class CvEditorService {
         generationStatus: 'COMPLETED',
         revision: body.revision,
       },
-      data: { draft: body.draft, revision: { increment: 1 } },
+      data: {
+        draft: body.draft,
+        // Undefined leaves the stored role untouched; the role and the draft change together or not at all.
+        targetRole: body.targetRole,
+        revision: { increment: 1 },
+      },
       select: { revision: true, updatedAt: true },
     });
     if (saved) {

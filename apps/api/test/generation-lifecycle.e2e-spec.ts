@@ -100,7 +100,7 @@ describe('Generation lifecycle', () => {
           },
         ],
         education: [],
-        skills: [],
+        skillCategories: [],
         questions: [
           {
             section: 'CONTACT',

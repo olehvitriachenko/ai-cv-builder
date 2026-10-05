@@ -37,7 +37,7 @@ function output(overrides: Partial<LlmCvOutput> = {}): LlmCvOutput {
         details: null,
       },
     ],
-    skills: ['Node.js'],
+    skillCategories: [{ category: 'Frameworks', skills: ['Node.js'] }],
     questions: [],
     ...overrides,
   };
@@ -87,7 +87,7 @@ describe('validateGeneration', () => {
         summary: null,
         experience: [],
         education: [],
-        skills: [],
+        skillCategories: [],
         questions: [{ section: 'CONTACT', itemIndex: null, field: null, missing: 'Email', question: 'Email?' }],
       }),
       SOURCE,
@@ -109,7 +109,7 @@ describe('validateGeneration', () => {
         summary: null,
         experience: [],
         education: [],
-        skills: [],
+        skillCategories: [],
         questions: [],
       }),
       SOURCE,
@@ -130,7 +130,7 @@ describe('validateGeneration', () => {
         summary: null,
         experience: [],
         education: [],
-        skills: [],
+        skillCategories: [],
         questions: [],
       }),
       SOURCE,
@@ -145,7 +145,7 @@ describe('validateGeneration', () => {
         summary: null,
         experience: [],
         education: [],
-        skills: [],
+        skillCategories: [],
         questions: [
           {
             section: 'EXPERIENCE',
@@ -167,7 +167,7 @@ describe('validateGeneration', () => {
         summary: null,
         experience: [],
         education: [],
-        skills: ['Node.js'],
+        skillCategories: [{ category: 'Frameworks', skills: ['Node.js'] }],
         questions: [],
       }),
       SOURCE,
@@ -205,7 +205,7 @@ describe('validateGeneration', () => {
     it('rejects values over the caps and blank bullets', () => {
       const result = validateGeneration(
         output({
-          skills: Array.from({ length: 61 }, (_, i) => `skill${i}`),
+          skillCategories: [{ category: 'Skills', skills: Array.from({ length: 61 }, (_, i) => `skill${i}`) }],
           experience: [
             {
               employer: 'Acme Corp',
@@ -222,7 +222,7 @@ describe('validateGeneration', () => {
 
       expect(issuesOf(result)).toEqual(
         expect.arrayContaining([
-          'skills: draft_too_big',
+          'skillCategories.0.skills: draft_too_big',
           'experience.0.bullets.0: draft_too_big',
           'experience.0.bullets.1: draft_too_small',
         ]),
@@ -481,7 +481,7 @@ describe('validateGeneration', () => {
     it('does not check unsupported facts that are not mechanically checkable (bullets, dates, titles, skills)', () => {
       const result = validateGeneration(
         output({
-          skills: ['Kubernetes'],
+          skillCategories: [{ category: 'Cloud & Infrastructure', skills: ['Kubernetes'] }],
           experience: [
             {
               employer: 'Acme Corp',

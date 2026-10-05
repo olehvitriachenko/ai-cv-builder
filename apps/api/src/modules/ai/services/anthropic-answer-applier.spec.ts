@@ -25,7 +25,7 @@ function setup(result: MessageResult | Error, apiKey: string | null = 'sk-test')
   return { create, applier };
 }
 
-const SCOPE: ScopeContent = { section: 'SKILLS', skills: ['Node.js'] };
+const SCOPE: ScopeContent = { section: 'SKILLS', categories: [{ name: 'Backend', skills: ['Node.js'] }] };
 const REQUEST = { scope: SCOPE, question: 'Other tools?', answer: 'Go and Rust', targetRole: 'Backend Engineer' };
 
 describe('AnthropicAnswerApplier', () => {

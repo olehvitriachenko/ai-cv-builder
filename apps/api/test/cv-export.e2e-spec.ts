@@ -108,12 +108,12 @@ describe('GET /api/cvs/:id/pdf', () => {
     partial.experience = [];
     const { user: partialUser, id: partialId } = await completedCv(partial);
     const emptyDraft: CvDraft = {
-      schemaVersion: 1,
+      schemaVersion: 2,
       contact: { fullName: null, email: null, phone: null, location: null, links: [] },
       summary: null,
       experience: [],
       education: [],
-      skills: [],
+      skillCategories: [],
     };
     const { user: emptyUser, id: emptyId } = await completedCv(emptyDraft);
 

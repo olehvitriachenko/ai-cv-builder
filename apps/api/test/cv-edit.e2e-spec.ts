@@ -46,7 +46,7 @@ describe('PUT /api/cvs/:id/draft (manual editing)', () => {
       url: `/api/cvs/${id}/result`,
       headers: { cookie },
     });
-    return response.json<{ revision: number; draft: CvDraft }>();
+    return response.json<{ revision: number; targetRole: string; draft: CvDraft }>();
   }
 
   function edited(change: (draft: CvDraft) => void): CvDraft {
@@ -96,7 +96,10 @@ describe('PUT /api/cvs/:id/draft (manual editing)', () => {
           details: 'Distinction',
         },
       ];
-      value.skills = ['Go', 'PostgreSQL'];
+      value.skillCategories = [
+        { id: 'cat-1', name: 'Languages', skills: ['Go'] },
+        { id: 'cat-2', name: 'Databases', skills: ['PostgreSQL'] },
+      ];
     });
 
     const response = await save(user.cookie, id, { revision: 0, draft });
@@ -314,5 +317,126 @@ describe('PUT /api/cvs/:id/draft (manual editing)', () => {
     const response = await save(undefined, id, { revision: 0, draft: sampleDraft() });
 
     expect(response.statusCode).toBe(401);
+  });
+
+  describe('skill categories', () => {
+    it('rejects the old version 1 shape (schemaVersion 1 and a flat skills list) and stores nothing', async () => {
+      const { user, id } = await completedCv();
+      const { skillCategories: _categories, ...rest } = sampleDraft();
+
+      const response = await save(user.cookie, id, { revision: 0, draft: { ...rest, schemaVersion: 1, skills: ['Go'] } });
+
+      expect(response.statusCode).toBe(400);
+      expect(Object.keys(response.json<{ fieldErrors: Record<string, string[]> }>().fieldErrors)).toContain('draft.schemaVersion');
+      expect((await readResult(user.cookie, id)).revision).toBe(0);
+    });
+
+    it('rejects duplicate category names, repeated skills and an empty category with dotted paths', async () => {
+      const { user, id } = await completedCv();
+
+      const response = await save(user.cookie, id, {
+        revision: 0,
+        draft: edited((value) => {
+          value.skillCategories = [
+            { id: 'a', name: 'Languages', skills: ['Go', 'Rust'] },
+            { id: 'b', name: ' languages ', skills: ['go'] },
+            { id: 'c', name: 'Empty', skills: [] },
+          ];
+        }),
+      });
+
+      expect(response.statusCode).toBe(400);
+      expect(Object.keys(response.json<{ fieldErrors: Record<string, string[]> }>().fieldErrors)).toEqual(
+        expect.arrayContaining([
+          'draft.skillCategories.1.name',
+          'draft.skillCategories.1.skills.0',
+          'draft.skillCategories.2.skills',
+        ]),
+      );
+    });
+
+    it('keeps category and skill order across a save and a read', async () => {
+      const { user, id } = await completedCv();
+      const draft = edited((value) => {
+        value.skillCategories = [
+          { id: 'b', name: 'Databases', skills: ['Redis', 'PostgreSQL'] },
+          { id: 'a', name: 'Languages', skills: ['Go'] },
+        ];
+      });
+
+      await save(user.cookie, id, { revision: 0, draft });
+
+      expect((await readResult(user.cookie, id)).draft.skillCategories).toEqual(draft.skillCategories);
+    });
+  });
+
+  describe('target role', () => {
+    it('is part of the result', async () => {
+      const { user, id } = await completedCv();
+
+      expect((await readResult(user.cookie, id)).targetRole).toBe('Backend Engineer');
+    });
+
+    it('is updated with the draft in one write and one revision step, and shows in the list', async () => {
+      const { user, id } = await completedCv();
+
+      const response = await save(user.cookie, id, {
+        revision: 0,
+        draft: edited((value) => {
+          value.summary = 'New summary';
+        }),
+        targetRole: '  Staff Engineer ',
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(response.json<SaveResult>().revision).toBe(1);
+      const result = await readResult(user.cookie, id);
+      expect(result.targetRole).toBe('Staff Engineer');
+      expect(result.draft.summary).toBe('New summary');
+      const list = await app.inject({ method: 'GET', url: '/api/cvs', headers: { cookie: user.cookie } });
+      expect(list.json<{ items: { id: string; targetRole: string }[] }>().items.find((item) => item.id === id)?.targetRole).toBe('Staff Engineer');
+    });
+
+    it('stays unchanged when the body has no targetRole', async () => {
+      const { user, id } = await completedCv();
+
+      await save(user.cookie, id, { revision: 0, draft: sampleDraft() });
+
+      expect((await readResult(user.cookie, id)).targetRole).toBe('Backend Engineer');
+    });
+
+    it('is not stored when the revision is stale (the draft and the role change together or not at all)', async () => {
+      const { user, id } = await completedCv();
+      await save(user.cookie, id, { revision: 0, draft: sampleDraft() });
+
+      const stale = await save(user.cookie, id, { revision: 0, draft: sampleDraft(), targetRole: 'Stale Role' });
+
+      expect(stale.statusCode).toBe(409);
+      expect((await readResult(user.cookie, id)).targetRole).toBe('Backend Engineer');
+    });
+
+    it.each([['blank', '   '], ['too long', 'r'.repeat(201)]])('rejects a %s role with a targetRole field error and stores nothing', async (_label, targetRole) => {
+      const { user, id } = await completedCv();
+
+      const response = await save(user.cookie, id, { revision: 0, draft: sampleDraft(), targetRole });
+
+      expect(response.statusCode).toBe(400);
+      expect(Object.keys(response.json<{ fieldErrors: Record<string, string[]> }>().fieldErrors)).toContain('targetRole');
+      const result = await readResult(user.cookie, id);
+      expect(result.targetRole).toBe('Backend Engineer');
+      expect(result.revision).toBe(0);
+    });
+
+    it("cannot change another user's CV role (the same 404 as a missing CV)", async () => {
+      const { id } = await completedCv();
+      const other = await registerUser(app);
+
+      const response = await save(other.cookie, id, { revision: 0, draft: sampleDraft(), targetRole: 'Hijacked' });
+
+      expect(response.statusCode).toBe(404);
+      expect(response.json()).toMatchObject({ code: 'CV_NOT_FOUND' });
+      const row = await prisma.cv.findUnique({ where: { id }, select: { targetRole: true, revision: true } });
+      expect(row).toEqual({ targetRole: 'Backend Engineer', revision: 0 });
+    });
   });
 });

@@ -82,6 +82,7 @@ export interface CvResultResponse {
   status: 'COMPLETED';
   /** Send back with every draft save and apply (optimistic concurrency). */
   revision: number;
+  targetRole: string;
   draft: CvDraft;
   questions: {
     id: string;
@@ -199,6 +200,7 @@ export class CvService {
       where: { id: cvId, userId, generationStatus: 'COMPLETED' },
       select: {
         id: true,
+        targetRole: true,
         draft: true,
         revision: true,
         questions: {
@@ -226,6 +228,7 @@ export class CvService {
       id: cv.id,
       status: 'COMPLETED',
       revision: cv.revision,
+      targetRole: cv.targetRole,
       draft: cvDraftSchema.parse(cv.draft),
       questions: cv.questions,
     };

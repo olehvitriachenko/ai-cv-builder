@@ -1,6 +1,10 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ApiError } from '../../../common/http/api-error.js';
-import type { QuestionField, QuestionSection, QuestionStatus } from '../../../generated/prisma/enums.js';
+import type {
+  QuestionField,
+  QuestionSection,
+  QuestionStatus,
+} from '../../../generated/prisma/enums.js';
 import { PrismaService } from '../../../infrastructure/index.js';
 import { CvAnswerApplier } from '../../ai/cv-answer-applier.js';
 import { ProviderError } from '../../ai/cv-generator.js';
@@ -69,8 +73,16 @@ export class ClarificationService {
   ) {}
 
   /** Stores the answer and marks the question ANSWERED. Replaces a previous answer. */
-  answer(userId: string, cvId: string, questionId: string, input: AnswerBody): Promise<QuestionResponse> {
-    return this.writeQuestion(userId, cvId, questionId, { status: 'ANSWERED', answer: input.answer });
+  answer(
+    userId: string,
+    cvId: string,
+    questionId: string,
+    input: AnswerBody,
+  ): Promise<QuestionResponse> {
+    return this.writeQuestion(userId, cvId, questionId, {
+      status: 'ANSWERED',
+      answer: input.answer,
+    });
   }
 
   /** Closes an unresolved question without changing the CV. Only on an explicit request. */
@@ -178,16 +190,32 @@ export class ClarificationService {
 
     const question = await this.prisma.clarificationQuestion.findFirst({
       where: { id: questionId, cvId },
-      select: { id: true, section: true, itemId: true, field: true, question: true, status: true, answer: true },
+      select: {
+        id: true,
+        section: true,
+        itemId: true,
+        field: true,
+        question: true,
+        status: true,
+        answer: true,
+      },
     });
     if (!question) {
       throw new ApiError(404, 'QUESTION_NOT_FOUND', 'Question not found');
     }
     if (!canApply(question.status) || question.answer === null) {
-      throw new ApiError(409, 'QUESTION_STATE_CONFLICT', 'Only an answered question can be applied');
+      throw new ApiError(
+        409,
+        'QUESTION_STATE_CONFLICT',
+        'Only an answered question can be applied',
+      );
     }
     if (cv.revision !== expectedRevision) {
-      throw new ApiError(409, 'REVISION_CONFLICT', 'The CV changed since you loaded it. Reload to see the latest version.');
+      throw new ApiError(
+        409,
+        'REVISION_CONFLICT',
+        'The CV changed since you loaded it. Reload to see the latest version.',
+      );
     }
 
     // Database JSON is an external boundary: parse it again.
@@ -271,7 +299,10 @@ export class ClarificationService {
           }
           throw aiUnavailable();
         }
-        if (error instanceof DOMException && (error.name === 'TimeoutError' || error.name === 'AbortError')) {
+        if (
+          error instanceof DOMException &&
+          (error.name === 'TimeoutError' || error.name === 'AbortError')
+        ) {
           throw aiUnavailable();
         }
         throw error;
@@ -293,7 +324,9 @@ export class ClarificationService {
       }
 
       if (last) {
-        this.logger.warn(`event=apply_output_invalid questionId=${question.id} rules=${issues.map((issue) => issue.rule).join(',')}`);
+        this.logger.warn(
+          `event=apply_output_invalid questionId=${question.id} rules=${issues.map((issue) => issue.rule).join(',')}`,
+        );
         throw outputInvalid();
       }
       // Rule ids and paths only: never the answer, the draft or the model's text.
@@ -321,7 +354,11 @@ export class ClarificationService {
         data: { draft, revision: { increment: 1 } },
       });
       if (changed.count !== 1) {
-        throw new ApiError(409, 'REVISION_CONFLICT', 'The CV changed since you loaded it. Reload to see the latest version.');
+        throw new ApiError(
+          409,
+          'REVISION_CONFLICT',
+          'The CV changed since you loaded it. Reload to see the latest version.',
+        );
       }
 
       const marked = await tx.clarificationQuestion.updateMany({
@@ -330,7 +367,11 @@ export class ClarificationService {
         data: { status: 'APPLIED' },
       });
       if (marked.count !== 1) {
-        throw new ApiError(409, 'QUESTION_STATE_CONFLICT', 'This question changed while it was being applied');
+        throw new ApiError(
+          409,
+          'QUESTION_STATE_CONFLICT',
+          'This question changed while it was being applied',
+        );
       }
     });
   }
@@ -344,7 +385,11 @@ const targetNotApplicable = () =>
   );
 
 const aiUnavailable = () =>
-  new ApiError(503, 'AI_UNAVAILABLE', 'The AI assistant is unavailable right now. Try again in a moment.');
+  new ApiError(
+    503,
+    'AI_UNAVAILABLE',
+    'The AI assistant is unavailable right now. Try again in a moment.',
+  );
 
 const outputInvalid = () =>
   new ApiError(
@@ -361,7 +406,10 @@ function scopeOf(draft: CvDraft, question: ApplyContext['question']): ScopeConte
     case 'SUMMARY':
       return { section: 'SUMMARY' };
     case 'SKILLS':
-      return { section: 'SKILLS', skills: draft.skills };
+      return {
+        section: 'SKILLS',
+        categories: draft.skillCategories.map(({ name, skills }) => ({ name, skills })),
+      };
     case 'EXPERIENCE': {
       // The target was verified when the apply was loaded; the ids stay on the server.
       const entry = draft.experience.find((item) => item.id === question.itemId);

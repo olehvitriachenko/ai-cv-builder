@@ -46,9 +46,16 @@ if (firstName === undefined) {
 /** Non-empty tuple, so it can feed `z.enum` directly. */
 export const SKILL_CATEGORY_NAMES: readonly [string, ...string[]] = [firstName, ...otherNames];
 
-const known = new Set([...names, FALLBACK_SKILL_CATEGORY].map((name) => name.toLowerCase()));
+const canonicalByKey = new Map(
+  [...names, FALLBACK_SKILL_CATEGORY].map((name) => [name.toLowerCase(), name]),
+);
+
+/** The catalogue spelling of a category name (or the fallback), ignoring case and surrounding spaces. */
+export function canonicalSkillCategoryName(name: string): string | undefined {
+  return canonicalByKey.get(name.trim().toLowerCase());
+}
 
 /** Whether a category name is a catalogue name or the fallback (case-insensitive). */
 export function isKnownSkillCategory(name: string): boolean {
-  return known.has(name.trim().toLowerCase());
+  return canonicalSkillCategoryName(name) !== undefined;
 }

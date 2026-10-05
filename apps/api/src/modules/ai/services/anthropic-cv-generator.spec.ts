@@ -22,7 +22,7 @@ const VALID_OUTPUT = {
   summary: null,
   experience: [],
   education: [],
-  skills: [],
+  skillCategories: [],
   questions: [],
 };
 

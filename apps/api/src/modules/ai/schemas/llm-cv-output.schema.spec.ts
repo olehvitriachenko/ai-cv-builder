@@ -1,3 +1,4 @@
+import { FALLBACK_SKILL_CATEGORY, SKILL_CATEGORY_NAMES } from '../catalogue/skill-categories.js';
 import { QUESTION_FIELDS, llmCvOutputSchema } from './llm-cv-output.schema.js';
 
 function validOutput() {
@@ -15,12 +16,45 @@ function validOutput() {
       },
     ],
     education: [],
-    skills: ['Node.js'],
+    skillCategories: [{ category: 'Frameworks', skills: ['Node.js'] }],
     questions: [],
   };
 }
 
 describe('llmCvOutputSchema', () => {
+  describe('skill categories', () => {
+    const withCategories = (skillCategories: unknown) => ({ ...validOutput(), skillCategories });
+
+    it('accepts every predefined category name and the Skills fallback', () => {
+      for (const category of [...SKILL_CATEGORY_NAMES, FALLBACK_SKILL_CATEGORY]) {
+        expect(llmCvOutputSchema.safeParse(withCategories([{ category, skills: ['x'] }])).success, category).toBe(true);
+      }
+    });
+
+    it('accepts no categories and the same category more than once (the mapper merges them)', () => {
+      expect(llmCvOutputSchema.safeParse(withCategories([])).success).toBe(true);
+      expect(
+        llmCvOutputSchema.safeParse(
+          withCategories([
+            { category: 'Databases', skills: ['PostgreSQL'] },
+            { category: 'Databases', skills: ['Redis'] },
+          ]),
+        ).success,
+      ).toBe(true);
+    });
+
+    it('rejects a category name outside the catalogue and the fallback', () => {
+      expect(llmCvOutputSchema.safeParse(withCategories([{ category: 'Underwater Basket Weaving', skills: ['x'] }])).success).toBe(false);
+      expect(llmCvOutputSchema.safeParse(withCategories([{ category: 'databases', skills: ['x'] }])).success).toBe(false);
+    });
+
+    it('rejects extra keys on a category and the old flat skills list', () => {
+      expect(llmCvOutputSchema.safeParse(withCategories([{ category: 'Databases', skills: ['x'], id: 'c1' }])).success).toBe(false);
+      const { skillCategories: _categories, ...rest } = validOutput();
+      expect(llmCvOutputSchema.safeParse({ ...rest, skills: ['Node.js'] }).success).toBe(false);
+    });
+  });
+
   it('accepts valid output with and without questions', () => {
     expect(llmCvOutputSchema.safeParse(validOutput()).success).toBe(true);
 
@@ -40,16 +74,20 @@ describe('llmCvOutputSchema', () => {
   });
 
   it('rejects a missing section', () => {
-    const { skills: _skills, ...output } = validOutput();
+    const { skillCategories: _categories, ...output } = validOutput();
     expect(llmCvOutputSchema.safeParse(output).success).toBe(false);
     const { questions: _questions, ...withoutQuestions } = validOutput();
     expect(llmCvOutputSchema.safeParse(withoutQuestions).success).toBe(false);
   });
 
   it('rejects wrong types', () => {
-    expect(llmCvOutputSchema.safeParse({ ...validOutput(), skills: 'Node.js' }).success).toBe(
+    expect(llmCvOutputSchema.safeParse({ ...validOutput(), skillCategories: 'Node.js' }).success).toBe(
       false,
     );
+    expect(
+      llmCvOutputSchema.safeParse({ ...validOutput(), skillCategories: [{ category: 'Databases', skills: 'Go' }] })
+        .success,
+    ).toBe(false);
     expect(llmCvOutputSchema.safeParse({ ...validOutput(), summary: 42 }).success).toBe(false);
     expect(llmCvOutputSchema.safeParse('not an object').success).toBe(false);
     expect(llmCvOutputSchema.safeParse(null).success).toBe(false);

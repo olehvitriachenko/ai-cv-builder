@@ -106,8 +106,13 @@ function questionIssues(output: LlmCvOutput): ValidationIssue[] {
  * Contact details alone are not a CV: it needs a summary or at least one entry. A draft without
  * that is only acceptable when the model asked what is missing.
  */
-function hasMeaningfulContent({ summary, experience, education, skills }: CvDraft): boolean {
-  return summary !== null || experience.length > 0 || education.length > 0 || skills.length > 0;
+function hasMeaningfulContent({ summary, experience, education, skillCategories }: CvDraft): boolean {
+  return (
+    summary !== null ||
+    experience.length > 0 ||
+    education.length > 0 ||
+    skillCategories.some((category) => category.skills.length > 0)
+  );
 }
 
 function sourceIssues(draft: CvDraft, source: SourceIndex): ValidationIssue[] {

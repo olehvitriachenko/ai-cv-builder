@@ -1,5 +1,10 @@
 import { Document, Page, StyleSheet, Text, View, type Styles } from '@react-pdf/renderer';
-import type { CvDraft, EducationEntry, ExperienceEntry } from '../../cv/generation/draft.schema.js';
+import type {
+  CvDraft,
+  EducationEntry,
+  ExperienceEntry,
+  SkillCategory,
+} from '../../cv/generation/draft.schema.js';
 import { SANS, SERIF } from './cv-pdf.fonts.js';
 
 /**
@@ -53,6 +58,7 @@ const styles = StyleSheet.create({
   },
   rule: { marginTop: 6, borderBottomWidth: 0.75, borderBottomColor: RULE },
   body: { fontFamily: SERIF, fontSize: 10.8, lineHeight: 1.65, color: INK },
+  skillLine: { marginTop: 4 },
   entry: { marginBottom: 14 },
   educationEntry: { marginBottom: 11 },
   // The section's own bottom margin separates it from the next section.
@@ -245,8 +251,28 @@ function Education({ entry, last }: { entry: EducationEntry; last: boolean }) {
   );
 }
 
-/** A skills list longer than this (about seven lines) is not grouped with its heading; see `Section`. */
+/** A skills block longer than this (about seven lines) is not grouped with its heading; see `Section`. */
 const MAX_GROUPED_SKILLS_LENGTH = 600;
+
+/** The category the AI and the v1 migration use when nothing more specific applies. */
+const DEFAULT_SKILLS_CATEGORY = 'Skills';
+
+/**
+ * One line of text per category that holds a skill. A lone default "Skills" category is printed
+ * without its label: the section heading already says it (same rule as the on-screen preview).
+ */
+function skillLines(categories: SkillCategory[]): string[] {
+  const filled = categories.filter((category) => category.skills.length > 0);
+  const [only] = filled;
+  const unlabelled =
+    filled.length === 1 &&
+    only !== undefined &&
+    only.name.trim().toLowerCase() === DEFAULT_SKILLS_CATEGORY.toLowerCase();
+  return filled.map((category) => {
+    const list = category.skills.join(' · ');
+    return unlabelled ? list : `${category.name}: ${list}`;
+  });
+}
 
 export interface CvPdfDocumentProps {
   draft: CvDraft;
@@ -257,7 +283,7 @@ export function CvPdfDocument({ draft, targetRole }: CvPdfDocumentProps) {
   const { contact } = draft;
   const contactLine = present([contact.location, contact.email, contact.phone]).join('  ·  ');
   const linksLine = contact.links.join('  ·  ');
-  const skillsText = draft.skills.join(' · ');
+  const [firstSkillLine, ...otherSkillLines] = skillLines(draft.skillCategories);
   const [firstExperience, ...otherExperience] = draft.experience;
   const [firstEducation, ...otherEducation] = draft.education;
 
@@ -302,12 +328,18 @@ export function CvPdfDocument({ draft, targetRole }: CvPdfDocumentProps) {
           </Section>
         ) : null}
 
-        {draft.skills.length > 0 ? (
+        {firstSkillLine !== undefined ? (
           <Section
             title="Skills"
-            lead={<Prose text={skillsText} style={styles.body} />}
-            keepTogether={skillsText.length <= MAX_GROUPED_SKILLS_LENGTH}
-          />
+            lead={<Prose text={firstSkillLine} style={styles.body} />}
+            keepTogether={firstSkillLine.length <= MAX_GROUPED_SKILLS_LENGTH}
+          >
+            {otherSkillLines.map((line, index) => (
+              <View key={index} style={styles.skillLine}>
+                <Prose text={line} style={styles.body} />
+              </View>
+            ))}
+          </Section>
         ) : null}
       </Page>
     </Document>
