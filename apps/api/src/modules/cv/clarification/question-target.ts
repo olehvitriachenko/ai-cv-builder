@@ -55,6 +55,11 @@ const EDUCATION_RULES = {
   EDUCATION_END_DATE: { key: 'endDate', rule: { max: 40 } },
 } as const satisfies Partial<Record<QuestionField, { key: EducationKey; rule: FieldRule }>>;
 
+/** Narrows a field to a key of one rule table (a type guard, so no assertion is needed). */
+function isKeyOf<T extends object>(table: T, key: PropertyKey): key is keyof T {
+  return key in table;
+}
+
 const MAX_LINKS = 5;
 const MAX_LINK_CHARS = 200;
 
@@ -81,8 +86,8 @@ export function applyFieldAnswer(
     return { ok: true, draft: { ...draft, contact: { ...draft.contact, links: [...draft.contact.links, value] } } };
   }
 
-  if (field in CONTACT_RULES) {
-    const { key, rule } = CONTACT_RULES[field as keyof typeof CONTACT_RULES];
+  if (isKeyOf(CONTACT_RULES, field)) {
+    const { key, rule } = CONTACT_RULES[field];
     // Filled first: when the value is already there the useful answer is "dismiss it".
     if (draft.contact[key] !== null) {
       return { ok: false, reason: 'TARGET_FILLED' };
@@ -93,8 +98,8 @@ export function applyFieldAnswer(
     return { ok: true, draft: { ...draft, contact: { ...draft.contact, [key]: value } } };
   }
 
-  if (field in EXPERIENCE_RULES) {
-    const { key, rule } = EXPERIENCE_RULES[field as keyof typeof EXPERIENCE_RULES];
+  if (isKeyOf(EXPERIENCE_RULES, field)) {
+    const { key, rule } = EXPERIENCE_RULES[field];
     const index = itemId === null ? -1 : draft.experience.findIndex((entry) => entry.id === itemId);
     const entry = draft.experience[index];
     if (!entry) {
@@ -112,8 +117,8 @@ export function applyFieldAnswer(
     return { ok: true, draft: { ...draft, experience } };
   }
 
-  if (field in EDUCATION_RULES) {
-    const { key, rule } = EDUCATION_RULES[field as keyof typeof EDUCATION_RULES];
+  if (isKeyOf(EDUCATION_RULES, field)) {
+    const { key, rule } = EDUCATION_RULES[field];
     const index = itemId === null ? -1 : draft.education.findIndex((entry) => entry.id === itemId);
     const entry = draft.education[index];
     if (!entry) {

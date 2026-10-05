@@ -335,6 +335,7 @@ Recorded at the final review (T054); none of these belongs to this feature's cod
 3. **Full-stack `docker compose up` (constitution XV)** with `ANTHROPIC_API_KEY` from the environment is still outstanding (the compose file only runs PostgreSQL).
 4. **Spec wording**: FR-033 and US4 scenario 7 name "an abbreviation" as accepted reformatting, but abbreviation and acronym heuristics were removed; either amend the spec or bring a safe heuristic back.
 5. **Next features**: the document-first editor with manual editing, answering and applying clarification questions, PDF export, and a CV list. The completed view is read-only until then.
+6. **Feature 003 trade-offs** (the final README must repeat them): the editor saves the whole draft in one request (optimistic concurrency on one `revision` integer, no merging, last writer is told to reload or explicitly keep their changes); AI-assisted answers are additive, section-scoped patches that never rewrite existing text, and a question with a known field is applied without any AI call; `revision` changes only on draft edits and applies, so answering or dismissing a question never causes an edit conflict; the My CVs list is one raw SQL query (candidate name and open-question count computed in the database) instead of Prisma relations, and has no paging.
 
 The constitution was not amended.
 
