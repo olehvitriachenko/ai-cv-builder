@@ -128,7 +128,7 @@ describe('mapQuestions', () => {
       draft,
     );
 
-    expect(rows[0]).toMatchObject({ itemId: null, status: 'OPEN' });
+    expect(rows[0]).toMatchObject({ itemId: null, status: 'UNANSWERED' });
   });
 
   it('assigns positions in order', () => {

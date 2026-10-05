@@ -16,7 +16,7 @@ export interface QuestionRow {
   missing: string;
   question: string;
   position: number;
-  status: 'OPEN';
+  status: 'UNANSWERED';
 }
 
 /**
@@ -84,7 +84,7 @@ export function mapQuestions(questions: LlmQuestion[], draft: CvDraft): Question
       missing: question.missing,
       question: question.question,
       position,
-      status: 'OPEN',
+      status: 'UNANSWERED',
     };
   });
 }

@@ -131,12 +131,12 @@ describe('Generation lifecycle', () => {
       itemId: null,
       missing: 'Email address',
       question: 'What is your email address?',
-      status: 'OPEN',
+      status: 'UNANSWERED',
     });
     expect(body.questions[1]).toMatchObject({
       section: 'EXPERIENCE',
       itemId: body.draft.experience[0].id,
-      status: 'OPEN',
+      status: 'UNANSWERED',
     });
     const rows = await prisma.clarificationQuestion.findMany({
       where: { cvId: id },

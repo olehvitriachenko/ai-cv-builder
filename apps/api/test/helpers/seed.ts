@@ -88,3 +88,74 @@ export async function seedProcessing(
     data: { generationStatus: 'PROCESSING', generationAttempts: 1, processingStartedAt: startedAt },
   });
 }
+
+export interface SeedQuestion {
+  section?: 'CONTACT' | 'SUMMARY' | 'EXPERIENCE' | 'EDUCATION' | 'SKILLS';
+  itemId?: string | null;
+  field?:
+    | 'CONTACT_FULL_NAME'
+    | 'CONTACT_EMAIL'
+    | 'CONTACT_PHONE'
+    | 'CONTACT_LOCATION'
+    | 'CONTACT_LINK'
+    | 'EXPERIENCE_EMPLOYER'
+    | 'EXPERIENCE_TITLE'
+    | 'EXPERIENCE_LOCATION'
+    | 'EXPERIENCE_START_DATE'
+    | 'EXPERIENCE_END_DATE'
+    | 'EDUCATION_INSTITUTION'
+    | 'EDUCATION_QUALIFICATION'
+    | 'EDUCATION_START_DATE'
+    | 'EDUCATION_END_DATE'
+    | null;
+  status?: 'UNANSWERED' | 'ANSWERED' | 'APPLIED' | 'DISMISSED';
+  answer?: string | null;
+  missing?: string;
+  question?: string;
+}
+
+/** Inserts one clarification question for a CV and returns its id. */
+export async function seedQuestion(
+  prisma: PrismaService,
+  cvId: string,
+  overrides: SeedQuestion = {},
+): Promise<string> {
+  const position = await prisma.clarificationQuestion.count({ where: { cvId } });
+  const status = overrides.status ?? 'UNANSWERED';
+  const answer =
+    overrides.answer !== undefined
+      ? overrides.answer
+      : status === 'ANSWERED' || status === 'APPLIED'
+        ? 'seeded answer'
+        : null;
+  const created = await prisma.clarificationQuestion.create({
+    data: {
+      cvId,
+      position,
+      section: overrides.section ?? 'SUMMARY',
+      itemId: overrides.itemId ?? null,
+      field: overrides.field ?? null,
+      status,
+      answer,
+      missing: overrides.missing ?? 'Something is missing',
+      question: overrides.question ?? 'What is missing?',
+    },
+    select: { id: true },
+  });
+  return created.id;
+}
+
+/** A COMPLETED CV with the given questions; returns the question ids in order. */
+export async function seedCompletedWithQuestions(
+  prisma: PrismaService,
+  cvId: string,
+  questions: SeedQuestion[],
+  draft: Prisma.InputJsonValue = sampleDraft(),
+): Promise<string[]> {
+  await seedCompleted(prisma, cvId, draft);
+  const ids: string[] = [];
+  for (const question of questions) {
+    ids.push(await seedQuestion(prisma, cvId, question));
+  }
+  return ids;
+}
