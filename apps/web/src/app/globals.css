@@ -20,6 +20,9 @@
   --color-success-tint: #edf7f1;
   --color-danger: #b42318;
   --color-danger-tint: #fef3f2;
+  /* The rejected-file row (03.4): a softer wash and rule than the danger tint. */
+  --color-danger-wash: #fcf5f3;
+  --color-danger-wash-line: #ebd7d2;
   --color-placeholder: #98a2b3;
   --color-skeleton: #eaecf0;
   --color-stage: #eef0f3;
