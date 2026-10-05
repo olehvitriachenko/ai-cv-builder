@@ -6,10 +6,11 @@
 
 ## Summary
 
-Replace the accordion editor of `003` with the structured, always-expanded editor of the Figma section `05` (10 frames), delivered in iterations. Two changes reach below the UI; everything else is presentation over the existing editing, clarification and concurrency machinery.
+Replace the accordion editor of `003` with the structured, always-expanded editor of the Figma section `05` (10 frames), delivered in iterations. Three changes reach below the UI (two are new data behaviour, one keeps the merged PDF export working); everything else is presentation over the existing editing, clarification and concurrency machinery.
 
 1. **Skills grouped by category**: the draft's flat `skills` list is replaced by `skillCategories` (ordered categories, each with an ordered list of skills) and the draft `schemaVersion` becomes 2. A **one-time, repository-tracked SQL migration** moves every stored draft, a DB CHECK keeps the stored version at 2, and the application then supports only the new shape (no runtime dual-format conversion). AI generation (prompt v3) and the clarification apply for the SKILLS section move to the grouped shape.
 2. **Editable target role**: `PUT /cvs/:id/draft` accepts an optional `targetRole`, written in the same conditional `UPDATE` as the draft (same revision check); `GET /cvs/:id/result` returns it.
+3. **PDF compatibility**: feature `004` (PDF export) is merged into this branch and already works; it reads the draft's flat `skills`. Iteration 0 updates the PDF document to `skillCategories` (names preserved, migrated CVs export with all their skills) and verifies it before the foundation is considered green. The editor header and the full-screen preview reuse the existing Download PDF flow of `004` unchanged.
 
 Everything else is client work on the CV page:
 
@@ -45,7 +46,7 @@ No new table, no new dependency, no new infrastructure. Pure derivations (comple
 
 | Principle | Status | How this plan satisfies it |
 |-----------|--------|----------------------------|
-| I. Product contract | Pass | Return-later editing, clarification answering/applying and the structured document stay intact; PDF stays disabled (`004`) |
+| I. Product contract | Pass | Return-later editing, clarification answering/applying and the structured document stay intact; PDF export (`004`, merged) keeps working on draft v2 |
 | II. Strict type safety | Pass | One draft schema (v2) parsed at every boundary; the form maps to it with typed helpers; no casts as validation |
 | III. Reliability over breadth | Pass | The migration is idempotent, guarded and verified four ways; compare-and-set saves unchanged; iterations ship one verified slice at a time |
 | IV. Generation lifecycle | Pass | Lifecycle untouched; only the structured output and its mapping change |
@@ -57,7 +58,7 @@ No new table, no new dependency, no new infrastructure. Pure derivations (comple
 | X. Critical behavior tested | Pass | See [Test Strategy](#test-strategy); tests precede each iteration |
 | XI. User controls the CV | Pass | Suggestions are client-only until tapped; "Improve with AI" is not shown; conflicts never merge automatically |
 | XII. Simplicity | Pass | Whole-version conflict choice, Move up/down instead of drag-and-drop, hand-written combobox, estimated page count instead of a pagination engine; one JSON file instead of two copies of the catalogue |
-| XIII. Scope discipline | Pass | Out-of-scope list of the spec respected; templates, PDF and AI rewriting stay out |
+| XIII. Scope discipline | Pass | Out-of-scope list of the spec respected; no new PDF features, templates or AI rewriting; the `004` contract is untouched |
 | XIV. Owned code | Pass | Each iteration is reviewed against its Figma frames and the diff; decisions are in [research.md](./research.md) |
 | XV. Local reproducibility | Pass | Migration verified on local PostgreSQL (clean and seeded); quickstart lists the commands |
 | XVI. Documentation | Pass | Trade-offs recorded in research and repeated in the README follow-ups at the end |
@@ -98,6 +99,8 @@ apps/api/
     │   ├── services/cv.service.ts                # result DTO adds targetRole
     │   ├── services/clarification.service.ts     # SKILLS scope content (categories)
     │   └── clarification/answer-patch.ts         # SKILLS patch applies per category
+    ├── pdf/export/cv-pdf.document.tsx            # (004) skills from skillCategories, grouped, names preserved
+    │   (+ cv-pdf-renderer.service.spec.ts, test/cv-export.e2e-spec.ts moved to v2 fixtures)
     └── ai/
         ├── catalogue/skill-categories.ts         # NEW: thin typed accessor (names) over the shared catalogue JSON
         ├── schemas/llm-cv-output.schema.ts       # skillCategories with category enum
@@ -119,6 +122,7 @@ apps/web/src/
 │       └── conflict-review.ts                    # NEW: per-section difference model (pure)
 ├── components/ui/                                # + Combobox (hand-written), Chip, Dialog wrapper if reused >= 2x
 └── app/cvs/
+    ├── download-pdf-button.tsx                   # (004) reused as is by the editor header and the full-screen preview
     ├── layout.tsx                                # auth + QueryProvider only (header moves down a level)
     ├── [id]/page.tsx                             # renders AppHeader for generation states, EditorNav for the editor
     └── [id]/…                                    # editor-nav, editor-workspace, completeness-card, ai-assistant,
@@ -134,7 +138,7 @@ Each iteration: tests first, implement, run gates (`tsc`, lint, unit, e2e, `next
 
 | # | Iteration | Spec | Figma | Contents |
 |---|-----------|------|-------|----------|
-| 0 | Data foundation | FR-007, FR-010, FR-004 (API) | none | Draft v2 schema, migration + CHECK, generation (prompt v3), SKILLS apply, `targetRole` in result and save, minimal web adaptation so the existing editor and preview keep working on v2 |
+| 0 | Data foundation | FR-007, FR-010, FR-004 (API) | none | Draft v2 schema, migration + CHECK, generation (prompt v3), SKILLS apply, `targetRole` in result and save, **PDF export reading v2**, minimal web adaptation so the existing editor and preview keep working on v2 |
 | 1 | Structured layout and sections | US1 | 05.1, 05.6 | Editor nav, completeness card, always-expanded cards: personal details (links), summary, experience (add/remove, Present, highlights), education (add/remove), sticky preview column |
 | 2 | Skills by category | US2 | 05.7 | Category card, combobox, input + Add, suggestions, chips, move up/down, add category, preview grouping |
 | 3 | AI Assistant states | US3 | 05.2, 05.3 | Restyled assistant card, unresolved count, answered/applied/dismissed/failed states, complete state |
@@ -160,6 +164,7 @@ Iteration 0 is the only one that touches the API and the database; iterations 1 
 | FR-014 preview | Unit: zoom steps and limits, fit, page estimate; browser: zoom, full-screen open/close with Esc and focus return |
 | FR-015 phone | Browser at 390 and 320 px: no horizontal scroll, combobox list fits, Edit/Preview keeps unsaved text and scroll |
 | FR-016/017 | Existing ownership and log-hygiene e2e extended to `targetRole` |
+| FR-018/FR-020 PDF on v2 | Renderer spec and `cv-export.e2e-spec.ts` moved to v2 fixtures (written first): skills grouped with category names preserved, sole default `Skills` shown without a label, `skillCategories: []` shows no heading, Cyrillic and accented text still extracted as text, maximum draft exports with nothing dropped and no orphaned heading, contract unchanged; export of a v1 draft after the migration; manual check on scratch databases; browser: Download PDF in the editor header and the full-screen preview saves pending edits first |
 | SC-004 | Per iteration: Figma comparison of structure and geometry at desktop and phone width; results recorded in the acceptance checklist |
 
 ## Complexity Tracking

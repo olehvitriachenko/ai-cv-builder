@@ -48,6 +48,10 @@ The answer applier receives the categories (names and skills) and returns `{ add
 
 The structured output of generation uses `skillCategories: [{ category: <predefined name | "Skills">, skills[] }]`; the stored draft is v2. Prompt version 3. No endpoint changes.
 
+## PDF export (feature `004`, merged)
+
+`GET /api/cvs/:id/pdf` keeps its contract exactly (see `specs/004-pdf-export/contracts/cv-pdf-api.md`: headers, status codes, `404`/`409` behaviour, file name). The only change is its input: it renders the v2 draft, listing skills by category (`<category name>: <skills separated by " · ">`, the default `Skills` category without a label, no Skills heading when there are no skills). A CV migrated from v1 exports with all its skills.
+
 ## Guarantees
 
 - The database holds only version 2 drafts (CHECK constraint) after the migration.

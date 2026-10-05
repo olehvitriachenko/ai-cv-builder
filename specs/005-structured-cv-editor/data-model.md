@@ -59,6 +59,12 @@ Properties: idempotent (a second run finds no v1 drafts), order-preserving, loss
 - **Preview**: zoom (50 to 150 percent), estimated page count.
 - **Section differences** for the conflict review.
 
+## Consumers of the draft shape
+
+- **PDF export (feature `004`)**: reads `skillCategories`. Rendering rule: when at least one category has skills, a `Skills` heading followed by one paragraph per category, `<name>: <skill> · <skill>`, in saved order; the label is omitted when the only category is the default `Skills`; no heading for an empty `skillCategories`. Nothing else in the export or its contract changes.
+- **On-screen preview**: the same rule, so the PDF mirrors the preview.
+- **Generation, edit, apply, result**: as described above.
+
 ## Clarification questions
 
 Unchanged (`003` states and DB checks). A SKILLS-section question applies through the additive category patch ([research.md](./research.md) D-8); there is no `field` for skills.

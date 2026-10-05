@@ -14,6 +14,8 @@
 
 `002` generates a structured CV draft and `003` lets the user edit it (autosave, revision conflicts), answer and apply clarification questions, and manage CVs. This feature changes how the same capabilities are presented and extends the CV content in two ways: skills are grouped by category and the target role can be edited. It does not change generation lifecycle, ownership rules, the optimistic concurrency mechanism, or the clarification state model.
 
+Feature `004-pdf-export` is **implemented and merged into this branch**: a completed CV can be downloaded as an A4 PDF with selectable text (`GET /api/cvs/:id/pdf`), and Download PDF is a working action in the editor and on My CVs. This feature reuses that flow as it is and only keeps the export working with the new skills shape (draft version 2); it adds no PDF capability.
+
 The design frames are the visual source of truth. Where two frames disagree (05.2 and 05.3 show skills as one flat list of chips, 05.1, 05.5, 05.7 and the mobile frames show them by category), the category design wins, as confirmed by the user.
 
 ## Clarifications
@@ -25,13 +27,14 @@ The design frames are the visual source of truth. Where two frames disagree (05.
 - Q: Which fields count toward the completeness score and for how much? → A: The fixed formula in the appendix (nine items summing to 100%); phone 10% and LinkedIn 5% match the design. The score is advisory and never blocks saving.
 - Q: How is a save conflict resolved in "Review both versions"? → A: By choosing one whole version: "Keep my version" saves the local document on top of the latest saved revision, "Use saved version" discards the local edits. Differences are highlighted per section for review only; there is no per-section choice and no automatic merge.
 - Q: Which behaviours are locked before tasks? → A: The more-options menu has exactly **Back to My CVs** and **Delete CV**. Removing an experience entry, education entry, highlight, link, skill or category is immediate with no confirmation (autosave stores it). Deleting a whole CV still requires the existing confirmation dialog. The predefined skill categories and their suggestions live in one centralized configuration file; an incomplete list never blocks implementation (entries are added later as data). Skill grounding is **prompt-based, not mechanical** and is documented as a trade-off, never claimed as verified.
+- Q: How does the merged PDF export (`004`) interact with this feature? → A: It is a working feature, not future work. The editor header and the full-screen preview reuse its Download PDF flow as it is, and the export is updated only to read draft version 2 (skills grouped by category, names preserved, migrated CVs exporting with all their skills). No new PDF features, templates or dependencies.
 - Q: How are skill categories reordered? → A: With Move up / Move down buttons in each category's header (keyboard and 320 px friendly); no drag-and-drop and no new dependency. The design's drag handle is replaced by these two icon buttons.
 
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Edit every part of my CV in one structured screen (Priority: P1)
 
-The user opens a completed CV and sees all sections as always-open cards in a single left column: Personal details, Professional summary, Professional experience, Skills & Technical Competencies and Education, with the A4 preview on the right following every change. A sticky navigation bar shows where they are (`My CVs` breadcrumb, CV title, owner), the save state and a disabled Download PDF.
+The user opens a completed CV and sees all sections as always-open cards in a single left column: Personal details, Professional summary, Professional experience, Skills & Technical Competencies and Education, with the A4 preview on the right following every change. A sticky navigation bar shows where they are (`My CVs` breadcrumb, CV title, owner), the save state and the working Download PDF of feature `004`.
 
 **Why this priority**: It is the core editing experience; every other story builds on this layout.
 
@@ -53,7 +56,7 @@ The user opens a completed CV and sees all sections as always-open cards in a si
 
 In Skills & Technical Competencies the user builds skill groups. Each group is a card with a **Category Name** chosen from a searchable list (or typed), an input to add skills, suggestions for that category, and a dashed **No items added** state until something is added. Added skills appear as removable chips grouped by category with a per-category count, and **+ Add skills** starts another category. The preview and the CV show skills under their categories.
 
-**Why this priority**: It is the one change to the CV content model; later stories and the future PDF depend on the final shape.
+**Why this priority**: It is the one change to the CV content model; later stories and the PDF export (`004`) depend on the final shape.
 
 **Independent Test**: Add two categories with skills, remove one skill, reorder the categories, reload, and verify the grouping and order are preserved in the editor and the preview.
 
@@ -104,7 +107,7 @@ The navigation bar shows the true save state (All changes saved, Saving, Couldn'
 
 ### User Story 5 - Check the document at full size (Priority: P2)
 
-The preview has a toolbar (Preview, Classic · A4, Page 1 of 1, zoom − / + with a percentage, and an expand button), a status line (Up to date · Ready to download, or Last saved version while unsaved) and an expandable full-screen view with a scrim, a centered A4 page, page and zoom controls, **Fit page**, **Close preview** (Esc) and a disabled Download PDF.
+The preview has a toolbar (Preview, Classic · A4, Page 1 of 1, zoom − / + with a percentage, and an expand button), a status line (Up to date · Ready to download, or Last saved version while unsaved) and an expandable full-screen view with a scrim, a centered A4 page, page and zoom controls, **Fit page**, **Close preview** (Esc) and the working Download PDF of `004`.
 
 **Why this priority**: It improves review quality but editing works without it.
 
@@ -142,6 +145,7 @@ At 390 px and 320 px the editor is one column with a navigation bar (back to My 
 - A draft that is already version 2 meets the migration: it is skipped unchanged; a draft with an empty skills list becomes version 2 with no skill category; a malformed draft stops the migration with a clear error instead of being altered silently.
 - Removing the last experience or education entry: allowed; the section shows its empty state with the add action.
 - An experience marked **Present** with a start date later than an end date elsewhere: the existing draft validation applies; the message is shown on the field.
+- A CV with the maximum amount of content (12 categories, 60 skills, 30 experience entries, 10 education entries) is exported as a PDF: it succeeds with nothing clipped or dropped.
 - A user adds skills from suggestions while a save is in flight: both land in the next save; none is lost or duplicated.
 - A clarification applied to skills adds to the named category (or the category the question concerns) and never removes existing skills.
 - Reduced motion: opening the full-screen preview does not animate.
@@ -152,7 +156,7 @@ At 390 px and 320 px the editor is one column with a navigation bar (back to My 
 
 **Layout and navigation**
 
-- **FR-001**: The editor MUST show a sticky navigation bar with the product mark, a `My CVs` breadcrumb back to the list, the CV title (target role) and owner line, the save state, a disabled Download PDF and a more-options menu containing exactly **Back to My CVs** and **Delete CV** (Delete CV opens the existing confirmation dialog); on mobile the same information is condensed as in frames 05.8 and 05.9.
+- **FR-001**: The editor MUST show a sticky navigation bar with the product mark, a `My CVs` breadcrumb back to the list, the CV title (target role) and owner line, the save state, the working Download PDF action of `004` and a more-options menu containing exactly **Back to My CVs** and **Delete CV** (Delete CV opens the existing confirmation dialog); on mobile the same information is condensed as in frames 05.8 and 05.9.
 - **FR-002**: Section cards MUST all be visible without expanding (no accordion); on desktop the structured editor is the left column and the preview the sticky right column.
 - **FR-003**: The editor MUST show a completeness card with a percentage, a progress bar and the missing items, each with its percentage gain (for example `+10% Phone number`, `+5% LinkedIn`), and the label "Needs details · N left" where N is the number of missing items. The score MUST be the fixed formula in the appendix (nine items, 100% in total), a deterministic function of the current local draft, updated as the user types, and MUST NOT block saving or exporting.
 
@@ -178,12 +182,13 @@ At 390 px and 320 px the editor is one column with a navigation bar (back to My 
 
 - **FR-016**: Ownership, authentication, the revision mechanism, error codes and the not-found-for-foreign-CV behaviour from `001` to `003` MUST be unchanged and apply to every new operation, including target role edits.
 - **FR-017**: Logs and error responses MUST NOT contain CV content, answers, skills or target role text.
-- **FR-018**: Download PDF MUST be shown where the design shows it and MUST remain disabled; no PDF is generated.
+- **FR-018**: Download PDF is the existing, working action of feature `004`. The editor header and the full-screen preview MUST reuse it as it is (enabled for a completed CV, pending edits saved first, busy state, failure message); this feature MUST NOT redesign or reimplement the export, change its API contract beyond what draft version 2 requires, add PDF features or templates, or add a dependency for it.
+- **FR-020**: The PDF export MUST keep working with draft version 2: skills appear under the Skills heading grouped by category in saved order, each as `<category name>: <skills separated by " · ">` (a draft whose only category is the default `Skills` shows the skills without that label, so migrated CVs read as before); a draft without skills shows no Skills heading; Cyrillic and accented text stays selectable; headings are never left alone at the bottom of a page; the maximum draft (12 categories, 60 skills) exports without clipped or dropped content; and a CV migrated from version 1 exports with all its skills.
 - **FR-019**: The feature MUST be delivered in iterations, one per story or frame group, each verified against the matching Figma frames at desktop and phone widths before the next starts.
 
 ### Key Entities *(include if feature involves data)*
 
-- **CV draft**: the structured content of a CV; changes here: skills become an ordered list of **skill categories** instead of a flat list, and the draft's `schemaVersion` becomes 2 (only that version is supported after the migration).
+- **CV draft**: the structured content of a CV (also the only input of the PDF export); changes here: skills become an ordered list of **skill categories** instead of a flat list, and the draft's `schemaVersion` becomes 2 (only that version is supported after the migration).
 - **Skill category**: a named, ordered group of skills inside a draft (name unique within the CV).
 - **Target role**: the role the CV is written for; stored with the CV, editable, shown in My CVs, the editor header and the preview.
 - **Clarification question**: unchanged from `003` (unanswered, answered, applied, dismissed).
@@ -200,10 +205,11 @@ At 390 px and 320 px the editor is one column with a navigation bar (back to My 
 - **SC-005**: After the migration, 100% of tested pre-existing CVs (including ones with empty skills) open with all their skills visible and no data loss, already-version-2 drafts are byte-for-byte unchanged by it, and it gives the same result on a clean database, a database with `002`/`003` drafts, and a second run.
 - **SC-006**: The generation prompt and the apply patch contain the rule that no skill is added unless the source or the user's answer states it, and the automated suite makes 0 real AI requests. Real-model compliance with that rule is not mechanically verified; it is checked only by the manual smoke test and the user's review, and this limit is documented in the README.
 - **SC-007**: 0 cases in tests where a user can edit another user's target role, skills or any other CV content.
+- **SC-008**: After the migration, 100% of tested pre-existing CVs (with skills and with none) and of CVs with several categories, including a Cyrillic custom category name, download a valid A4 PDF whose text is selectable and contains all their skills with the category names preserved, with no clipped text and no orphaned heading.
 
 ## Assumptions
 
-- This feature builds on `003` (branch `005-structured-cv-editor` starts from `003-cv-editor-my-cvs`); number `004` stays reserved for PDF export, which remains a separate feature.
+- This feature builds on `003` (branch `005-structured-cv-editor` starts from `003-cv-editor-my-cvs`); feature `004` (PDF export) is implemented and was merged into this branch (`origin/004-pdf-export`), so Download PDF is a working action and feature numbering stays as is (`005` for this feature).
 - The "Improve with AI" action is out of scope and not shown (user decision), because the product's AI is additive and scoped.
 - The target role becomes editable through the existing draft save operation (user decision, recommended default); it keeps the existing length limit.
 - Skills grouped by category is the user's decision, based on reference screenshots (category card with drag handle, searchable category list, skill input with Add, suggestion chips, "No items added", "Add skills"). Predefined categories are the fixed list in the appendix (taken from the user's reference screenshots, in that order); custom names are allowed.
@@ -215,7 +221,7 @@ At 390 px and 320 px the editor is one column with a navigation bar (back to My 
 
 ### Out of Scope
 
-- PDF generation or export, multiple templates or template switching, version history, collaboration, public sharing.
+- New PDF features, multiple PDF templates or template switching, changes to the `004` PDF API contract beyond draft version 2 compatibility, version history, collaboration, public sharing (PDF export itself exists, see `004`).
 - AI rewriting of the summary or any other existing text ("Improve with AI"), AI-suggested skills ("Suggest skills" is not an AI action in this feature).
 - Drag-and-drop reordering, per-section conflict resolution or automatic merging, rich-text editing.
 

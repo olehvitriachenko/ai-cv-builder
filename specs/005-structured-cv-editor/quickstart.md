@@ -36,12 +36,15 @@ Expected: all green; the suite makes no real AI request.
 
 The e2e suite runs the same cases against the migration file.
 
+6. **Export after migration**: on the migrated scratch databases call `GET /api/cvs/:id/pdf` as the owner for a migrated CV with skills and one without: `200`, `application/pdf`; the extracted text shows the skills under Skills (the default `Skills` category without a label), the empty one has no Skills heading; a CV with several categories (including a Cyrillic custom category name) lists every category name; nothing is clipped and no heading is alone at the bottom of a page.
+
 ## 3. API behaviour (iteration 0)
 
 - `GET /api/cvs/:id/result` returns `targetRole` and a v2 draft.
 - `PUT /api/cvs/:id/draft` with a changed `targetRole` and a grouped draft returns `200`; the list shows the new role; a stale revision returns `409` and changes nothing; a v1 body returns `400`.
 - A generation with the fake generator persists a grouped draft; a malformed output persists nothing.
 - Answering and applying a SKILLS question adds skills to the named category without removing others.
+- `GET /api/cvs/:id/pdf` returns a valid A4 PDF for a v2 draft with grouped skills (selectable text, Latin and Cyrillic) and keeps its `404`/`409` behaviour.
 
 ## 4. Browser verification (iterations 1 to 6)
 
@@ -55,6 +58,8 @@ Run the app (`GENERATION_AUTORUN=false PORT=3001 node dist/main.js`, `next start
 | 4 | 05.4 and 05.5: Saving, saved, offline "Couldn't save · Retry", two-tab conflict, Review both versions, Keep my version, Use saved version; local text never lost |
 | 5 | 05.10: zoom limits, Fit page, expand, Esc and Close, focus returns; status line shows "Last saved version" while unsaved |
 | 6 | 05.8 and 05.9: Edit/Preview switch keeps text and scroll, sticky bar does not cover focused fields, combobox list fits at 320 px, no horizontal scroll |
+
+For every iteration that shows Download PDF (the editor header from iteration 1, the full-screen preview from iteration 5, the phone navigation from iteration 6) also confirm: the action is enabled for a completed CV, saves pending edits first, shows a busy state, and downloads a PDF that matches the saved draft.
 
 For every iteration also confirm: `localStorage` and `sessionStorage` hold no CV content; a foreign CV id shows the same not-found page.
 
