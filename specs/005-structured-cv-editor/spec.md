@@ -1,6 +1,6 @@
 # Feature Specification: Structured CV Editor
 
-**Feature Branch**: `004-structured-cv-editor`
+**Feature Branch**: `005-structured-cv-editor`
 
 **Created**: 2026-10-05
 
@@ -191,7 +191,7 @@ At 390 px and 320 px the editor is one column with a navigation bar (back to My 
 
 ## Assumptions
 
-- This feature builds on `003` (branch `004-structured-cv-editor` starts from `003-cv-editor-my-cvs`); PDF export remains a separate later feature and the earlier plan to call it `004` is superseded by this numbering.
+- This feature builds on `003` (branch `005-structured-cv-editor` starts from `003-cv-editor-my-cvs`); number `004` stays reserved for PDF export, which remains a separate feature.
 - The "Improve with AI" action is out of scope and not shown (user decision), because the product's AI is additive and scoped.
 - The target role becomes editable through the existing draft save operation (user decision, recommended default); it keeps the existing length limit.
 - Skills grouped by category is the user's decision, based on reference screenshots (category card with drag handle, searchable category list, skill input with Add, suggestion chips, "No items added", "Add skills"). Predefined categories are the fixed list in the appendix (taken from the user's reference screenshots, in that order); custom names are allowed.
