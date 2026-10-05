@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { CvDraft } from "@/lib/api/cvs";
+import { MAX_LINKS, linkError, mergeLinks, splitLinks } from "./links";
 
 // The editor form's shape and rules. The stored model is `CvDraft` and nothing else: these helpers
 // only translate it to inputs (null <-> empty string, string lists wrapped as `{ value }` because
@@ -36,12 +37,17 @@ export interface SkillCategoryFormEntry {
 }
 
 export interface DraftFormValues {
+  /** Stored with the CV, not in the draft; saved in the same request as the draft. */
+  targetRole: string;
   contact: {
     fullName: string;
     email: string;
     phone: string;
     location: string;
-    links: ListItem[];
+    /** The draft's links as the editor shows them (see `links.ts`); merged back when saving. */
+    linkedin: string;
+    portfolio: string;
+    extraLinks: ListItem[];
   };
   summary: string;
   experience: ExperienceFormEntry[];
@@ -57,14 +63,18 @@ const orNull = (value: string): string | null => {
 const nonBlank = (items: ListItem[]): string[] =>
   items.map((item) => item.value.trim()).filter((value) => value !== "");
 
-export function toFormValues(draft: CvDraft): DraftFormValues {
+export function toFormValues(draft: CvDraft, targetRole: string): DraftFormValues {
+  const links = splitLinks(draft.contact.links);
   return {
+    targetRole,
     contact: {
       fullName: orEmpty(draft.contact.fullName),
       email: orEmpty(draft.contact.email),
       phone: orEmpty(draft.contact.phone),
       location: orEmpty(draft.contact.location),
-      links: draft.contact.links.map((value) => ({ value })),
+      linkedin: links.linkedin,
+      portfolio: links.portfolio,
+      extraLinks: links.extra.map((value) => ({ value })),
     },
     summary: orEmpty(draft.summary),
     experience: draft.experience.map((entry) => ({
@@ -101,7 +111,11 @@ export function toDraft(values: DraftFormValues): CvDraft {
       email: orNull(values.contact.email),
       phone: orNull(values.contact.phone),
       location: orNull(values.contact.location),
-      links: nonBlank(values.contact.links),
+      links: mergeLinks({
+        linkedin: values.contact.linkedin,
+        portfolio: values.contact.portfolio,
+        extra: nonBlank(values.contact.extraLinks),
+      }),
     },
     summary: orNull(values.summary),
     experience: values.experience.map((entry) => ({
@@ -126,6 +140,35 @@ export function toDraft(values: DraftFormValues): CvDraft {
       .map((category) => ({ id: category.id, name: category.name.trim(), skills: nonBlank(category.skills) }))
       .filter((category) => category.skills.length > 0),
   };
+}
+
+/** The role the CV is written for: trimmed, never null (the server refuses a blank one). */
+export function toTargetRole(values: DraftFormValues): string {
+  return values.targetRole.trim();
+}
+
+/** `Present` is the stored end date of a role (or study) that has not ended. */
+export const PRESENT = "Present";
+
+export function isPresent(endDate: string): boolean {
+  return endDate.trim().toLowerCase() === PRESENT.toLowerCase();
+}
+
+/**
+ * Education is "currently studying" when it has no end yet (Present) or ends in a future year. The
+ * state is derived from the stored end date; nothing extra is stored.
+ */
+export function isCurrentlyStudying(endDate: string, currentYear: number = new Date().getFullYear()): boolean {
+  if (isPresent(endDate)) {
+    return true;
+  }
+  const year = /(\d{4})/.exec(endDate)?.[1];
+  return year !== undefined && Number(year) > currentYear;
+}
+
+/** The expected graduation shown for an ongoing study: empty while the end is just "Present". */
+export function expectedGraduation(endDate: string): string {
+  return isPresent(endDate) ? "" : endDate;
 }
 
 function newId(): string {
@@ -195,13 +238,24 @@ const skillCategory = z.object({
   skills: z.array(listItem(60, "A skill")),
 });
 
+const link = (kind: "linkedin" | "portfolio" | "link") =>
+  text(200, "A link").superRefine((value, context) => {
+    const message = linkError(kind, value);
+    if (message !== null) {
+      context.addIssue({ code: "custom", message });
+    }
+  });
+
 const cvFormObject = z.object({
+  targetRole: z.string().trim().min(1, "Enter your target role.").max(200, "Target role must be at most 200 characters."),
   contact: z.object({
     fullName: text(120, "Name"),
     email,
     phone: text(40, "Phone"),
     location: text(120, "Location"),
-    links: z.array(listItem(200, "A link")).max(5, "At most 5 links."),
+    linkedin: link("linkedin"),
+    portfolio: link("portfolio"),
+    extraLinks: z.array(z.object({ value: link("link") })),
   }),
   summary: text(1200, "The summary"),
   experience: z.array(experienceEntry).max(30, "At most 30 roles."),
@@ -217,6 +271,13 @@ export const cvFormSchema = cvFormObject.superRefine((values, context) => {
   const names = new Set<string>();
   const skills = new Set<string>();
   let total = 0;
+
+  const linkCount = [values.contact.linkedin, values.contact.portfolio, ...values.contact.extraLinks.map((item) => item.value)].filter(
+    (value) => value.trim() !== "",
+  ).length;
+  if (linkCount > MAX_LINKS) {
+    context.addIssue({ code: "custom", path: ["contact", "extraLinks"], message: `At most ${MAX_LINKS} links.` });
+  }
 
   values.skillCategories.forEach((category, index) => {
     const name = category.name.trim();

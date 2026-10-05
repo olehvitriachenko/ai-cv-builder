@@ -1,12 +1,14 @@
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
-import { AppHeader } from "@/components/app-header";
 import { getCurrentUser } from "@/lib/auth/server";
 import { QueryProvider } from "./query-provider";
+import { UserProvider } from "./user-context";
 
 /**
- * Shared shell for the CV screens. The redirect is a convenience only: the API enforces
- * authentication on every request, including the page's own data calls.
+ * Shared shell for the CV screens: authentication, the signed-in user and the query client. The
+ * header and the main landmark come from each page (`AppShell`), because the editor has its own
+ * navigation. The redirect is a convenience only: the API enforces authentication on every request,
+ * including the page's own data calls.
  */
 export default async function CvsLayout({ children }: { children: ReactNode }) {
   const user = await getCurrentUser();
@@ -15,11 +17,8 @@ export default async function CvsLayout({ children }: { children: ReactNode }) {
   }
 
   return (
-    <>
-      <AppHeader user={user} />
-      <main className="flex w-full flex-1 flex-col">
-        <QueryProvider>{children}</QueryProvider>
-      </main>
-    </>
+    <UserProvider user={user}>
+      <QueryProvider>{children}</QueryProvider>
+    </UserProvider>
   );
 }

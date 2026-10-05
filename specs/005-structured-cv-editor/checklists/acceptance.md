@@ -51,3 +51,45 @@ Next.js production build against the migrated database: the preview shows `Front
 
 - `@types/pg` was added to `API` devDependencies (type declarations for the `pg` client the migration e2e uses; `pg` was already a dependency and `@types/pg@8.23.1` was already in the lockfile through the Prisma adapter).
 - The SKILLS apply issue paths are `patch.additions`; the draft mapper does not enforce the category and skill caps (validation rejects an over-cap draft, so nothing over the caps is persisted).
+
+
+## Iteration 1: structured layout and sections (Phase 3, US1)
+
+Verified in a browser against the running development servers with a throwaway account and a completed v2 CV with the design's content (one role, one education entry, 85% complete; no AI call), then removed. The numbers below were measured on that single-role CV.
+
+### Layout against frames 05.1 / 06.1 at 1440 px (page y from the top, widths in px)
+
+| Part | Figma | Built |
+|------|-------|-------|
+| Sticky navigation | 1440 x 80 | 1440 x 80, `position: sticky`, constant while saving, saved, failed, downloading |
+| Title block, save status, Download PDF, more options | x 270, 1062, 1209 (131 wide, 44 high), 1364 (44) | x 271, 1060, 1207 (133 wide, 44 high), 1364 (44) |
+| Editing column / preview column | 584 at x 32 / 760 at x 648 | 584 at x 32 / 760 at x 648, preview sticky at y 112 |
+| Workspace introduction | 584 x 51 | 584 x 51 |
+| Personal details card | 584 x 615 | 584 x 614.5 |
+| Professional summary card | 584 x 199 | 584 x 202.5 |
+| Professional experience card (one role) | 584 x 886 | 584 x 888 (872 before the highlight header height was matched) |
+| Education card | 584 x 482 | 584 x 482.5 |
+| Completeness card | 584 x 85 | 584 x 87 (border counted outside the box in CSS) |
+
+### Behaviour
+
+- Editing the target role, phone and LinkedIn updates the title, the preview and the completeness score (85% to 100%, "Complete") at once; three edits produce one debounced `PUT`; the CV's `targetRole` and the draft change together in one revision bump; the My CVs list shows the new role; after a reload everything is back, links split into LinkedIn / Portfolio and merged again in the same order.
+- Opening the editor saves nothing. An invalid link ("not a url" gives "Enter a valid URL.") or an empty new role / education entry blocks saving ("Fix the highlighted fields to save", no `PUT`) and shows its message on the field; fixing it saves.
+- Add and remove (all immediate, no confirmation): role, highlight, link, education entry. The End date select shows **Date ended** only for a specific date.
+- The more-options menu offers exactly Back to My CVs and Delete CV; Escape closes it and returns focus; Delete CV opens the confirmation dialog naming the CV, Cancel returns focus to the trigger.
+- Download PDF in the new navigation is the feature-004 flow unchanged: busy state with the header still 80 px, the file name follows the edited role, and a failure shows its message in the page instead of growing the header.
+- `localStorage` and `sessionStorage` hold nothing.
+- My CVs, Create CV, the generation view and the not-found page keep their layout (one header, one main; generation cards 552 x 522 and 376 x 554 as before).
+- 390 px and 320 px: no horizontal scroll, sections full width, the Preview tab shows the document; the navigation wraps to two rows below 640 px (the designed phone header is Phase 8).
+
+### Gates
+
+| Gate | Result |
+|------|--------|
+| Web `tsc --noEmit`, `lint`, `next build` | clean |
+| Web unit tests | 17 files, 164 passed (completeness, links, entry labels, form and autosave payload added) |
+
+### Notes
+
+- The employer location and the education details text are kept in the draft untouched and not shown, because the design has no field for them.
+- Skills still use the temporary per-category editor inside the new card shell.

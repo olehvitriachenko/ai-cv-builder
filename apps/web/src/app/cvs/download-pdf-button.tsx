@@ -3,7 +3,7 @@
 import { Download, LoaderCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
-import { Button, type ButtonVariant } from "@/components/ui/button";
+import { Button, type ButtonSize, type ButtonVariant } from "@/components/ui/button";
 import { fetchCvPdf } from "@/lib/api/cv-pdf";
 import {
   DownloadBlockedError,
@@ -19,23 +19,35 @@ import {
 export function DownloadPdfButton({
   cvId,
   variant,
+  size = "compact",
   showIcon = false,
   disabledReason = null,
   beforeDownload,
+  onMessage,
 }: {
   cvId: string;
   variant?: ButtonVariant;
+  size?: ButtonSize;
   showIcon?: boolean;
   /** Why the action is unavailable (the CV has no draft yet), or null when it is available. */
   disabledReason?: string | null;
   /** Runs before the request; throws `DownloadBlockedError` to stop with an explanation. */
   beforeDownload?: () => Promise<void>;
+  /**
+   * Reports the failure message instead of rendering it next to the button, for a caller whose
+   * layout cannot grow (the editor header keeps its height in every state).
+   */
+  onMessage?: (message: string | null) => void;
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   // State updates are asynchronous, so two clicks in the same frame would both see `busy` as false.
   const inFlight = useRef(false);
-  const [message, setMessage] = useState<string | null>(null);
+  const [inlineMessage, setInlineMessage] = useState<string | null>(null);
+  const setMessage = (next: string | null) => {
+    setInlineMessage(next);
+    onMessage?.(next);
+  };
 
   async function handleClick(): Promise<void> {
     if (inFlight.current) {
@@ -71,7 +83,7 @@ export function DownloadPdfButton({
       <Button
         type="button"
         variant={variant}
-        size="compact"
+        size={size}
         stretch={false}
         disabled={unavailable || busy}
         aria-busy={busy}
@@ -86,10 +98,10 @@ export function DownloadPdfButton({
         {busy ? "Preparing PDF…" : "Download PDF"}
       </Button>
       {/* Announced without moving focus; the button stays available to try again. */}
-      {message ? (
+      {inlineMessage && onMessage === undefined ? (
         <p role="alert" className="basis-full rounded-lg bg-danger-tint p-3 text-[13px] text-danger">
           <span className="font-medium">Error: </span>
-          {message}
+          {inlineMessage}
         </p>
       ) : null}
     </>

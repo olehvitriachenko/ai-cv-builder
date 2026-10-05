@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import type { CvResult } from "@/lib/api/cvs";
 import { isApiError } from "@/lib/api/fetcher";
 import { getCvResultServer, getCvStatusServer } from "@/lib/cv/server";
+import { AppShell } from "../app-shell";
 import { CvEditor } from "./cv-editor";
 import { GenerationView } from "./generation-view";
 
@@ -46,8 +47,12 @@ export default async function CvPage(props: PageProps<"/cvs/[id]">) {
   }
 
   if (result) {
-    return <CvEditor cvId={id} targetRole={status.targetRole} initialResult={result} />;
+    return <CvEditor cvId={id} initialResult={result} />;
   }
 
-  return <GenerationView initialStatus={status} />;
+  return (
+    <AppShell>
+      <GenerationView initialStatus={status} />
+    </AppShell>
+  );
 }

@@ -26,11 +26,15 @@ export interface SaveState {
   failure: SaveFailure | null;
 }
 
-export type SaveDraft = (revision: number, draft: CvDraft) => Promise<{ revision: number }>;
+/**
+ * What is saved is whatever the caller hands over (the editor saves the draft together with the
+ * target role); the autosaver only schedules, serializes and tracks it.
+ */
+export type SaveDraft<T = CvDraft> = (revision: number, payload: T) => Promise<{ revision: number }>;
 
-export interface AutosaverOptions {
+export interface AutosaverOptions<T = CvDraft> {
   initialRevision: number;
-  save: SaveDraft;
+  save: SaveDraft<T>;
   debounceMs?: number;
 }
 
@@ -44,17 +48,17 @@ function classify(error: unknown): SaveFailure {
   return "other";
 }
 
-export class DraftAutosaver {
+export class DraftAutosaver<T = CvDraft> {
   private state: SaveState;
-  private pending: CvDraft | null = null;
+  private pending: T | null = null;
   private inFlight: Promise<void> | null = null;
   private timer: ReturnType<typeof setTimeout> | null = null;
   private disposed = false;
   private readonly listeners = new Set<() => void>();
-  private readonly save: SaveDraft;
+  private readonly save: SaveDraft<T>;
   private readonly debounceMs: number;
 
-  constructor(options: AutosaverOptions) {
+  constructor(options: AutosaverOptions<T>) {
     this.save = options.save;
     this.debounceMs = options.debounceMs ?? 1000;
     this.state = { status: "idle", revision: options.initialRevision, failure: null };
@@ -67,8 +71,8 @@ export class DraftAutosaver {
     return () => this.listeners.delete(listener);
   };
 
-  /** The user changed the (valid) draft. Schedules a save unless saving is blocked by a conflict. */
-  change(draft: CvDraft): void {
+  /** The user changed the (valid) content. Schedules a save unless saving is blocked by a conflict. */
+  change(draft: T): void {
     if (this.disposed) {
       return;
     }

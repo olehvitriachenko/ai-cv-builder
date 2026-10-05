@@ -225,3 +225,36 @@ describe("DraftAutosaver", () => {
     expect(calls).toHaveLength(0);
   });
 });
+
+describe("DraftAutosaver payload", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("saves whatever it was given, so the target role travels with the draft in the same request", async () => {
+    interface Payload {
+      draft: CvDraft;
+      targetRole: string;
+    }
+    const calls: { revision: number; payload: Payload }[] = [];
+    const autosaver = new DraftAutosaver<Payload>({
+      initialRevision: 2,
+      save: async (revision, payload) => {
+        calls.push({ revision, payload });
+        return { revision: revision + 1 };
+      },
+      debounceMs: 1000,
+    });
+
+    autosaver.change({ draft: draftWith("x"), targetRole: "Staff Engineer" });
+    autosaver.change({ draft: draftWith("y"), targetRole: "Staff Engineer" });
+    await vi.advanceTimersByTimeAsync(1000);
+
+    // Debounced like before: one request with the newest payload, on the revision it was based on.
+    expect(calls).toEqual([{ revision: 2, payload: { draft: draftWith("y"), targetRole: "Staff Engineer" } }]);
+    expect(autosaver.getState()).toMatchObject({ status: "saved", revision: 3 });
+  });
+});

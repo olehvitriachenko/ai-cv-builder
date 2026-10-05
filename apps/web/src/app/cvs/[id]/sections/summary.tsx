@@ -1,0 +1,26 @@
+"use client";
+
+import { useFormContext } from "react-hook-form";
+import { TextareaField } from "@/components/ui/field";
+import type { DraftFormValues } from "@/lib/cv/draft-form";
+import { SectionCard } from "./section-card";
+
+/** Professional summary (05.1): the text is edited directly; there is no "Improve with AI" action. */
+export function Summary() {
+  const { register, formState } = useFormContext<DraftFormValues>();
+
+  return (
+    <SectionCard title="Professional summary">
+      <TextareaField
+        label="Professional summary"
+        labelHidden
+        rows={3}
+        placeholder="Briefly describe your experience and what you bring."
+        className="placeholder:text-muted!"
+        hint="Briefly describe your experience, strongest skills and the value you bring. Keep it focused on the role you want."
+        error={formState.errors.summary?.message}
+        {...register("summary")}
+      />
+    </SectionCard>
+  );
+}
