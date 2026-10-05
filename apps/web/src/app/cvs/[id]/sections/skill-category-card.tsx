@@ -1,5 +1,6 @@
 "use client";
 
+import { Trash2 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";
@@ -96,6 +97,16 @@ export function SkillCategoryCard({
         options={options}
         {...CATEGORY_COMBOBOX}
         onSelect={rename}
+        trailing={
+          <button
+            type="button"
+            aria-label={`Remove category ${category.name}`}
+            onClick={onRemove}
+            className="flex size-11 shrink-0 items-center justify-center rounded-lg border border-line bg-surface text-muted hover:border-danger hover:bg-danger-tint hover:text-danger focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          >
+            <Trash2 aria-hidden className="size-[18px]" strokeWidth={1.75} />
+          </button>
+        }
       />
       {nameMessage ? (
         <p role="alert" className="text-xs text-danger">
@@ -153,9 +164,6 @@ export function SkillCategoryCard({
         </Button>
         <Button type="button" variant="text" stretch={false} disabled={!canMoveCategory(index, 1, categories.length)} onClick={() => onMove(1)}>
           ↓ Move down
-        </Button>
-        <Button type="button" variant="text" stretch={false} className="text-danger! hover:bg-danger-tint!" onClick={onRemove}>
-          Remove category
         </Button>
       </div>
     </section>

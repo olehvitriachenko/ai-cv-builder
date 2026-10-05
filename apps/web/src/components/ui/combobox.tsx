@@ -28,6 +28,7 @@ export function Combobox({
   custom,
   onSelect,
   triggerRef,
+  trailing,
 }: {
   label: string;
   /** The chosen option, or `null` while nothing is chosen. */
@@ -40,6 +41,8 @@ export function Combobox({
   custom?: CustomOption;
   onSelect: (value: string) => void;
   triggerRef?: React.RefObject<HTMLButtonElement | null>;
+  /** A control beside the trigger (for example a delete button), aligned with it. */
+  trailing?: React.ReactNode;
 }) {
   const id = useId();
   const listId = `${id}-list`;
@@ -115,26 +118,29 @@ export function Combobox({
       <span id={labelId} className="text-[13px] leading-[normal] font-medium text-ink">
         {label}
       </span>
-      <button
-        ref={trigger}
-        type="button"
-        aria-haspopup="listbox"
-        aria-expanded={open}
-        aria-labelledby={`${labelId} ${id}-value`}
-        onClick={() => (open ? close(false) : setOpen(true))}
-        className={`relative flex h-11 w-full items-center rounded-lg bg-surface pr-10 pl-3 text-left text-sm ${FOCUS_RING} ${
-          open ? "border-[1.5px] border-accent" : "border border-line"
-        }`}
-      >
-        <span id={`${id}-value`} className={value === null ? "text-muted" : "text-ink"}>
-          {value ?? placeholder}
-        </span>
-        <ChevronDown
-          aria-hidden
-          className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted"
-          strokeWidth={1.75}
-        />
-      </button>
+      <div className="flex items-center gap-2">
+        <button
+          ref={trigger}
+          type="button"
+          aria-haspopup="listbox"
+          aria-expanded={open}
+          aria-labelledby={`${labelId} ${id}-value`}
+          onClick={() => (open ? close(false) : setOpen(true))}
+          className={`relative flex h-11 min-w-0 flex-1 items-center rounded-lg bg-surface pr-10 pl-3 text-left text-sm ${FOCUS_RING} ${
+            open ? "border-[1.5px] border-accent" : "border border-line"
+          }`}
+        >
+          <span id={`${id}-value`} className={value === null ? "text-muted" : "text-ink"}>
+            {value ?? placeholder}
+          </span>
+          <ChevronDown
+            aria-hidden
+            className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted"
+            strokeWidth={1.75}
+          />
+        </button>
+        {trailing}
+      </div>
       {open ? (
         <div className="flex flex-col gap-1 rounded-lg border border-line bg-surface p-2">
           <label htmlFor={`${id}-search`} className="text-[13px] leading-[normal] font-medium text-ink">
