@@ -129,10 +129,15 @@ export function FullscreenPreview({
             <span aria-hidden className="text-[11px] text-muted">
               Esc
             </span>
-            <Button type="button" variant="text" stretch={false} onClick={() => closeEditorDialog(dialogRef.current)}>
-              <X aria-hidden className="size-3.5" strokeWidth={2} />
-              Close preview
-            </Button>
+            <button
+              type="button"
+              aria-label="Close preview"
+              title="Close preview"
+              onClick={() => closeEditorDialog(dialogRef.current)}
+              className="flex size-9 items-center justify-center rounded-lg text-accent hover:bg-canvas focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            >
+              <X aria-hidden className="size-4" strokeWidth={2} />
+            </button>
           </div>
           <div className={`relative ${floatingMessage}`}>
             <DownloadPdfButton
