@@ -1,6 +1,6 @@
 import type { CvListItem } from "@/entities/cv/schemas";
 import { isApiError } from "@/shared/api/fetcher";
-import { cardName } from "./card-copy";
+import { cardName } from "../../../lib/cv/card-copy";
 
 /** Only finished CVs can be deleted; a generating CV would race with the generation. */
 export function canDelete(item: Pick<CvListItem, "status">): boolean {

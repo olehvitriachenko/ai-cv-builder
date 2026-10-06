@@ -10,11 +10,11 @@ import { retryCv } from "@/features/cv-generation/api";
 import { type CvListItem } from "@/entities/cv/schemas";
 import { isApiError } from "@/shared/api/fetcher";
 import { cardActions, cardMessage, cardName, formatUpdated } from "@/lib/cv/card-copy";
-import { deleteSubject } from "@/lib/cv/delete-flow";
-import { downloadDisabledReason } from "@/lib/cv/download-flow";
+import { deleteSubject } from "@/features/cv-delete/model/delete-flow";
+import { downloadDisabledReason } from "@/features/pdf-download/model/download-flow";
 import { CVS_QUERY_KEY } from "@/lib/cv/query-keys";
-import { DeleteCvDialog } from "./delete-cv-dialog";
-import { DownloadPdfButton } from "./download-pdf-button";
+import { DeleteCvDialog } from "../../features/cv-delete/components/delete-cv-dialog";
+import { DownloadPdfButton } from "../../features/pdf-download/components/download-pdf-button";
 
 const MESSAGE_TONE: Record<CvListItem["displayStatus"], string> = {
   DRAFT: "text-accent",

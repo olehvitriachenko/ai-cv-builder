@@ -1,5 +1,5 @@
 import { ApiError, apiFetchBlob } from "@/shared/api/fetcher";
-import type { PdfResponse } from "@/lib/cv/download-flow";
+import type { PdfResponse } from "@/features/pdf-download/model/download-flow";
 
 /** The latest saved draft of an owned CV as a PDF. The server decides the file name. */
 export async function fetchCvPdf(cvId: string): Promise<PdfResponse> {

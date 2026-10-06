@@ -4,13 +4,13 @@ import { Download, LoaderCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useRef, useState, type ReactNode } from "react";
 import { Button, type ButtonSize, type ButtonVariant } from "@/shared/ui/button";
-import { fetchCvPdf } from "@/lib/api/cv-pdf";
+import { fetchCvPdf } from "@/features/pdf-download/api";
 import {
   DownloadBlockedError,
   browserDownload,
   downloadOutcome,
   downloadPdf,
-} from "@/lib/cv/download-flow";
+} from "@/features/pdf-download/model/download-flow";
 
 /**
  * "Download PDF" for one CV, used by the editor and by My CVs. It owns the busy and failure

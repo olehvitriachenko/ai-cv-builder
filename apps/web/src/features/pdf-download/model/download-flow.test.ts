@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { ApiError } from "@/shared/api/fetcher";
-import type { SaveState } from "./autosave";
+import type { SaveState } from "../../../lib/cv/autosave";
 import {
   DownloadBlockedError,
   canDownloadFromList,
