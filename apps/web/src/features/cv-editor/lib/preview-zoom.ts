@@ -1,4 +1,4 @@
-import type { SaveStatus } from "./autosave";
+import type { SaveStatus } from "../model/autosave";
 
 // Zoom, fit and page-count rules of the document preview (inline panel and full-screen view). Pure
 // numbers and text, so they are tested without a DOM. Zoom is a whole percentage of an A4 sheet at

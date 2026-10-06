@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import type { CvDraft } from "@/entities/cv/schemas";
-import { SHEET_WIDTH_PX, sheetScale } from "@/lib/cv/preview-zoom";
+import { SHEET_WIDTH_PX, sheetScale } from "@/features/cv-editor/lib/preview-zoom";
 import { CvDocument } from "./cv-document";
 
 /** The layout sheet: 660 px wide and 933 px tall, the ratio of A4 (Figma "A4 CV page"). */

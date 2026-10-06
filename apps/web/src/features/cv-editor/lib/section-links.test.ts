@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { MissingItem } from "@/lib/cv/completeness";
+import type { MissingItem } from "@/features/cv-editor/model/completeness";
 import { revealMissingItem, revealSection } from "./section-links";
 
 afterEach(() => vi.unstubAllGlobals());

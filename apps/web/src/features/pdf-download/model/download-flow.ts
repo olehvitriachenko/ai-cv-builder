@@ -1,6 +1,6 @@
 import type { CvListItem } from "@/entities/cv/schemas";
 import { isApiError } from "@/shared/api/fetcher";
-import type { SaveState } from "../../../lib/cv/autosave";
+import type { SaveState } from "../../cv-editor/model/autosave";
 
 /** What the PDF request returns: the file and the server's suggested name (the raw header). */
 export interface PdfResponse {

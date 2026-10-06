@@ -3,8 +3,8 @@
 import { useId } from "react";
 import { Controller, useFormContext, type FieldPath } from "react-hook-form";
 import { SelectField, TextField } from "@/shared/ui/field";
-import { MIN_CV_YEAR, MONTHS, parseCvDate } from "@/lib/cv/dates";
-import type { DraftFormValues } from "@/lib/cv/draft-form";
+import { MIN_CV_YEAR, MONTHS, parseCvDate } from "@/features/cv-editor/lib/dates";
+import type { DraftFormValues } from "@/features/cv-editor/model/draft-form";
 
 /** Numeric year and an optional month picker, preserving year-only source dates. */
 export function DateField({ label, value, onChange, error, maxYear, yearOnly = false, name }: {

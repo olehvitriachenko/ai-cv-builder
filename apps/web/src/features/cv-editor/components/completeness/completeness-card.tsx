@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { computeCompleteness } from "@/lib/cv/completeness";
-import { revealMissingItem } from "../../../../app/cvs/[id]/section-links";
-import type { DraftFormValues } from "@/lib/cv/draft-form";
+import { computeCompleteness } from "@/features/cv-editor/model/completeness";
+import { revealMissingItem } from "../../lib/section-links";
+import type { DraftFormValues } from "@/features/cv-editor/model/draft-form";
 import { useEditorMotion } from "@/shared/lib/use-editor-motion";
 
 /** What to do for a missing item, as the phone layout lists it ("+10% · Add phone number"). */

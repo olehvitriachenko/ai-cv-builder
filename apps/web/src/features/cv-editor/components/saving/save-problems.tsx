@@ -1,6 +1,6 @@
 import { TriangleAlert } from "lucide-react";
 import { Button, ButtonLink } from "@/shared/ui/button";
-import type { SaveState } from "@/lib/cv/autosave";
+import type { SaveState } from "@/features/cv-editor/model/autosave";
 
 /**
  * "Your latest edits couldn't be saved" (Figma 09.2), its offline form "Offline · Your draft is

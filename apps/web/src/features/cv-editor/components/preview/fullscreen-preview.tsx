@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/shared/ui/button";
 import { closeEditorDialog } from "@/shared/lib/dialog-motion";
 import type { CvDraft } from "@/entities/cv/schemas";
-import type { SaveStatus } from "@/lib/cv/autosave";
+import type { SaveStatus } from "@/features/cv-editor/model/autosave";
 import {
   A4_HEIGHT_PX,
   A4_WIDTH_PX,
@@ -14,7 +14,7 @@ import {
   previewStatus,
   zoomIn,
   zoomOut,
-} from "@/lib/cv/preview-zoom";
+} from "@/features/cv-editor/lib/preview-zoom";
 import { DownloadPdfButton } from "../../../pdf-download/components/download-pdf-button";
 import { PAGE_HEIGHT, ScaledSheet } from "./scaled-sheet";
 import { ZoomControls } from "./zoom-controls";

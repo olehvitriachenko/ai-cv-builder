@@ -7,9 +7,9 @@ import { TextField } from "@/shared/ui/field";
 import {
   newEducationEntry,
   type DraftFormValues,
-} from "@/lib/cv/draft-form";
-import { educationCount, educationHeading } from "@/lib/cv/entry-labels";
-import { maxEducationYear } from "@/lib/cv/dates";
+} from "@/features/cv-editor/model/draft-form";
+import { educationCount, educationHeading } from "@/features/cv-editor/lib/entry-labels";
+import { maxEducationYear } from "@/features/cv-editor/lib/dates";
 import { useEditorMotion } from "@/shared/lib/use-editor-motion";
 import { DateField } from "../primitives/date-field";
 import { EmptySection } from "../primitives/empty-section";

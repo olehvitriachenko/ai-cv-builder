@@ -3,7 +3,7 @@
 import { Maximize2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import type { CvDraft } from "@/entities/cv/schemas";
-import type { SaveStatus } from "@/lib/cv/autosave";
+import type { SaveStatus } from "@/features/cv-editor/model/autosave";
 import {
   A4_WIDTH_PX,
   DESIGN_ZOOM,
@@ -12,7 +12,7 @@ import {
   previewStatus,
   zoomIn,
   zoomOut,
-} from "@/lib/cv/preview-zoom";
+} from "@/features/cv-editor/lib/preview-zoom";
 import { PAGE_HEIGHT, ScaledSheet } from "./scaled-sheet";
 import { ZoomControls } from "./zoom-controls";
 

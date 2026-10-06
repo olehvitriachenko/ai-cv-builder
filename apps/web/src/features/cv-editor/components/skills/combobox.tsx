@@ -2,7 +2,7 @@
 
 import { Check, ChevronDown } from "lucide-react";
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
-import { customCategoryOption, filterCategories, nextActiveIndex, type NavigationKey } from "@/lib/cv/category-filter";
+import { customCategoryOption, filterCategories, nextActiveIndex, type NavigationKey } from "@/features/cv-editor/lib/category-filter";
 
 // "Forma / Select" that opens a contained search list (Figma 08.2 "Category combobox"): a trigger
 // that looks like the select, and below it, in the page flow so it never overflows a phone, a

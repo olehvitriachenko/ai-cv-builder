@@ -1,5 +1,5 @@
 import { CircleAlert, TriangleAlert } from "lucide-react";
-import { answerSaveLabel, type AnswerSave } from "@/lib/cv/question-form";
+import { answerSaveLabel, type AnswerSave } from "@/features/cv-editor/model/question-form";
 
 /**
  * Autosave announcements are hidden visually so typing never shifts the actions.

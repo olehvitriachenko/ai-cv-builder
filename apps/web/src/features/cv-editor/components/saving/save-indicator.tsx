@@ -1,6 +1,6 @@
 import { Check, CircleAlert, LoaderCircle } from "lucide-react";
-import type { SaveState } from "@/lib/cv/autosave";
-import { saveView } from "@/lib/cv/save-view";
+import type { SaveState } from "@/features/cv-editor/model/autosave";
+import { saveView } from "@/features/cv-editor/model/save-view";
 
 /**
  * Figma "Save indicator" (09.1, 09.2, 11.1): All changes saved, Saving…, Couldn't save · Retry and

@@ -1,5 +1,5 @@
-import type { MissingItem } from "@/lib/cv/completeness";
-import type { QuestionSection } from "@/lib/cv/question-form";
+import type { MissingItem } from "@/features/cv-editor/model/completeness";
+import type { QuestionSection } from "@/features/cv-editor/model/question-form";
 
 // The AI assistant's "Review section" and "Edit manually" actions take the person to the part of
 // the CV a question is about. The anchors are the ids of the editor's section cards.

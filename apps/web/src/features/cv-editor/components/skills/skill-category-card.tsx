@@ -5,7 +5,7 @@ import { useEditorMotion } from "@/shared/lib/use-editor-motion";
 import { Button } from "@/shared/ui/button";
 import { Combobox } from "@/features/cv-editor/components/skills/combobox";
 import { FieldFrame, describedBy } from "@/shared/ui/field";
-import type { SkillCategoryFormEntry } from "@/lib/cv/draft-form";
+import type { SkillCategoryFormEntry } from "@/features/cv-editor/model/draft-form";
 import { suggestionsFor } from "@/features/cv-editor/lib/skill-catalogue";
 import {
   MAX_SKILLS_TOTAL,
@@ -16,7 +16,7 @@ import {
   renameCategory,
   skillCount,
   suggestionStates,
-} from "@/lib/cv/skills-form";
+} from "@/features/cv-editor/model/skills-form";
 import { RemoveButton } from "../primitives/remove-button";
 import { SkillChip } from "./skill-chip";
 import { SkillSuggestions } from "./skill-suggestions";

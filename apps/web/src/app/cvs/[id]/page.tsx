@@ -5,7 +5,7 @@ import { isApiError } from "@/shared/api/fetcher";
 import { getCvResultServer } from "@/features/cv-editor/server";
 import { getCvStatusServer } from "@/features/cv-generation/server";
 import { AppShell } from "../../_components/app-shell";
-import { CvEditor } from "./cv-editor";
+import { CvEditor } from "../../../features/cv-editor/components/cv-editor";
 import { GenerationView } from "../../../features/cv-generation/components/generation-view";
 
 export const metadata: Metadata = { title: "Your CV · AI CV Builder" };

@@ -1,4 +1,4 @@
-import type { SuggestionState } from "@/lib/cv/skills-form";
+import type { SuggestionState } from "@/features/cv-editor/model/skills-form";
 import { useEditorMotion } from "@/shared/lib/use-editor-motion";
 
 /**

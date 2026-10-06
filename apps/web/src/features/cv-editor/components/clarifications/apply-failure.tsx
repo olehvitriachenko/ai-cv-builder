@@ -1,6 +1,6 @@
 import { TriangleAlert } from "lucide-react";
 import { Button } from "@/shared/ui/button";
-import { APPLY_ACTION_LABELS, type ApplyAction, type ApplyFailure } from "@/lib/cv/apply-flow";
+import { APPLY_ACTION_LABELS, type ApplyAction, type ApplyFailure } from "@/features/cv-editor/model/apply-flow";
 
 /**
  * A failed apply (Figma 07.3 "Apply failed · four causes and recovery"): what happened in words,

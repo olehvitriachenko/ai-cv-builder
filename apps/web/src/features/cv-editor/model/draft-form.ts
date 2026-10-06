@@ -1,8 +1,8 @@
 import { z } from "zod";
 import type { CvDraft } from "@/entities/cv/schemas";
-import { MAX_TARGET_ROLE_CHARS } from "../../features/cv-generation/model/create-form";
-import { MAX_LINKS, linkError, mergeLinks, splitLinks } from "./links";
-import { dateError, parseCvDate, reversedDateRange } from "./dates";
+import { MAX_TARGET_ROLE_CHARS } from "@/entities/cv/limits";
+import { MAX_LINKS, linkError, mergeLinks, splitLinks } from "../lib/links";
+import { dateError, parseCvDate, reversedDateRange } from "../lib/dates";
 
 // The editor form's shape and rules. The stored model is `CvDraft` and nothing else: these helpers
 // only translate it to inputs (null <-> empty string, string lists wrapped as `{ value }` because

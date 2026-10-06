@@ -1,6 +1,6 @@
 "use client";
 
-import { ANSWER_APPLIED_NOTICE } from "@/lib/cv/action-feedback";
+import { ANSWER_APPLIED_NOTICE } from "@/features/cv-editor/lib/action-feedback";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useForm, useWatch } from "react-hook-form";
@@ -8,16 +8,16 @@ import { applyQuestion } from "@/features/cv-editor/api/questions";
 import { saveDraft } from "@/features/cv-editor/api/draft";
 import { type ClarificationQuestion, type CvResult } from "@/entities/cv/schemas";
 import { isApiError } from "@/shared/api/fetcher";
-import { ApplyBlockedError, ApplyFailureError, applyAnswer, applyErrorOutcome } from "@/lib/cv/apply-flow";
-import { questionTargetName, sectionLabel } from "@/lib/cv/question-form";
-import { DraftAutosaver, type SavePayload } from "@/lib/cv/autosave";
+import { ApplyBlockedError, ApplyFailureError, applyAnswer, applyErrorOutcome } from "@/features/cv-editor/model/apply-flow";
+import { questionTargetName, sectionLabel } from "@/features/cv-editor/model/question-form";
+import { DraftAutosaver, type SavePayload } from "@/features/cv-editor/model/autosave";
 import {
   cvFormSchema,
   toDraft,
   toFormValues,
   toTargetRole,
   type DraftFormValues,
-} from "@/lib/cv/draft-form";
+} from "@/features/cv-editor/model/draft-form";
 
 function payloadOf(values: DraftFormValues): SavePayload {
   return { draft: toDraft(values), targetRole: toTargetRole(values) };

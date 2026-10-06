@@ -3,8 +3,8 @@
 import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
 import { Button } from "@/shared/ui/button";
 import { TextField } from "@/shared/ui/field";
-import type { DraftFormValues } from "@/lib/cv/draft-form";
-import { MAX_LINKS } from "@/lib/cv/links";
+import type { DraftFormValues } from "@/features/cv-editor/model/draft-form";
+import { MAX_LINKS } from "@/features/cv-editor/lib/links";
 import { RemoveButton } from "../primitives/remove-button";
 import { SectionCard } from "../primitives/section-card";
 

@@ -1,4 +1,4 @@
-import { expectedGraduation, isCurrentlyStudying } from "./draft-form";
+import { expectedGraduation, isCurrentlyStudying } from "../model/draft-form";
 
 // Plain-text labels of the structured editor's entries and section count lines, kept out of the
 // components so they are tested without a DOM.

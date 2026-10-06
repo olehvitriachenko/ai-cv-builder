@@ -2,9 +2,9 @@
 
 import { useFormContext, useWatch } from "react-hook-form";
 import { SelectField, TextField } from "@/shared/ui/field";
-import { PRESENT, isPresent, type DraftFormValues } from "@/lib/cv/draft-form";
-import { experienceHeading } from "@/lib/cv/entry-labels";
-import { experienceDuration } from "@/lib/cv/dates";
+import { PRESENT, isPresent, type DraftFormValues } from "@/features/cv-editor/model/draft-form";
+import { experienceHeading } from "@/features/cv-editor/lib/entry-labels";
+import { experienceDuration } from "@/features/cv-editor/lib/dates";
 import { useEditorMotion } from "@/shared/lib/use-editor-motion";
 import { Highlights } from "./highlights";
 import { RemoveButton } from "../primitives/remove-button";

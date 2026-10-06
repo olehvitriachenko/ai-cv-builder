@@ -6,9 +6,9 @@ import { Button } from "@/shared/ui/button";
 import { TextareaField } from "@/shared/ui/field";
 import { answerQuestion, dismissQuestion } from "@/features/cv-editor/api/questions";
 import { type ClarificationQuestion, type CvDraft } from "@/entities/cv/schemas";
-import { expireActionFeedback, FEEDBACK_FADE_MS } from "@/lib/cv/action-feedback";
+import { expireActionFeedback, FEEDBACK_FADE_MS } from "@/features/cv-editor/lib/action-feedback";
 import { isApiError } from "@/shared/api/fetcher";
-import { ApplyBlockedError, ApplyFailureError, type ApplyAction, type ApplyFailure } from "@/lib/cv/apply-flow";
+import { ApplyBlockedError, ApplyFailureError, type ApplyAction, type ApplyFailure } from "@/features/cv-editor/model/apply-flow";
 import { CVS_QUERY_KEY } from "@/entities/cv/lib/query-keys";
 import {
   MAX_ANSWER_CHARS,
@@ -18,11 +18,11 @@ import {
   questionContext,
   questionView,
   type AnswerSave,
-} from "@/lib/cv/question-form";
+} from "@/features/cv-editor/model/question-form";
 import { KIND_PILL, ResolvedQuestionCard } from "./resolved-question-card";
 import { AnswerStatus } from "./answer-status";
 import { ApplyFailureNotice } from "./apply-failure";
-import { revealSection } from "../../../../app/cvs/[id]/section-links";
+import { revealSection } from "../../lib/section-links";
 
 /** How long typing pauses before the answer is saved on its own (not part of the CV's own save). */
 const ANSWER_SAVE_DELAY_MS = 800;

@@ -6,7 +6,7 @@ import { SortableContext, arrayMove, sortableKeyboardCoordinates, verticalListSo
 import { useFormContext, useWatch } from "react-hook-form";
 import { Button } from "@/shared/ui/button";
 import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
-import type { DraftFormValues, SkillCategoryFormEntry } from "@/lib/cv/draft-form";
+import type { DraftFormValues, SkillCategoryFormEntry } from "@/features/cv-editor/model/draft-form";
 import { SKILL_CATALOGUE } from "@/features/cv-editor/lib/skill-catalogue";
 import {
   MAX_CATEGORIES,
@@ -14,7 +14,7 @@ import {
   categoryRefusalMessage,
   removeCategory,
   skillCount,
-} from "@/lib/cv/skills-form";
+} from "@/features/cv-editor/model/skills-form";
 import { NewCategoryCard } from "./new-category-card";
 import { SectionCard } from "../primitives/section-card";
 import { SortableSkillCategory } from "./sortable-skill-category";

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { DraftFormValues } from "./draft-form";
-import { splitLinks } from "./links";
+import { splitLinks } from "../lib/links";
 
 // The advisory completeness score of the editor (spec appendix "Completeness score"): the sum of
 // the weights of the satisfied items. It runs on the live form values, is never stored or sent, and

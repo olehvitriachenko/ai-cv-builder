@@ -11,7 +11,7 @@ import {
   type ReviewSection,
   type SectionSide,
   type VersionContent,
-} from "@/lib/cv/conflict-review";
+} from "@/features/cv-editor/model/conflict-review";
 
 function Side({ sectionSide, changed }: { sectionSide: SectionSide; changed: boolean }) {
   return (

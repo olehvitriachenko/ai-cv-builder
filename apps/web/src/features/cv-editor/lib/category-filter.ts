@@ -1,4 +1,4 @@
-import { MAX_CATEGORY_NAME_LENGTH } from "./skills-form";
+import { MAX_CATEGORY_NAME_LENGTH } from "../model/skills-form";
 
 // Search and keyboard rules of the category combobox, as pure functions.
 

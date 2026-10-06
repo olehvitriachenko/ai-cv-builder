@@ -1,4 +1,4 @@
-import { canZoomIn, canZoomOut, zoomLabel } from "@/lib/cv/preview-zoom";
+import { canZoomIn, canZoomOut, zoomLabel } from "@/features/cv-editor/lib/preview-zoom";
 
 type Size = "panel" | "bar" | "touch";
 

@@ -2,8 +2,8 @@
 
 import { Button } from "@/shared/ui/button";
 import type { ClarificationQuestion } from "@/entities/cv/schemas";
-import { sectionLabel, type QuestionView } from "@/lib/cv/question-form";
-import { revealSection } from "@/app/cvs/[id]/section-links";
+import { sectionLabel, type QuestionView } from "@/features/cv-editor/model/question-form";
+import { revealSection } from "@/features/cv-editor/lib/section-links";
 
 export const KIND_PILL = "rounded-full bg-accent-tint px-2 py-0.5 text-[10px] leading-[normal] font-semibold text-accent";
 

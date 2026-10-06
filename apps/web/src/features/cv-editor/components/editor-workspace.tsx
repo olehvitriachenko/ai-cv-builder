@@ -1,30 +1,32 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useRef, useState } from "react";
+import { PreviewBar } from "./preview/preview-bar";
+import { useOffline } from "../hooks/use-offline";
 import { FormProvider } from "react-hook-form";
 import type { CvResult } from "@/entities/cv/schemas";
-import { ANSWER_APPLIED_NOTICE } from "@/lib/cv/action-feedback";
-import { ActionNotice } from "../../../features/cv-editor/components/saving/action-notice";
+import { ANSWER_APPLIED_NOTICE } from "@/features/cv-editor/lib/action-feedback";
+import { ActionNotice } from "./saving/action-notice";
 import { prepareDownload } from "@/features/pdf-download/model/download-flow";
 import { deleteSubject } from "@/features/cv-delete/model/delete-flow";
-import { DownloadPdfButton } from "../../../features/pdf-download/components/download-pdf-button";
-import { ClarificationPanel } from "../../../features/cv-editor/components/clarifications/clarification-panel";
-import { CompletenessCard } from "../../../features/cv-editor/components/completeness/completeness-card";
-import { EditorMenu } from "../../../features/cv-editor/components/navigation/editor-menu";
-import { EditorNav } from "../../../features/cv-editor/components/navigation/editor-nav";
-import { FullscreenPreview } from "../../../features/cv-editor/components/preview/fullscreen-preview";
-import { PreviewPanel } from "../../../features/cv-editor/components/preview/preview-panel";
-import { keyboardOpen, stickyAction, type MobileView } from "@/lib/cv/mobile-view";
-import { saveView } from "@/lib/cv/save-view";
-import { ConflictReview } from "../../../features/cv-editor/components/saving/conflict-review";
-import { SaveIndicator } from "../../../features/cv-editor/components/saving/save-indicator";
-import { ConflictNotice, SaveErrorNotice } from "../../../features/cv-editor/components/saving/save-problems";
-import { Education } from "../../../features/cv-editor/components/education/education";
-import { Experience } from "../../../features/cv-editor/components/experience/experience";
-import { PersonalDetails } from "../../../features/cv-editor/components/personal-details/personal-details";
-import { Skills } from "../../../features/cv-editor/components/skills/skills";
-import { Summary } from "../../../features/cv-editor/components/summary/summary";
-import { useCvEditor } from "./use-cv-editor";
+import { DownloadPdfButton } from "../../pdf-download/components/download-pdf-button";
+import { ClarificationPanel } from "./clarifications/clarification-panel";
+import { CompletenessCard } from "./completeness/completeness-card";
+import { EditorMenu } from "./navigation/editor-menu";
+import { EditorNav } from "./navigation/editor-nav";
+import { FullscreenPreview } from "./preview/fullscreen-preview";
+import { PreviewPanel } from "./preview/preview-panel";
+import { type MobileView } from "@/features/cv-editor/model/mobile-view";
+import { saveView } from "@/features/cv-editor/model/save-view";
+import { ConflictReview } from "./saving/conflict-review";
+import { SaveIndicator } from "./saving/save-indicator";
+import { ConflictNotice, SaveErrorNotice } from "./saving/save-problems";
+import { Education } from "./education/education";
+import { Experience } from "./experience/experience";
+import { PersonalDetails } from "./personal-details/personal-details";
+import { Skills } from "./skills/skills";
+import { Summary } from "./summary/summary";
+import { useCvEditor } from "../hooks/use-cv-editor";
 
 /**
  * The structured editor: sticky navigation, then every section always open in the left column
@@ -236,59 +238,5 @@ export function EditorWorkspace({
         />
       ) : null}
     </FormProvider>
-  );
-}
-
-/**
- * The phone's sticky action (Figma 05.2, 11.2): "Preview CV" while editing, "Edit CV" while
- * previewing. Its bottom padding is 16 px plus the safe-area inset, and it hides while the on-screen
- * keyboard is open so the field being typed in stays above the keyboard.
- */
-function PreviewBar({ view, onSwitch }: { view: MobileView; onSwitch: (view: MobileView) => void }) {
-  const [typing, setTyping] = useState(false);
-  const action = stickyAction(view);
-
-  useEffect(() => {
-    const viewport = window.visualViewport;
-    if (viewport === null) {
-      return;
-    }
-    const update = () => setTyping(keyboardOpen(window.innerHeight, viewport.height));
-    viewport.addEventListener("resize", update);
-    return () => viewport.removeEventListener("resize", update);
-  }, []);
-
-  if (typing) {
-    return null;
-  }
-  return (
-    <div className="cv-editor-motion fixed inset-x-0 bottom-0 z-30 border-t border-line bg-surface p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] lg:hidden">
-      <button
-        type="button"
-        onClick={() => {
-          onSwitch(action.next);
-          window.scrollTo({ top: 0 });
-        }}
-        className="h-11 w-full rounded-lg border border-accent bg-accent text-sm font-semibold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-      >
-        {action.label}
-      </button>
-    </div>
-  );
-}
-
-/** Whether the browser reports no connection (the notice then says "Offline"). */
-function useOffline(): boolean {
-  return useSyncExternalStore(
-    (notify) => {
-      window.addEventListener("online", notify);
-      window.addEventListener("offline", notify);
-      return () => {
-        window.removeEventListener("online", notify);
-        window.removeEventListener("offline", notify);
-      };
-    },
-    () => !navigator.onLine,
-    () => false,
   );
 }

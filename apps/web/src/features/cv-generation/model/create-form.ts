@@ -4,7 +4,8 @@ import { z } from "zod";
 // its content, not its name, and enforces the same sizes).
 export const MIN_SOURCE_CHARS = 50;
 export const MAX_SOURCE_CHARS = 20_000;
-export const MAX_TARGET_ROLE_CHARS = 200;
+import { MAX_TARGET_ROLE_CHARS } from "@/entities/cv/limits";
+export { MAX_TARGET_ROLE_CHARS };
 export const MAX_PDF_BYTES = 5 * 1024 * 1024;
 
 export type SourceMode = "text" | "pdf";

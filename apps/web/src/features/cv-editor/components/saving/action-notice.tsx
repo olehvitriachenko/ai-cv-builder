@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-import { expireActionFeedback, FEEDBACK_FADE_MS } from "@/lib/cv/action-feedback";
+import { expireActionFeedback, FEEDBACK_FADE_MS } from "@/features/cv-editor/lib/action-feedback";
 
 /** Only success feedback expires; messages that need attention remain visible. */
 export function ActionNotice({ message, transient }: { message: string; transient: boolean }) {
