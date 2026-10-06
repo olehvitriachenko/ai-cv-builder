@@ -11,7 +11,7 @@ import {
 // colour alone).
 
 const CONTROL =
-  "w-full rounded-lg border bg-surface text-sm text-ink placeholder:text-placeholder focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent disabled:cursor-not-allowed disabled:bg-canvas disabled:text-muted";
+  "w-full rounded-lg border bg-surface motion-safe:transition-colors motion-safe:duration-150 text-sm text-ink placeholder:text-placeholder focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent disabled:cursor-not-allowed disabled:bg-canvas disabled:text-muted";
 
 function controlBorder(error: string | undefined): string {
   return error ? "border-[1.5px] border-danger" : "border-line";
@@ -38,7 +38,7 @@ export function FieldFrame({ label, labelHidden = false, controlId, hint, error,
       </label>
       {children}
       {error ? (
-        <p id={`${controlId}-error`} className="flex items-start gap-1.5 text-xs leading-normal text-danger">
+        <p id={`${controlId}-error`} className="motion-safe:animate-[editor-fade-in_180ms_ease-out] flex items-start gap-1.5 text-xs leading-normal text-danger">
           <TriangleAlert aria-hidden className="mt-0.5 size-3 shrink-0" strokeWidth={2} />
           <span>
             <span className="sr-only">Error: </span>
@@ -46,7 +46,7 @@ export function FieldFrame({ label, labelHidden = false, controlId, hint, error,
           </span>
         </p>
       ) : hint ? (
-        <p id={`${controlId}-hint`} className="text-xs leading-normal text-muted">
+        <p id={`${controlId}-hint`} className="motion-safe:animate-[editor-fade-in_180ms_ease-out] text-xs leading-normal text-muted">
           {hint}
         </p>
       ) : null}

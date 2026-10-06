@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ChevronDown } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { useEditorMotion } from "@/shared/lib/use-editor-motion";
 import { Button } from "@/shared/ui/button";
 import { listCvs } from "@/features/cv-list/api";
 import { type CvListItem } from "@/entities/cv/schemas";
@@ -20,6 +21,7 @@ import { CvListEmpty } from "./cv-list-empty";
  */
 export function CvList({ initialItems }: { initialItems: CvListItem[] }) {
   const router = useRouter();
+  const motionRef = useEditorMotion<HTMLUListElement>();
   const query = useQuery({
     queryKey: CVS_QUERY_KEY,
     queryFn: async () => (await listCvs()).items,
@@ -76,7 +78,7 @@ export function CvList({ initialItems }: { initialItems: CvListItem[] }) {
         </div>
       ) : null}
 
-      <ul className="grid gap-4 md:grid-cols-2 md:gap-6">
+      <ul ref={motionRef} className="grid gap-4 md:grid-cols-2 md:gap-6">
         {items.map((item) => (
           <li key={item.id} className="min-w-0">
             <CvCard item={item} />

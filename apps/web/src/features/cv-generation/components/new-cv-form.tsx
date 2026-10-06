@@ -162,6 +162,7 @@ export function NewCvForm() {
             </ModeButton>
           </div>
 
+          <div key={mode} className="motion-safe:animate-[editor-fade-in_180ms_ease-out]">
           {mode === "text" ? (
             <TextareaField
               label="Your background"
@@ -187,6 +188,7 @@ export function NewCvForm() {
               )}
             />
           )}
+          </div>
         </section>
 
         <div className="flex items-start gap-3 rounded-lg bg-accent-tint p-4">
