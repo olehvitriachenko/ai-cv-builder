@@ -8,7 +8,8 @@ import {
   cvDraftSchema,
   type CvDraft,
 } from '../generation/draft.schema.js';
-import { indexSource } from '../generation/source-matching.js';
+import { containsFact, supportsQuantities } from '../generation/explicit-facts.js';
+import { indexSource, type SourceIndex } from '../generation/source-matching.js';
 
 /**
  * Validates an AI-produced patch and applies it to one section or entry of a draft. Pure and
@@ -17,9 +18,12 @@ import { indexSource } from '../generation/source-matching.js';
  *  - The target is chosen by the server (section + entry id); the patch cannot name another one.
  *  - Additive only: a scalar fills a null value, lists are appended to. A value that would replace
  *    something already there is an issue (`would_overwrite`), never an overwrite.
- *  - Contact details and organisation names must be supported by the person's answer (the same
- *    deterministic checks generation uses). Wording of bullets and summaries cannot be proven
- *    mechanically; that is governed by the prompt contract, as documented for generation.
+ *  - What the patch adds must be supported by the person's answer, with the same deterministic
+ *    checks generation uses against its source: contact details, organisations, locations, dates,
+ *    skills, and the numbers in new bullets, details and summaries (numbers may also come from the
+ *    entry being extended). Only the additions are checked; what the CV already holds is not.
+ *    Wording of bullets and summaries cannot be proven mechanically; that is governed by the prompt
+ *    contract, as documented for generation.
  *  - A patch that changes nothing is rejected, so a question is only ever "applied" when the CV
  *    really changed.
  *  - The whole result must still satisfy the draft schema (caps, entry rules).
@@ -94,9 +98,11 @@ export function applyAnswerPatch(
         ? applyContact(draft, patch, answerText)
         : fail('wrong_scope', 'patch');
     case 'SUMMARY':
-      return 'summary' in patch ? applySummary(draft, patch) : fail('wrong_scope', 'patch');
+      return 'summary' in patch ? applySummary(draft, patch, answerText) : fail('wrong_scope', 'patch');
     case 'SKILLS':
-      return 'additions' in patch ? applySkills(draft, patch, newId) : fail('wrong_scope', 'patch');
+      return 'additions' in patch
+        ? applySkills(draft, patch, answerText, newId)
+        : fail('wrong_scope', 'patch');
     case 'EXPERIENCE':
       return 'bullets' in patch && 'employer' in patch
         ? applyExperience(draft, target.itemId, patch, answerText)
@@ -153,6 +159,8 @@ function applyContact(draft: CvDraft, patch: ContactPatch, answerText: string): 
   if (location !== null) {
     if (contact.location !== null) {
       issues.push({ rule: 'would_overwrite', path: 'patch.location' });
+    } else if (!source.hasOrganisation(location)) {
+      issues.push({ rule: 'unsupported_location', path: 'patch.location' });
     } else {
       contact.location = location;
       changed = true;
@@ -182,12 +190,19 @@ function applyContact(draft: CvDraft, patch: ContactPatch, answerText: string): 
   return finish(issues, changed, { ...draft, contact });
 }
 
-function applySummary(draft: CvDraft, patch: { summary: string | null }): PatchResult {
+function applySummary(
+  draft: CvDraft,
+  patch: { summary: string | null },
+  answerText: string,
+): PatchResult {
   if (draft.summary !== null) {
     // A present summary may be the person's own text: it is never rewritten.
     return fail('target_filled', 'target');
   }
   const summary = trimmed(patch.summary);
+  if (summary !== null && !supportsQuantities(answerText, summary)) {
+    return fail('unsupported_quantity', 'patch.summary');
+  }
   return finish([], summary !== null, { ...draft, summary });
 }
 
@@ -199,7 +214,12 @@ type SkillsPatch = Extract<AnswerPatch, { additions: unknown }>;
  * `Skills`. Skills already present anywhere in the CV (ignoring case) are ignored. Nothing is
  * removed, renamed or reordered.
  */
-function applySkills(draft: CvDraft, patch: SkillsPatch, newId: () => string): PatchResult {
+function applySkills(
+  draft: CvDraft,
+  patch: SkillsPatch,
+  answerText: string,
+  newId: () => string,
+): PatchResult {
   const issues: PatchIssue[] = [];
   const categories = draft.skillCategories.map((category) => ({
     ...category,
@@ -239,6 +259,10 @@ function applySkills(draft: CvDraft, patch: SkillsPatch, newId: () => string): P
       if (known.has(key)) {
         continue;
       }
+      if (!containsFact(answerText, skill)) {
+        issues.push({ rule: 'unsupported_skill', path: `patch.additions.${index}.skills` });
+        continue;
+      }
       if (!target) {
         const created = {
           id: newId(),
@@ -263,6 +287,43 @@ function applySkills(draft: CvDraft, patch: SkillsPatch, newId: () => string): P
   return finish(issues, added > 0, { ...draft, skillCategories: categories });
 }
 
+/**
+ * The rule a value the patch adds to an entry breaks, or null. Organisations and locations must be
+ * named in the answer (or the entry), dates must be written in the answer, and numbers must come
+ * from the answer or the entry being extended. Titles and qualifications are wording the prompt
+ * governs, as in generation.
+ */
+function unsupportedEntryValue(
+  key: string,
+  value: string,
+  source: SourceIndex,
+  answerText: string,
+  context: string,
+): string | null {
+  switch (key) {
+    case 'employer':
+    case 'institution':
+      return source.hasOrganisation(value) ? null : 'unsupported_organisation';
+    case 'location':
+      return source.hasOrganisation(value) ? null : 'unsupported_location';
+    case 'startDate':
+    case 'endDate':
+      return containsFact(answerText, value) ? null : 'unsupported_date';
+    case 'details':
+      return supportsQuantities(`${answerText}\n${context}`, value) ? null : 'unsupported_quantity';
+    default:
+      return null;
+  }
+}
+
+/** The facts an entry already holds: numbers in an addition may restate them. */
+function entryText(entry: Record<string, unknown>): string {
+  return Object.values(entry)
+    .flatMap((value) => (Array.isArray(value) ? value : [value]))
+    .filter((value): value is string => typeof value === 'string')
+    .join('\n');
+}
+
 type ExperiencePatch = Extract<AnswerPatch, { bullets: string[]; employer: string | null }>;
 const EXPERIENCE_KEYS = ['employer', 'title', 'location', 'startDate', 'endDate'] as const;
 
@@ -282,16 +343,18 @@ function applyExperience(
   const entry = { ...current };
   let changed = false;
   const source = indexSource([answerText, current.employer ?? '', current.title ?? ''].join('\n'));
+  const context = entryText(current);
 
   for (const key of EXPERIENCE_KEYS) {
     const value = trimmed(patch[key]);
     if (value === null) {
       continue;
     }
+    const unsupported = unsupportedEntryValue(key, value, source, answerText, context);
     if (entry[key] !== null) {
       issues.push({ rule: 'would_overwrite', path: `patch.${key}` });
-    } else if (key === 'employer' && !source.hasOrganisation(value)) {
-      issues.push({ rule: 'unsupported_organisation', path: 'patch.employer' });
+    } else if (unsupported !== null) {
+      issues.push({ rule: unsupported, path: `patch.${key}` });
     } else {
       entry[key] = value;
       changed = true;
@@ -299,6 +362,11 @@ function applyExperience(
   }
 
   const bullets = cleanList(patch.bullets).filter((bullet) => !entry.bullets.includes(bullet));
+  bullets.forEach((bullet, position) => {
+    if (!supportsQuantities(`${answerText}\n${context}`, bullet)) {
+      issues.push({ rule: 'unsupported_quantity', path: `patch.bullets.${position}` });
+    }
+  });
   if (entry.bullets.length + bullets.length > MAX_BULLETS) {
     issues.push({ rule: 'too_many_bullets', path: 'patch.bullets' });
   }
@@ -334,16 +402,18 @@ function applyEducation(
   const source = indexSource(
     [answerText, current.institution ?? '', current.qualification ?? ''].join('\n'),
   );
+  const context = entryText(current);
 
   for (const key of EDUCATION_KEYS) {
     const value = trimmed(patch[key]);
     if (value === null) {
       continue;
     }
+    const unsupported = unsupportedEntryValue(key, value, source, answerText, context);
     if (entry[key] !== null) {
       issues.push({ rule: 'would_overwrite', path: `patch.${key}` });
-    } else if (key === 'institution' && !source.hasOrganisation(value)) {
-      issues.push({ rule: 'unsupported_organisation', path: 'patch.institution' });
+    } else if (unsupported !== null) {
+      issues.push({ rule: unsupported, path: `patch.${key}` });
     } else {
       entry[key] = value;
       changed = true;

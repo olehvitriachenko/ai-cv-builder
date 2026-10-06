@@ -206,7 +206,7 @@ describe('applyAnswerPatch', () => {
     });
 
     it('can append to an existing custom category', () => {
-      const result = applyAnswerPatch(baseDraft(), skillsTarget, additions({ category: 'My tools', skills: ['Emacs'] }), 'x', newId);
+      const result = applyAnswerPatch(baseDraft(), skillsTarget, additions({ category: 'My tools', skills: ['Emacs'] }), 'I also use Emacs', newId);
 
       expect(categories(result)).toEqual([
         ['Backend', ['Node.js', 'SQL']],
@@ -216,7 +216,7 @@ describe('applyAnswerPatch', () => {
 
     it('creates a new category at the end when it is a predefined name, using the catalogue spelling and a generated id', () => {
       counter = 0;
-      const result = applyAnswerPatch(baseDraft(), skillsTarget, additions({ category: ' databases ', skills: ['PostgreSQL'] }), 'x', newId);
+      const result = applyAnswerPatch(baseDraft(), skillsTarget, additions({ category: ' databases ', skills: ['PostgreSQL'] }), 'PostgreSQL', newId);
 
       expect(categories(result)).toEqual([
         ['Backend', ['Node.js', 'SQL']],
@@ -227,7 +227,7 @@ describe('applyAnswerPatch', () => {
     });
 
     it('creates the fallback Skills category when needed', () => {
-      const result = applyAnswerPatch(baseDraft(), skillsTarget, additions({ category: 'skills', skills: ['Origami'] }), 'x', newId);
+      const result = applyAnswerPatch(baseDraft(), skillsTarget, additions({ category: 'skills', skills: ['Origami'] }), 'origami', newId);
 
       expect(categories(result).at(-1)).toEqual(['Skills', ['Origami']]);
     });
@@ -248,7 +248,7 @@ describe('applyAnswerPatch', () => {
         baseDraft(),
         skillsTarget,
         additions({ category: 'Backend', skills: ['node.js', 'vim', 'Go', 'GO', ''] }),
-        'x',
+        'Node.js, Vim and Go',
         newId,
       );
 
@@ -269,11 +269,11 @@ describe('applyAnswerPatch', () => {
     it('caps at 60 skills in total and at 12 categories', () => {
       const full = baseDraft();
       full.skillCategories = [{ id: 'c', name: 'Backend', skills: Array.from({ length: 60 }, (_, i) => `skill-${i}`) }];
-      const tooMany = applyAnswerPatch(full, skillsTarget, additions({ category: 'Backend', skills: ['One more'] }), 'x', newId);
+      const tooMany = applyAnswerPatch(full, skillsTarget, additions({ category: 'Backend', skills: ['One more'] }), 'one more', newId);
 
       const twelve = baseDraft();
       twelve.skillCategories = Array.from({ length: 12 }, (_, i) => ({ id: `c${i}`, name: `Custom ${i}`, skills: [`s${i}`] }));
-      const tooManyCategories = applyAnswerPatch(twelve, skillsTarget, additions({ category: 'Databases', skills: ['PostgreSQL'] }), 'x', newId);
+      const tooManyCategories = applyAnswerPatch(twelve, skillsTarget, additions({ category: 'Databases', skills: ['PostgreSQL'] }), 'PostgreSQL', newId);
 
       expect(issues(tooMany)).toEqual(['patch.additions: too_many_skills']);
       expect(issues(tooManyCategories)).toEqual(['patch.additions: too_many_categories']);
@@ -284,6 +284,96 @@ describe('applyAnswerPatch', () => {
       applyAnswerPatch(draft, skillsTarget, additions({ category: 'Backend', skills: ['Go'] }), 'x', newId);
 
       expect(draft).toEqual(baseDraft());
+    });
+  });
+
+  describe('grounds what the patch adds in the answer (only the additions)', () => {
+    const skillsTarget: PatchTarget = { section: 'SKILLS', itemId: null };
+
+    it('adds a skill the answer names and refuses skills it does not (I also used Redis)', () => {
+      const supported = applyAnswerPatch(baseDraft(), skillsTarget, { additions: [{ category: 'Databases', skills: ['Redis'] }] }, 'I also used Redis.');
+      const invented = applyAnswerPatch(
+        baseDraft(),
+        skillsTarget,
+        { additions: [{ category: 'Databases', skills: ['Redis', 'AWS'] }, { category: 'DevOps & CI/CD', skills: ['Kubernetes'] }] },
+        'I also used Redis.',
+      );
+
+      expect(supported.ok && supported.draft.skillCategories.at(-1)).toMatchObject({ name: 'Databases', skills: ['Redis'] });
+      expect(issues(invented)).toEqual(['patch.additions.0.skills: unsupported_skill', 'patch.additions.1.skills: unsupported_skill']);
+    });
+
+    it('refuses numbers, a location and dates the answer does not state', () => {
+      const result = applyAnswerPatch(
+        baseDraft(),
+        exp1,
+        expPatch({ location: 'Berlin', startDate: '2019', bullets: ['Grew revenue by 300% for 2 million users'] }),
+        'I worked on billing.',
+      );
+
+      expect(issues(result)).toEqual([
+        'patch.location: unsupported_location',
+        'patch.startDate: unsupported_date',
+        'patch.bullets.0: unsupported_quantity',
+      ]);
+    });
+
+    it('accepts numbers, a location and dates the answer states', () => {
+      const result = applyAnswerPatch(
+        baseDraft(),
+        exp1,
+        expPatch({ location: 'Berlin', startDate: 'March 2019', bullets: ['Cut billing errors by 30%'] }),
+        'From March 2019 in Berlin; I cut billing errors by 30 percent.',
+      );
+
+      expect(result.ok && result.draft.experience[0]).toMatchObject({
+        location: 'Berlin',
+        startDate: 'March 2019',
+        bullets: ['Built APIs', 'Cut billing errors by 30%'],
+      });
+    });
+
+    it('does not re-check what the CV already holds, and lets a new bullet restate the entry\'s numbers', () => {
+      const draft = baseDraft();
+      draft.experience[0]!.bullets = ['Cut costs by 40%'];
+      draft.skillCategories[0]!.skills.push('Kubernetes');
+
+      const skills = applyAnswerPatch(draft, skillsTarget, { additions: [{ category: 'Databases', skills: ['Redis'] }] }, 'I also used Redis.');
+      const bullet = applyAnswerPatch(draft, exp1, expPatch({ bullets: ['Led the 40% cost reduction'] }), 'I led that cost work.');
+
+      expect(skills.ok).toBe(true);
+      expect(bullet.ok).toBe(true);
+    });
+
+    it('refuses a summary with numbers the answer does not state', () => {
+      const result = applyAnswerPatch(baseDraft(), { section: 'SUMMARY', itemId: null }, { summary: 'Engineer with 10 years of experience.' }, 'focus on APIs');
+
+      expect(issues(result)).toEqual(['patch.summary: unsupported_quantity']);
+    });
+
+    it('refuses education dates and details numbers the answer does not state', () => {
+      const result = applyAnswerPatch(
+        baseDraft(),
+        { section: 'EDUCATION', itemId: 'edu-1' },
+        { institution: null, qualification: null, startDate: null, endDate: '2016', details: 'GPA 3.9' },
+        'I graduated with honours.',
+      );
+
+      expect(issues(result)).toEqual(['patch.endDate: unsupported_date', 'patch.details: unsupported_quantity']);
+    });
+
+    it('refuses a contact location the answer does not name', () => {
+      const draft = baseDraft();
+      draft.contact.location = null;
+
+      const result = applyAnswerPatch(
+        draft,
+        { section: 'CONTACT', itemId: null },
+        { fullName: null, email: null, phone: null, location: 'Berlin', links: [] },
+        'I live in Kyiv.',
+      );
+
+      expect(issues(result)).toEqual(['patch.location: unsupported_location']);
     });
   });
 
