@@ -75,6 +75,7 @@ describe('answering and dismissing clarification questions', () => {
       });
       expect(Object.keys(body).sort((x, y) => x.localeCompare(y))).toEqual([
         'answer',
+        'field',
         'id',
         'itemId',
         'missing',

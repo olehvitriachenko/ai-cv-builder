@@ -162,9 +162,11 @@ describe('Generation lifecycle', () => {
 
     const rows = await prisma.clarificationQuestion.findMany({ where: { cvId: id }, orderBy: { position: 'asc' } });
     expect(rows.map((row) => row.field)).toEqual(['CONTACT_EMAIL', 'EXPERIENCE_END_DATE', null]);
-    // The field is internal: it is never part of the result the client sees.
+    // The client uses the field to reconcile questions against manually edited facts.
     const body = (await result(id)).json();
-    expect(JSON.stringify(body.questions)).not.toContain('CONTACT_EMAIL');
+    expect(body.questions.map((question: { field: string | null }) => question.field)).toEqual([
+      'CONTACT_EMAIL', 'EXPERIENCE_END_DATE', null,
+    ]);
   });
 
   it('rejects a field that does not belong to its question, then stores nothing after the retry also fails', async () => {

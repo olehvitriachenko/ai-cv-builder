@@ -69,6 +69,7 @@ describe('GET /api/cvs/:id/result', () => {
     expect(typeof body.questions[0].id).toBe('string');
     expect(Object.keys(body.questions[0]).sort((a, b) => a.localeCompare(b))).toEqual([
       'answer',
+      'field',
       'id',
       'itemId',
       'missing',
