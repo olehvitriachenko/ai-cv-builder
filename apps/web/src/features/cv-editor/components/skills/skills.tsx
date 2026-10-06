@@ -65,6 +65,17 @@ export function Skills() {
     if (from >= 0 && to >= 0) update(arrayMove(current, from, to));
   }
 
+  // The phone's arrows: move one category a step, then keep focus on an arrow of the moved card.
+  function move(id: string, direction: -1 | 1) {
+    const current = getValues("skillCategories");
+    const from = current.findIndex((category) => category.id === id);
+    const to = from + direction;
+    if (from < 0 || to < 0 || to >= current.length) return;
+    update(arrayMove(current, from, to));
+    const stay = direction === -1 ? (to === 0 ? "down" : "up") : to === current.length - 1 ? "up" : "down";
+    setTimeout(() => document.getElementById(`move-${stay}-${id}`)?.focus(), 0);
+  }
+
   const customNames = categories
     .map((entry) => entry.name)
     .filter((name) => !SKILL_CATALOGUE.some((predefined) => predefined.name.toLowerCase() === name.toLowerCase()));
@@ -98,7 +109,7 @@ export function Skills() {
       title="Skills & Technical Competencies"
       aside={`${total} ${skillWord(total)} · ${filled} ${filled === 1 ? "category" : "categories"}`}
     >
-      <p className="text-sm leading-normal text-muted">Choose a category, then add the skills you can support. Drag the handle to reorder categories.</p>
+      <p className="text-sm leading-normal text-muted">Choose a category, then add the skills you can support. <span className="max-sm:hidden">Drag the handle to reorder categories.</span><span className="sm:hidden">Use the arrows to reorder categories.</span></p>
 
       <DndContext
         id={dndId}
@@ -119,10 +130,13 @@ export function Skills() {
       >
         <SortableContext items={categories.map((category) => category.id)} strategy={verticalListSortingStrategy}>
           <div className="flex min-w-0 flex-col gap-4">
-            {categories.map((category) => (
+            {categories.map((category, index) => (
               <SortableSkillCategory
                 key={category.id}
                 category={category}
+                index={index}
+                count={categories.length}
+                onMove={(direction) => move(category.id, direction)}
                 dragging={draggingId !== null}
                 disabled={categories.length < 2}
                 categories={categories}
