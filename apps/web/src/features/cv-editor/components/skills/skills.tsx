@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, useRef, useState } from "react";
-import { DndContext, KeyboardSensor, MouseSensor, closestCenter, pointerWithin, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
+import { DndContext, KeyboardSensor, PointerSensor, closestCenter, pointerWithin, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, arrayMove, sortableKeyboardCoordinates, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { useFormContext, useWatch } from "react-hook-form";
 import { Button } from "@/shared/ui/button";
@@ -45,8 +45,8 @@ export function Skills() {
   const dndId = useId();
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const sensors = useSensors(
-    // A mouse drags by the handle; a finger drags the whole card after a short press.
-    useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
+    // The handle drags at once (mouse or finger); a finger on the rest of the card needs a short press.
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
     useSensor(CardTouchSensor, { activationConstraint: { delay: 250, tolerance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
@@ -100,7 +100,7 @@ export function Skills() {
       title="Skills & Technical Competencies"
       aside={`${total} ${skillWord(total)} · ${filled} ${filled === 1 ? "category" : "categories"}`}
     >
-      <p className="text-sm leading-normal text-muted">Choose a category, then add the skills you can support. <span className="max-sm:hidden">Drag the handle to reorder categories.</span><span className="sm:hidden">Press and hold a category, then drag it to reorder.</span></p>
+      <p className="text-sm leading-normal text-muted">Choose a category, then add the skills you can support. <span className="max-sm:hidden">Drag the handle to reorder categories.</span><span className="sm:hidden">Drag a category by its dots, or press and hold it, to reorder.</span></p>
 
       <DndContext
         id={dndId}

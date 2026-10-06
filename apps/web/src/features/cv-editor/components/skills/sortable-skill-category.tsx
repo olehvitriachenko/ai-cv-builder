@@ -17,8 +17,9 @@ export function SortableSkillCategory({ dragging, disabled, ...props }: Omit<Com
     transition: { duration: 180, easing: "ease-out" },
   });
   const phone = usePhone();
-  // On a phone a long press anywhere on the card (not on a field or button) drags it; the handle
-  // stays for the keyboard and shows only when it has focus. From sm up the handle is the only grip.
+  // From sm up the handle beside the trash button is the grip. On a phone the grip is a slim column
+  // of dots in the card's top-left corner, grabbed at once, and a long press anywhere on the card
+  // (not on a field or button) drags it too.
   const handle = (
     <button
       ref={setActivatorNodeRef}
@@ -29,7 +30,7 @@ export function SortableSkillCategory({ dragging, disabled, ...props }: Omit<Com
       disabled={disabled}
       aria-label={`Reorder category ${props.category.name}`}
       title="Drag to reorder. Keyboard: Space, arrows, Space; Esc to cancel."
-      className={`flex shrink-0 touch-none items-center justify-center rounded-lg border border-line bg-surface text-muted hover:bg-accent-tint hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent enabled:cursor-grab enabled:active:cursor-grabbing disabled:cursor-not-allowed disabled:opacity-40 ${phone ? "sr-only focus-visible:not-sr-only focus-visible:absolute focus-visible:top-2 focus-visible:left-3 focus-visible:z-10 focus-visible:h-9 focus-visible:w-11" : "size-11"}`}
+      className={`flex shrink-0 touch-none items-center justify-center rounded-lg border border-line bg-surface text-muted hover:bg-accent-tint hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent enabled:cursor-grab enabled:active:cursor-grabbing disabled:cursor-not-allowed disabled:opacity-40 ${phone ? "absolute top-3 left-0 z-10 h-11 w-6 border-transparent! bg-transparent! text-placeholder" : "size-11"}`}
     >
       <GripVertical aria-hidden className="size-[18px]" strokeWidth={1.75} />
     </button>
@@ -47,7 +48,7 @@ export function SortableSkillCategory({ dragging, disabled, ...props }: Omit<Com
         {...props}
         motionEnabled={!dragging}
         dragHandle={phone ? null : handle}
-        cornerHandle={phone ? handle : null}
+        cornerHandle={phone && !disabled ? handle : null}
       />
     </div>
   );

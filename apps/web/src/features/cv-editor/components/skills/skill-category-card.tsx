@@ -55,7 +55,7 @@ export function SkillCategoryCard({
   onUpdate: (next: SkillCategoryFormEntry[]) => void;
   /** Beside the trash button (from `sm` up). */
   dragHandle: ReactNode;
-  /** On a phone the whole card drags by touch; this handle is only for the keyboard and appears when focused. */
+  /** On a phone: the grip in the top-left corner (the card makes room for it). */
   cornerHandle?: ReactNode;
   motionEnabled: boolean;
   onRemove: () => void;
@@ -95,7 +95,7 @@ export function SkillCategoryCard({
   }
 
   return (
-    <section ref={cardMotionRef} aria-label={category.name} className="relative flex flex-col gap-3 rounded-xl border border-line bg-surface p-4">
+    <section ref={cardMotionRef} aria-label={category.name} className={`relative flex flex-col gap-3 rounded-xl border border-line bg-surface p-4 ${cornerHandle ? "max-sm:pl-6" : ""}`}>
       {cornerHandle}
       <Combobox
         label="Category Name"
