@@ -18,7 +18,9 @@ import { indexSource, type SourceIndex } from './source-matching.js';
  *  - structure: every section present, size caps, no blank strings, no empty entries (the persisted
  *    draft schema), and valid clarification questions;
  *  - contact details and the person's name against the source (strict, see source-matching);
- *  - employer and institution names against the source (tolerant of formatting, not of names).
+ *  - employer and institution names against the source (tolerant of formatting, not of names);
+ *  - the names of languages, certifications, projects, hobbies and custom sections, and their
+ *    links, against the source.
  *
  * Explicit dates, skills and numeric claims are source-checked. Arbitrary prose and titles remain governed
  * by the prompt contract and by clarification questions.
@@ -146,6 +148,30 @@ function sourceIssues(draft: CvDraft, source: SourceIndex, sourceText: string): 
     }
   });
 
+  // Optional sections: every name must be in the source (formatting tolerated, names not), like
+  // employers and institutions; a link must be one the source holds. Levels and dates are governed
+  // by the prompt, as for experience dates.
+  const names: { value: string; path: string }[] = [
+    ...draft.languages.map((entry, index) => ({ value: entry.name, path: `languages.${index}.name` })),
+    ...draft.certifications.map((entry, index) => ({ value: entry.name, path: `certifications.${index}.name` })),
+    ...draft.portfolio.map((entry, index) => ({ value: entry.name, path: `portfolio.${index}.name` })),
+    ...draft.hobbies.map((value, index) => ({ value, path: `hobbies.${index}` })),
+    ...draft.customSections.map((entry, index) => ({ value: entry.title, path: `customSections.${index}.title` })),
+  ];
+  for (const { value, path } of names) {
+    if (!source.hasOrganisation(value)) {
+      issues.push({ rule: 'unsupported_section_value', path });
+    }
+  }
+  const links: { value: string | null; path: string }[] = [
+    ...draft.certifications.map((entry, index) => ({ value: entry.link, path: `certifications.${index}.link` })),
+    ...draft.portfolio.map((entry, index) => ({ value: entry.link, path: `portfolio.${index}.link` })),
+  ];
+  for (const { value, path } of links) {
+    if (value !== null && !source.hasLink(value)) {
+      issues.push({ rule: 'unsupported_contact', path });
+    }
+  }
   const checkQuantity = (value: string | null, path: string) => {
     if (value !== null && !supportsQuantities(sourceText, value)) issues.push({ rule: 'unsupported_quantity', path });
   };

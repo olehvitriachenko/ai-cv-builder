@@ -163,3 +163,30 @@ describe('Anthropic structured-output compatibility', () => {
     expect(unionParameterCount(schema)).toBeLessThanOrEqual(16);
   });
 });
+
+describe('llmCvOutputSchema optional items', () => {
+  it('accepts output that leaves the list out (the model may omit it)', () => {
+    expect(llmCvOutputSchema.safeParse(validOutput()).success).toBe(true);
+  });
+
+  it('accepts items of every section with "" for what the source does not say', () => {
+    const result = llmCvOutputSchema.safeParse({
+      ...validOutput(),
+      optionalItems: [
+        { section: 'language', name: 'English', detail: 'C1', date: '', link: '' },
+        { section: 'certification', name: 'AWS SAA', detail: 'Amazon', date: '2024', link: '' },
+        { section: 'portfolio', name: 'CV Builder', detail: 'A CV tool', date: '', link: 'example.com/cv' },
+        { section: 'hobby', name: 'Chess', detail: '', date: '', link: '' },
+        { section: 'custom', name: 'Volunteering', detail: 'Food bank', date: '', link: '' },
+      ],
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects an unknown section and a null value', () => {
+    const item = { section: 'language', name: 'English', detail: '', date: '', link: '' };
+    expect(llmCvOutputSchema.safeParse({ ...validOutput(), optionalItems: [{ ...item, section: 'award' }] }).success).toBe(false);
+    expect(llmCvOutputSchema.safeParse({ ...validOutput(), optionalItems: [{ ...item, detail: null }] }).success).toBe(false);
+  });
+});

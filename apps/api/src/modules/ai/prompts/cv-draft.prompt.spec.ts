@@ -5,7 +5,7 @@ const SOURCE = 'Ada worked at Acme Corp as an engineer.';
 
 describe('cv-draft prompt', () => {
   it('has a version', () => {
-    expect(PROMPT_VERSION).toBe('cv-draft-v4');
+    expect(PROMPT_VERSION).toBe('cv-draft-v5');
   });
 
   describe('system prompt', () => {
@@ -121,5 +121,26 @@ describe('cv-draft prompt', () => {
     expect(prompt).toContain('CONTACT_EMAIL');
     expect(prompt).toContain('EXPERIENCE_END_DATE');
     expect(prompt).toMatch(/otherwise omit field/i);
+  });
+
+  describe('optional sections', () => {
+    const system = buildSystemPrompt();
+
+    it('allows items only when the source lists them and forbids padding the CV', () => {
+      expect(system).toMatch(/ONLY items the source clearly lists/);
+      expect(system).toMatch(/Never add an item to make the CV look fuller/);
+    });
+
+    it('never guesses a language level and leaves it empty when the source does not state one', () => {
+      expect(system).toMatch(/Never guess a level/);
+      expect(system).toMatch(/Otherwise ""/);
+    });
+
+    it('names the list and every section value', () => {
+      expect(system).toContain('"optionalItems"');
+      for (const section of ['"language"', '"certification"', '"portfolio"', '"hobby"', '"custom"']) {
+        expect(system).toContain(section);
+      }
+    });
   });
 });

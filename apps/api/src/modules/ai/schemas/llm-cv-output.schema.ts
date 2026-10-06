@@ -39,6 +39,10 @@ export const QUESTION_FIELDS = [
   'EDUCATION_END_DATE',
 ] as const;
 
+/** The optional sections the model may return, as the `section` of an item. */
+export const OPTIONAL_ITEM_SECTIONS = ['language', 'certification', 'portfolio', 'hobby', 'custom'] as const;
+export type OptionalItemSection = (typeof OPTIONAL_ITEM_SECTIONS)[number];
+
 export const llmCvOutputSchema = z.object({
   contact: z.object({
     fullName: z.string().nullable(),
@@ -75,6 +79,26 @@ export const llmCvOutputSchema = z.object({
       skills: z.array(z.string()),
     }),
   ),
+  // Optional sections (feature 007) as ONE list of items. Five arrays of their own did not fit the
+  // provider's compiled-grammar limit ("The compiled grammar is too large"), one list does. Every
+  // value is a plain string, "" meaning "the source does not say" (nullable fields would also
+  // exceed the provider's 16 union parameters). The mapper sorts the items into their sections:
+  //   language       name = the language,      detail = its level (A1..C2 or "Native speaker")
+  //   certification  name,                     detail = the issuer,      date, link
+  //   portfolio      name = the project,       detail = its description, link
+  //   hobby          name
+  //   custom         name = the section title, detail = its text
+  optionalItems: z
+    .array(
+      z.object({
+        section: z.enum(OPTIONAL_ITEM_SECTIONS),
+        name: z.string(),
+        detail: z.string(),
+        date: z.string(),
+        link: z.string(),
+      }),
+    )
+    .optional(),
   questions: z.array(
     z.object({
       section: z.enum(QUESTION_SECTIONS),

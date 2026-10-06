@@ -232,3 +232,83 @@ describe('mapQuestions field', () => {
     expect(rows.map((row) => row.field)).toEqual(['CONTACT_EMAIL', null]);
   });
 });
+
+describe('mapOutputToDraft optional sections', () => {
+  let counter = 0;
+  const newId = () => `id-${(counter += 1)}`;
+  const item = (section: 'language' | 'certification' | 'portfolio' | 'hobby' | 'custom', name: string, rest: Partial<{ detail: string; date: string; link: string }> = {}) => ({
+    section,
+    name,
+    detail: '',
+    date: '',
+    link: '',
+    ...rest,
+  });
+
+  it('gives a draft without items empty lists', () => {
+    const draft = cvDraftSchema.parse(mapOutputToDraft(output()));
+
+    expect(draft.languages).toEqual([]);
+    expect(draft.certifications).toEqual([]);
+    expect(draft.portfolio).toEqual([]);
+    expect(draft.hobbies).toEqual([]);
+    expect(draft.customSections).toEqual([]);
+  });
+
+  it('sorts the items into their sections, generates the ids and turns "" and an unknown level into null', () => {
+    const draft = mapOutputToDraft(
+      output({
+        optionalItems: [
+          item('language', 'English', { detail: 'C1' }),
+          item('language', 'German', { detail: 'fluent' }),
+          item('certification', 'AWS SAA', { detail: 'Amazon', link: '  ' }),
+          item('portfolio', 'CV Builder', { link: 'example.com/cv' }),
+          item('hobby', 'Chess'),
+          item('custom', 'Volunteering', { detail: 'Food bank' }),
+        ],
+      }),
+      newId,
+    );
+
+    expect(draft.languages).toEqual([
+      { id: expect.any(String), name: 'English', level: 'C1' },
+      { id: expect.any(String), name: 'German', level: null },
+    ]);
+    expect(draft.certifications).toEqual([{ id: expect.any(String), name: 'AWS SAA', issuer: 'Amazon', date: null, link: null }]);
+    expect(draft.portfolio).toEqual([{ id: expect.any(String), name: 'CV Builder', link: 'example.com/cv', description: null }]);
+    expect(draft.hobbies).toEqual(['Chess']);
+    expect(draft.customSections).toEqual([{ id: expect.any(String), title: 'Volunteering', content: 'Food bank' }]);
+    const ids = [...(draft.languages ?? []), ...(draft.certifications ?? []), ...(draft.portfolio ?? []), ...(draft.customSections ?? [])].map((entry) => entry.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it('accepts the level "Native speaker" as written', () => {
+    const draft = mapOutputToDraft(output({ optionalItems: [item('language', 'Ukrainian', { detail: 'Native speaker' })] }));
+
+    expect(draft.languages?.[0]?.level).toBe('Native speaker');
+  });
+
+  it('drops items without their name and keeps the first of a repeated language or hobby', () => {
+    const draft = mapOutputToDraft(
+      output({
+        optionalItems: [
+          item('language', 'English', { detail: 'A2' }),
+          item('language', ' english ', { detail: 'C1' }),
+          item('language', ' '),
+          item('certification', '', { detail: 'Amazon' }),
+          item('hobby', 'Chess'),
+          item('hobby', 'chess'),
+          item('hobby', ' '),
+          item('custom', 'Only title'),
+          item('custom', '', { detail: 'Only content' }),
+        ],
+      }),
+    );
+
+    expect(draft.languages).toHaveLength(1);
+    expect(draft.languages?.[0]).toMatchObject({ name: 'English', level: 'A2' });
+    expect(draft.certifications).toEqual([]);
+    expect(draft.hobbies).toEqual(['Chess']);
+    expect(draft.customSections).toEqual([]);
+  });
+});

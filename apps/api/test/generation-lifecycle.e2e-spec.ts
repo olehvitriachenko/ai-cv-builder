@@ -206,6 +206,61 @@ describe('Generation lifecycle', () => {
     expect((await rowOf(id)).generationStatus).toBe('COMPLETED');
   });
 
+  describe('optional sections', () => {
+    const SOURCE_WITH_SECTIONS = `${VALID_SOURCE_TEXT} Languages: English (C1), German. Hobbies: chess.`;
+
+    it('stores the sections the source lists, with generated ids, and returns them in the result', async () => {
+      generator.enqueueOutput(
+        validLlmOutput({
+          optionalItems: [
+            { section: 'language', name: 'English', detail: 'B2', date: '', link: '' },
+            { section: 'language', name: 'German', detail: '', date: '', link: '' },
+            { section: 'hobby', name: 'chess', detail: '', date: '', link: '' },
+          ],
+        }),
+      );
+      const id = await createCvFromText(app, user.cookie, { sourceText: SOURCE_WITH_SECTIONS });
+
+      await runner.runCv(id);
+
+      const body = (await result(id)).json<{
+        draft: { languages: { id: string; name: string; level: string | null }[]; hobbies: string[]; certifications: unknown[] };
+      }>();
+      expect(body.draft.languages.map((language) => [language.name, language.level])).toEqual([
+        ['English', 'B2'],
+        ['German', null],
+      ]);
+      expect(body.draft.languages.every((language) => language.id.length > 0)).toBe(true);
+      expect(body.draft.hobbies).toEqual(['chess']);
+      expect(body.draft.certifications).toEqual([]);
+    });
+
+    it('sends back only the rule id and path for an invented language, then completes on the retry', async () => {
+      generator.enqueueOutput(validLlmOutput({ optionalItems: [{ section: 'language', name: 'Klingon', detail: 'Native speaker', date: '', link: '' }] }));
+      generator.enqueueOutput(validLlmOutput());
+      const id = await createCvFromText(app, user.cookie);
+
+      await runner.runCv(id);
+
+      expect(generator.calls[1]?.feedback).toEqual(['languages.0.name: unsupported_section_value']);
+      expect(JSON.stringify(generator.calls)).not.toContain('Klingon');
+      expect((await rowOf(id)).generationStatus).toBe('COMPLETED');
+    });
+
+    it('fails the generation and stores no draft when the model keeps inventing a section', async () => {
+      generator.enqueueOutput(validLlmOutput({ optionalItems: [{ section: 'hobby', name: 'skydiving', detail: '', date: '', link: '' }] }));
+      generator.enqueueOutput(validLlmOutput({ optionalItems: [{ section: 'hobby', name: 'skydiving', detail: '', date: '', link: '' }] }));
+      const id = await createCvFromText(app, user.cookie);
+
+      await runner.runCv(id);
+
+      const row = await rowOf(id);
+      expect(row.generationStatus).toBe('FAILED');
+      expect(row.failureReason).toBe('INVALID_OUTPUT');
+      expect(row.draft).toBeNull();
+    });
+  });
+
   it('runs a job once when two workers claim the same CV at the same time', async () => {
     const hold = generator.enqueueHold();
     const id = await createCvFromText(app, user.cookie);

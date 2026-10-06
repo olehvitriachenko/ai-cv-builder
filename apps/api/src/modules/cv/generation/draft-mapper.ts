@@ -1,12 +1,13 @@
 import { randomUUID } from 'node:crypto';
 import type { z } from 'zod';
 import type { QuestionField } from '../../../generated/prisma/enums.js';
-import type {
-  LlmCvOutput,
+import {
+  type LlmCvOutput,
+  type OptionalItemSection,
   QuestionFieldName,
   QuestionSectionName,
 } from '../../ai/schemas/llm-cv-output.schema.js';
-import type { CvDraft, cvDraftSchema } from './draft.schema.js';
+import { LANGUAGE_LEVELS, type CvDraft, type cvDraftSchema } from './draft.schema.js';
 
 /** The draft shape before schema validation (strings not yet trimmed or checked). */
 export type DraftCandidate = z.input<typeof cvDraftSchema>;
@@ -48,6 +49,64 @@ export function mapOutputToDraft(
     experience,
     education,
     skillCategories: groupSkills(output.skillCategories, newId),
+    ...mapOptionalSections(output, newId),
+  };
+}
+
+const nullIfBlank = (value: string): string | null => (value.trim() === '' ? null : value.trim());
+
+/** First occurrence wins; blank values and repeats (ignoring case) are dropped. */
+function uniqueBy<T>(items: T[], key: (item: T) => string): T[] {
+  const seen = new Set<string>();
+  return items.filter((item) => {
+    const value = key(item).trim().toLowerCase();
+    if (value === '' || seen.has(value)) {
+      return false;
+    }
+    seen.add(value);
+    return true;
+  });
+}
+
+/**
+ * The optional items of the output as the draft's sections: ids generated here, "" becomes null,
+ * a language level that is not one of the allowed levels becomes null, an item without its name
+ * (the one required value) is dropped, and a language or a hobby listed twice keeps its first
+ * mention. Caps are not applied: an over-cap result is rejected by `validateGeneration` and retried.
+ */
+function mapOptionalSections(
+  output: LlmCvOutput,
+  newId: () => string,
+): Pick<DraftCandidate, 'languages' | 'certifications' | 'portfolio' | 'hobbies' | 'customSections'> {
+  const items = output.optionalItems ?? [];
+  const of = (section: OptionalItemSection) => items.filter((item) => item.section === section);
+  return {
+    languages: uniqueBy(of('language'), (item) => item.name).map((item) => ({
+      id: newId(),
+      name: item.name,
+      level: LANGUAGE_LEVELS.find((level) => level === item.detail.trim()) ?? null,
+    })),
+    certifications: of('certification')
+      .filter((item) => item.name.trim() !== '')
+      .map((item) => ({
+        id: newId(),
+        name: item.name,
+        issuer: nullIfBlank(item.detail),
+        date: nullIfBlank(item.date),
+        link: nullIfBlank(item.link),
+      })),
+    portfolio: of('portfolio')
+      .filter((item) => item.name.trim() !== '')
+      .map((item) => ({
+        id: newId(),
+        name: item.name,
+        link: nullIfBlank(item.link),
+        description: nullIfBlank(item.detail),
+      })),
+    hobbies: uniqueBy(of('hobby'), (item) => item.name).map((item) => item.name),
+    customSections: of('custom')
+      .filter((item) => item.name.trim() !== '' && item.detail.trim() !== '')
+      .map((item) => ({ id: newId(), title: item.name, content: item.detail })),
   };
 }
 

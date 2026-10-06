@@ -104,6 +104,21 @@ describe('Anthropic smoke (real API)', () => {
     }
   });
 
+  it('accepts the output schema and fills the optional sections only from what the source lists', async () => {
+    const source = `${COMPLETE_SOURCE}\nLanguages: English (C1), Ukrainian (native), German.\nCertifications: AWS Solutions Architect, Amazon Web Services, 2024.\nHobbies: chess, climbing.`;
+    const result = await runPipeline(generator, source);
+    report('optional sections', result);
+
+    expect(result.validation.ok).toBe(true);
+    if (result.validation.ok) {
+      const { languages, certifications, hobbies } = result.validation.draft;
+      process.stderr.write(`[smoke] languages=${languages.map((l) => `${l.name}:${l.level ?? '-'}`).join(',')} certifications=${certifications.length} hobbies=${hobbies.length}\n`);
+      expect(languages.map((language) => language.name)).toEqual(expect.arrayContaining(['English']));
+      expect(languages.find((language) => language.name === 'German')?.level ?? null).toBeNull();
+      expect(certifications.length).toBeGreaterThanOrEqual(1);
+    }
+  }, 180_000);
+
   it.each(['single-column', 'two-column'] as const)('generates a grounded draft from a %s PDF', async (layout) => {
     const left = ['Ada Lovelace', 'ada@example.com', '+44 20 7946 0958', 'London', 'SKILLS', 'Node.js, PostgreSQL'];
     const right = ['EXPERIENCE', 'Acme Corp', '2019-2023', 'Backend Engineer', 'Built REST APIs using Node.js.', 'EDUCATION', 'State University', 'BSc Computer Science, 2013.'];

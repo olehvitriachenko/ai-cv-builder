@@ -531,3 +531,79 @@ describe('validateGeneration', () => {
     expect(text).not.toContain('REST APIs');
   });
 });
+
+describe('validateGeneration optional sections', () => {
+  const SOURCE_WITH_SECTIONS = [
+    SOURCE,
+    'Languages: English (C1), German',
+    'Certifications: AWS Solutions Architect, Amazon Web Services, 2024 https://aws.amazon.com/verify/1',
+    'Projects: CV Builder - an AI assisted CV tool, https://example.com/cv-builder',
+    'Hobbies: chess, climbing',
+    'Volunteering: food bank coordinator',
+  ].join('\n');
+
+  type Item = NonNullable<LlmCvOutput['optionalItems']>[number];
+  const item = (section: Item['section'], name: string, rest: Partial<Item> = {}): Item => ({
+    section,
+    name,
+    detail: '',
+    date: '',
+    link: '',
+    ...rest,
+  });
+
+  const supported = (): Item[] => [
+    item('language', 'English', { detail: 'C1' }),
+    item('language', 'German'),
+    item('certification', 'AWS Solutions Architect', { detail: 'Amazon Web Services', date: '2024', link: 'https://aws.amazon.com/verify/1' }),
+    item('portfolio', 'CV Builder', { detail: 'An AI assisted CV tool', link: 'https://example.com/cv-builder' }),
+    item('hobby', 'chess'),
+    item('hobby', 'climbing'),
+    item('custom', 'Volunteering', { detail: 'Food bank coordinator' }),
+  ];
+
+  it('accepts sections whose names and links the source holds', () => {
+    const result = validateGeneration(output({ optionalItems: supported() }), SOURCE_WITH_SECTIONS);
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.draft.languages.map((entry) => entry.name)).toEqual(['English', 'German']);
+      expect(result.draft.languages[1]?.level).toBeNull();
+    }
+  });
+
+  it('rejects a language, certification, project, hobby or section title the source does not mention', () => {
+    const invented = output({
+      optionalItems: [
+        item('language', 'Klingon'),
+        item('certification', 'PMP Certification'),
+        item('portfolio', 'Moon Base'),
+        item('hobby', 'skydiving'),
+        item('custom', 'Awards', { detail: 'Nobel' }),
+      ],
+    });
+
+    expect(issuesOf(validateGeneration(invented, SOURCE_WITH_SECTIONS))).toEqual(
+      expect.arrayContaining([
+        'languages.0.name: unsupported_section_value',
+        'certifications.0.name: unsupported_section_value',
+        'portfolio.0.name: unsupported_section_value',
+        'hobbies.0: unsupported_section_value',
+        'customSections.0.title: unsupported_section_value',
+      ]),
+    );
+  });
+
+  it('rejects a link the source does not hold', () => {
+    const result = validateGeneration(
+      output({ optionalItems: [item('portfolio', 'CV Builder', { link: 'https://evil.example/x' })] }),
+      SOURCE_WITH_SECTIONS,
+    );
+
+    expect(issuesOf(result)).toContain('portfolio.0.link: unsupported_contact');
+  });
+
+  it('keeps accepting output with no optional items', () => {
+    expect(validateGeneration(output(), SOURCE).ok).toBe(true);
+  });
+});
