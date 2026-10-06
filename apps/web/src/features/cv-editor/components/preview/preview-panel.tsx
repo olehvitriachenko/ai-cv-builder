@@ -69,7 +69,7 @@ export function PreviewPanel({
         </div>
         <div className="flex items-center gap-3">
           <p className="text-[11px] text-muted">
-            Page 1 of {pages}
+            {pages} {pages === 1 ? "page" : "pages"} · Approx.
           </p>
           <ZoomControls
             zoom={zoom}
@@ -111,6 +111,7 @@ export function PreviewPanel({
       </div>
 
       <p className="text-center text-[11px] text-muted">A clean, selectable-text PDF. No watermarks.</p>
+      <p className="text-center text-[11px] text-muted">Preview page breaks are approximate. The exported PDF may paginate differently.</p>
       <p className="text-center text-[11px] text-muted">Preview stays in view while you edit.</p>
     </section>
   );

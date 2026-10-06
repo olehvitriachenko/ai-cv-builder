@@ -92,7 +92,7 @@ Choices that can look like defects but are deliberate:
 
 - Explicit facts are checked against the whole source. Synonym expansion and semantic verification are deliberately omitted.
 - One API instance and no queue: a restart marks work in progress `FAILED` with reason `INTERRUPTED` instead of resuming it; a generation has a 5-minute limit.
-- The editor's page count is an estimate from the preview height; real pagination happens in the PDF.
+- HTML preview page breaks and counts are approximate; PDF export uses its own layout and may paginate differently.
 - A save conflict is resolved by choosing a whole version (yours or the stored one); nothing is merged.
 - The migration of drafts to schema version 2 is one-way, and an editor tab open during the deploy must reload.
 - Removing an experience or a skill category that holds something asks first; every other removal is immediate.
