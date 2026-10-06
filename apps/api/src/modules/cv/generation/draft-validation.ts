@@ -7,6 +7,7 @@ import {
   type QuestionRow,
 } from './draft-mapper.js';
 import { MAX_QUESTIONS, MAX_QUESTION_TEXT, cvDraftSchema, type CvDraft } from './draft.schema.js';
+import { containsFact, supportsQuantities } from './explicit-facts.js';
 import { indexSource, type SourceIndex } from './source-matching.js';
 
 /**
@@ -19,7 +20,7 @@ import { indexSource, type SourceIndex } from './source-matching.js';
  *  - contact details and the person's name against the source (strict, see source-matching);
  *  - employer and institution names against the source (tolerant of formatting, not of names).
  *
- * NOT checked mechanically: bullets, dates, titles, skills and summary wording. Those are governed
+ * Explicit dates, skills and numeric claims are source-checked. Arbitrary prose and titles remain governed
  * by the prompt contract and by clarification questions.
  *
  * Issues carry rule ids and JSON paths only, never draft or source values, so they are safe to
@@ -115,7 +116,7 @@ function hasMeaningfulContent({ summary, experience, education, skillCategories 
   );
 }
 
-function sourceIssues(draft: CvDraft, source: SourceIndex): ValidationIssue[] {
+function sourceIssues(draft: CvDraft, source: SourceIndex, sourceText: string): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
   const { contact } = draft;
 
@@ -145,6 +146,24 @@ function sourceIssues(draft: CvDraft, source: SourceIndex): ValidationIssue[] {
     }
   });
 
+  const checkQuantity = (value: string | null, path: string) => {
+    if (value !== null && !supportsQuantities(sourceText, value)) issues.push({ rule: 'unsupported_quantity', path });
+  };
+  checkQuantity(draft.summary, 'summary');
+  for (const section of ['experience', 'education'] as const) {
+    draft[section].forEach((entry, index) => {
+      for (const field of ['startDate', 'endDate'] as const) {
+        const value = entry[field];
+        if (value !== null && !containsFact(sourceText, value)) issues.push({ rule: 'unsupported_date', path: `${section}.${index}.${field}` });
+      }
+      if ('bullets' in entry) entry.bullets.forEach((bullet, i) => checkQuantity(bullet, `${section}.${index}.bullets.${i}`));
+      if ('details' in entry) checkQuantity(entry.details, `${section}.${index}.details`);
+    });
+  }
+  draft.skillCategories.forEach((category, index) => category.skills.forEach((skill, i) => {
+    if (!containsFact(sourceText, skill)) issues.push({ rule: 'unsupported_skill', path: `skillCategories.${index}.skills.${i}` });
+  }));
+
   return issues;
 }
 
@@ -154,7 +173,7 @@ export function validateGeneration(output: LlmCvOutput, sourceText: string): Gen
   const issues = [...structure.issues, ...questionIssues(output)];
 
   if (structure.draft) {
-    issues.push(...sourceIssues(structure.draft, indexSource(sourceText)));
+    issues.push(...sourceIssues(structure.draft, indexSource(sourceText), sourceText));
     if (!hasMeaningfulContent(structure.draft) && output.questions.length === 0) {
       issues.push({ rule: 'empty_result', path: '' });
     }

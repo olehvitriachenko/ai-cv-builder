@@ -8,7 +8,7 @@
  * is treated as unsupported rather than guessed at.
  *
  * Limits (accepted): these checks catch invented contact details and organisations. They cannot
- * prove that a bullet, date, title or skill is faithful; that is left to the prompt contract and
+ * prove that prose or a title is faithful; explicit fact checks are applied separately, alongside the prompt contract and
  * to clarification questions.
  */
 

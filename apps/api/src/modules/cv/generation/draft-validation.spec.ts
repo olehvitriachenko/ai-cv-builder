@@ -478,7 +478,7 @@ describe('validateGeneration', () => {
       expect(result.ok).toBe(true);
     });
 
-    it('does not check unsupported facts that are not mechanically checkable (bullets, dates, titles, skills)', () => {
+    it('rejects unsupported explicit dates, skills and quantities without judging title wording', () => {
       const result = validateGeneration(
         output({
           skillCategories: [{ category: 'Cloud & Infrastructure', skills: ['Kubernetes'] }],
@@ -496,7 +496,12 @@ describe('validateGeneration', () => {
         SOURCE,
       );
 
-      expect(result.ok).toBe(true);
+      expect(issuesOf(result)).toEqual([
+        'experience.0.startDate: unsupported_date',
+        'experience.0.endDate: unsupported_date',
+        'experience.0.bullets.0: unsupported_quantity',
+        'skillCategories.0.skills.0: unsupported_skill',
+      ]);
     });
   });
 

@@ -78,7 +78,7 @@ RLS is intentionally omitted: access control lives in API query ownership checks
 
 Anthropic is the only LLM provider. The adapter requests JSON schema structured output, validates it with Zod and domain rules, and maps only accepted content into the persisted draft. Prompts treat escaped CV source as untrusted data, forbid invented facts, tailor wording/relevance to the target role, and ask clarification questions for missing facts. Provider/validation failures have bounded retries and safe error codes. An empty draft without questions is rejected.
 
-Mechanical grounding checks names, contact details, employers and institutions against normalized source text. Phone checks normalize formatting while rejecting short partial numbers. **Dates, job titles, skills, summary wording and achievement bullets are not fully fact-verified mechanically**; prompt instructions and explicit user review remain necessary. Strict source matching can reject unusual formatting or alternate names. This is not a guarantee that a model never hallucinates.
+Mechanical grounding checks names, contact details, employers and institutions against normalized source text. Phone checks normalize formatting while rejecting short partial numbers. Explicit experience/education dates and generated skills must occur in the source; digit quantities and common English number words in summaries, bullets and education details are checked, with percentages retaining their unit. **Job titles and the meaning/attribution of paraphrased prose are not verified mechanically**; prompt instructions and explicit user review remain necessary. A matching quantity elsewhere in the source does not prove it belongs to a particular achievement. Strict source matching can reject unusual formatting or alternate names. This is not a guarantee that a model never hallucinates.
 
 ## PDF constraints
 
@@ -90,7 +90,7 @@ For the time-boxed assignment: one local deployment, one document template, a da
 
 Choices that can look like defects but are deliberate:
 
-- Skills are prompt-grounded, not mechanically verified; only the real-model smoke test observes them.
+- Explicit facts are checked against the whole source. Synonym expansion and semantic verification are deliberately omitted.
 - One API instance and no queue: a restart marks work in progress `FAILED` with reason `INTERRUPTED` instead of resuming it; a generation has a 5-minute limit.
 - The editor's page count is an estimate from the preview height; real pagination happens in the PDF.
 - A save conflict is resolved by choosing a whole version (yours or the stored one); nothing is merged.
