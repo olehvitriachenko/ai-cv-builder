@@ -39,3 +39,20 @@ feature/
 ├── schemas/
 ├── types/
 └── domain-specific/
+```
+
+---
+
+## Next.js frontend structure
+
+Use a lightweight feature-first structure.
+
+Preferred:
+
+```text
+src/
+├── app/
+├── features/
+├── shared/
+└── entities/ # optional
+```
