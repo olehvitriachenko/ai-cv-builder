@@ -18,7 +18,7 @@ The design adds one card, **Add a section** ("Extend your CV with optional secti
 
 ### User Story 1 - Add the Languages section and see it in the CV (Priority: P1)
 
-A person opens a CV in the editor, finds the **Add a section** card under the other sections, presses **Languages** and gets a Languages card in the editor. They add "English — Fluent" and "Ukrainian — Native". The preview shows a Languages block, the downloaded PDF contains it, and it is still there after a reload or on another device.
+A person opens a CV in the editor, finds the **Add a section** card under the other sections, presses **Languages** and gets an empty Languages card with an **Add Languages** row. They press it and add "English — C1" and "Ukrainian — Native speaker". The preview shows a Languages block, the downloaded PDF contains it, and it is still there after a reload or on another device.
 
 **Why this priority**: This is the question that started the feature, and it carries everything the other sections reuse: the card, adding and removing a section, saving, the preview and the PDF. Without it nothing else is visible.
 
@@ -82,10 +82,10 @@ When the person's pasted text or uploaded PDF clearly contains languages, certif
 **Acceptance Scenarios**:
 
 1. **Given** a source that lists "English (C1), Ukrainian (native)", **When** the CV is generated, **Then** the Languages section holds both with levels taken from the source wording.
-2. **Given** a source that says only "German", **When** the CV is generated, **Then** the language is listed without a level and a clarification question asks for it; no level is invented.
+2. **Given** a source that says only "German", **When** the CV is generated, **Then** the language is listed without a level; no level is invented. (A clarification question for a missing level is a later extension, see Assumptions.)
 3. **Given** a source with no such information, **When** the CV is generated, **Then** no optional section is created and no question about them is asked.
 4. **Given** a source containing an instruction aimed at the AI inside a certifications list, **Then** it is treated as data, as for the rest of the source.
-5. **Given** a clarification answer about a language level, **When** the person applies it, **Then** only that language entry changes.
+5. **Given** a generated language without a level, **When** the person chooses one in the editor, **Then** only that entry changes.
 
 ---
 
@@ -93,7 +93,7 @@ When the person's pasted text or uploaded PDF clearly contains languages, certif
 
 - The same language twice: the second entry is flagged as a duplicate and is not saved until it is changed or removed.
 - Too many entries: the editor stops offering "add" at the limit and says why (limits under Requirements).
-- An entry with no required field (a language with no name): it is not saved and the field says what is missing; the rest of the CV still saves.
+- An entry that has a value but not its required one (a language level with no language): the field says what is missing, and, as for every other field, saving waits until it is fixed or the entry is removed. An entry left entirely blank is simply not saved.
 - A section added but left empty: it stays in the editor, but it is not saved and does not appear in the preview or the PDF.
 - Two tabs or devices edit the same CV: the existing save-conflict flow applies, and the conflict review shows the optional sections too, the person choosing a whole version as before.
 - A very long title, name or description: the field enforces its limit and the PDF wraps text without cutting it.
@@ -108,8 +108,8 @@ When the person's pasted text or uploaded PDF clearly contains languages, certif
 
 - **FR-001**: The editor MUST show an **Add a section** card below the existing sections, as designed: the title, the line "Extend your CV with optional sections. Only add what you can confirm.", the options **Certifications**, **Languages**, **Hobbies**, **Portfolio** each with a plus mark, and **+ Custom Section**; two options per row from the card's design width, one per row on a phone.
 - **FR-002**: Pressing a predefined option MUST add that section to the CV once; an added section MUST NOT be offered again until it is removed. When all four are added the card MUST offer only **+ Custom Section**; when nothing is left to offer the card MUST disappear.
-- **FR-003**: A new section card MUST take focus on its first field and MUST be announced to assistive technology.
-- **FR-004**: **Languages** MUST hold entries of a name (required, up to 60 characters) and an optional level chosen from: Native, Fluent, Advanced, Intermediate, Basic; up to 12 entries; names unique ignoring case.
+- **FR-003**: A new predefined section MUST open in an empty state (its title and an "Add …" row, no entry, no focus change) and MUST be announced to assistive technology; a language entry is a bordered card with the language and its level.
+- **FR-004**: **Languages** MUST hold entries of a name (required, up to 60 characters) and an optional level chosen from: A1, A2, B1, B2, C1, C2, Native speaker; up to 12 entries; names unique ignoring case.
 - **FR-005**: **Certifications** MUST hold entries of a name (required, up to 120 characters), an optional issuer (up to 120), an optional month and year chosen with the date picker (not in the future) and an optional link; up to 15 entries.
 - **FR-006**: **Portfolio** MUST hold entries of a project name (required, up to 120 characters), an optional link and an optional description (up to 300 characters); up to 8 entries.
 - **FR-007**: **Hobbies** MUST hold up to 15 short items of up to 60 characters each, added and removed one by one.
@@ -122,9 +122,9 @@ When the person's pasted text or uploaded PDF clearly contains languages, certif
 - **FR-014**: CVs saved before this feature MUST open, edit, preview and download unchanged, and the sections MUST be available on them.
 - **FR-015**: These sections MUST be readable and editable only by the owner of the CV, like every other part of it, for every operation including download.
 - **FR-016**: The completeness score MUST NOT change because of these sections; they are optional and never block saving or downloading.
-- **FR-017**: At generation, the AI MUST fill these sections only with facts the source states, MUST NOT invent levels, issuers, dates, links, projects or items, MUST ask a clarification question when a needed value is missing or ambiguous, and MUST create no section the source does not mention.
+- **FR-017**: At generation, the AI MUST fill these sections only with facts the source states, MUST NOT invent levels, issuers, dates, links, projects or items, MUST leave a value empty when the source does not give it, and MUST create no section the source does not mention.
 - **FR-018**: Whatever the AI returns for these sections MUST be validated against the same limits and rules as manual entry before it is saved; invalid output MUST fail the generation as it does today.
-- **FR-019**: A clarification answer about one of these entries MUST change only that entry.
+- **FR-019**: Editing one entry of these sections MUST change only that entry.
 - **FR-020**: The card, the section cards and the new fields MUST follow the existing design language (field, date picker, remove, confirm patterns), work at 320 px without horizontal scrolling, and be usable with a keyboard and a screen reader with visible labels and focus.
 
 ### Key Entities
@@ -155,6 +155,7 @@ When the person's pasted text or uploaded PDF clearly contains languages, certif
 - Language levels are plain words, not an exam scale; the person who needs "C1" can say it in the language name or in a custom section.
 - A certification has one date (when it was obtained); an expiry date is out of scope.
 - The completeness score is left alone because it is advisory and these sections are optional.
+- Clarification questions about these sections (for example "What is your level in German?") are not part of this feature: they would need new question targets and a database change, and a missing level or issuer is optional on a CV. Generation leaves such values empty instead; questions are a follow-up.
 - Generation (Story 4) is delivered last and separately: the first three stories work completely by manual entry, and the AI does not need to know about the sections until Story 4.
 - Existing rules continue to apply without change: ownership on the server, saves with a revision and conflicts, server-side validation of everything stored, the AI never inventing facts, and the CV staying editable by the person.
 - This work starts after feature 006 (submission readiness) is settled; it needs its own branch and its own plan, including how stored CVs are carried to the new shape, which belongs to planning and not here.
