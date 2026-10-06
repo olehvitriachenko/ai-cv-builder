@@ -11,10 +11,10 @@ import {
 import { educationCount, educationHeading } from "@/lib/cv/entry-labels";
 import { maxEducationYear } from "@/lib/cv/dates";
 import { useEditorMotion } from "@/shared/lib/use-editor-motion";
-import { DateField } from "./date-field";
-import { EmptySection } from "./empty-section";
-import { RemoveButton } from "./remove-button";
-import { SectionCard } from "./section-card";
+import { DateField } from "../primitives/date-field";
+import { EmptySection } from "../primitives/empty-section";
+import { RemoveButton } from "../primitives/remove-button";
+import { SectionCard } from "../primitives/section-card";
 
 const MAX_ENTRIES = 10;
 const PLACEHOLDER = "placeholder:text-muted!";

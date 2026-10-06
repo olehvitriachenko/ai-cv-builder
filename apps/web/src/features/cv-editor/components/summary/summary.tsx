@@ -3,7 +3,7 @@
 import { useFormContext } from "react-hook-form";
 import { TextareaField } from "@/shared/ui/field";
 import type { DraftFormValues } from "@/lib/cv/draft-form";
-import { SectionCard } from "./section-card";
+import { SectionCard } from "../primitives/section-card";
 
 /** Professional summary (05.1): the text is edited directly; there is no "Improve with AI" action. */
 export function Summary() {

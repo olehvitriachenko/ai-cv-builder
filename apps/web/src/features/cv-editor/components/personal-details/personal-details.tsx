@@ -5,8 +5,8 @@ import { Button } from "@/shared/ui/button";
 import { TextField } from "@/shared/ui/field";
 import type { DraftFormValues } from "@/lib/cv/draft-form";
 import { MAX_LINKS } from "@/lib/cv/links";
-import { RemoveButton } from "./remove-button";
-import { SectionCard } from "./section-card";
+import { RemoveButton } from "../primitives/remove-button";
+import { SectionCard } from "../primitives/section-card";
 
 // The design's placeholders use the muted ink (06.2: "placeholder replacement is existing Muted").
 const PLACEHOLDER = "placeholder:text-muted!";

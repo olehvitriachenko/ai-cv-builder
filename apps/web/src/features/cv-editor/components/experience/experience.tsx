@@ -7,9 +7,9 @@ import { Button } from "@/shared/ui/button";
 import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
 import { experienceCount, experienceHasContent, experienceHeading, experienceRemovalText } from "@/lib/cv/entry-labels";
 import { newExperienceEntry, type DraftFormValues } from "@/lib/cv/draft-form";
-import { EmptySection } from "./empty-section";
+import { EmptySection } from "../primitives/empty-section";
 import { ExperienceEntry } from "./experience-entry";
-import { SectionCard } from "./section-card";
+import { SectionCard } from "../primitives/section-card";
 
 const MAX_ROLES = 30;
 

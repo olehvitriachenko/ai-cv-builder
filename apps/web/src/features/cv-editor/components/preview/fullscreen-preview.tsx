@@ -15,7 +15,7 @@ import {
   zoomIn,
   zoomOut,
 } from "@/lib/cv/preview-zoom";
-import { DownloadPdfButton } from "../../../features/pdf-download/components/download-pdf-button";
+import { DownloadPdfButton } from "../../../pdf-download/components/download-pdf-button";
 import { PAGE_HEIGHT, ScaledSheet } from "./scaled-sheet";
 import { ZoomControls } from "./zoom-controls";
 

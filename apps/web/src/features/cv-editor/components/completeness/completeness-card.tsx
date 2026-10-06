@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { computeCompleteness } from "@/lib/cv/completeness";
-import { revealMissingItem } from "./section-links";
+import { revealMissingItem } from "../../../../app/cvs/[id]/section-links";
 import type { DraftFormValues } from "@/lib/cv/draft-form";
 import { useEditorMotion } from "@/shared/lib/use-editor-motion";
 

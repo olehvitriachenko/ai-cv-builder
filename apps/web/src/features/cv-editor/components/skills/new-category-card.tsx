@@ -1,9 +1,9 @@
 "use client";
 
 import { Button } from "@/shared/ui/button";
-import { Combobox } from "@/components/ui/combobox";
+import { Combobox } from "@/features/cv-editor/components/skills/combobox";
 import { FieldFrame } from "@/shared/ui/field";
-import { RemoveButton } from "./remove-button";
+import { RemoveButton } from "../primitives/remove-button";
 import { CATEGORY_COMBOBOX } from "./skill-category-card";
 
 /**

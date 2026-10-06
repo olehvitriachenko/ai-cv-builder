@@ -17,12 +17,12 @@ import {
   canApplyAnswer,
   questionContext,
   questionView,
-  sectionLabel,
   type AnswerSave,
 } from "@/lib/cv/question-form";
+import { KIND_PILL, ResolvedQuestionCard } from "./resolved-question-card";
 import { AnswerStatus } from "./answer-status";
 import { ApplyFailureNotice } from "./apply-failure";
-import { revealSection } from "./section-links";
+import { revealSection } from "../../../../app/cvs/[id]/section-links";
 
 /** How long typing pauses before the answer is saved on its own (not part of the CV's own save). */
 const ANSWER_SAVE_DELAY_MS = 800;
@@ -37,7 +37,6 @@ function failureMessage(error: unknown): string {
   return "We couldn’t save that. Your answer is still here; try again.";
 }
 
-const KIND_PILL = "rounded-full bg-accent-tint px-2 py-0.5 text-[10px] leading-[normal] font-semibold text-accent";
 
 /**
  * One clarification question of the AI assistant (Figma 07.1 to 07.3). The answer saves by itself,
@@ -188,42 +187,7 @@ export function QuestionCard({
   }
 
   if (view.resolved) {
-    const applied = question.status === "APPLIED";
-    return (
-      <li
-        inert={leaving}
-        onMouseEnter={() => setKeepVisible(true)}
-        onMouseLeave={() => setKeepVisible(false)}
-        onFocus={() => setKeepVisible(true)}
-        onBlur={(event) => {
-          if (!event.currentTarget.contains(event.relatedTarget)) setKeepVisible(false);
-        }}
-        className={`flex flex-col gap-2 rounded-[10px] border p-3 motion-safe:transition-opacity motion-safe:duration-150 ${leaving ? "opacity-0" : "opacity-100"} ${
-          applied ? "border-[#d7e9e1] bg-[#f7fbf9]" : "border-line bg-surface"
-        }`}
-      >
-        <div className="flex flex-wrap items-center gap-2">
-          <span className={applied ? "rounded-full bg-success-tint px-2 py-0.5 text-[10px] leading-[normal] font-semibold text-success" : KIND_PILL}>
-            {view.label}
-          </span>
-          <p className="min-w-0 text-[11px] leading-[normal] break-words text-muted">{context}</p>
-        </div>
-        <p className="text-[13px] leading-[1.4] font-medium break-words text-ink">{question.question}</p>
-        {applied ? (
-          <div>
-            <Button
-              type="button"
-              variant="secondary"
-              stretch={false}
-              className="text-accent!"
-              onClick={() => revealSection(question.section)}
-            >
-              Review in {sectionLabel(question.section).toLowerCase()}
-            </Button>
-          </div>
-        ) : null}
-      </li>
-    );
+    return <ResolvedQuestionCard question={question} view={view} context={context} leaving={leaving} setKeepVisible={setKeepVisible} />;
   }
 
   const helperId = `${question.id}-helper`;

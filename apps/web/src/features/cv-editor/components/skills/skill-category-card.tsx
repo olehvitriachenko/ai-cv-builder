@@ -3,7 +3,7 @@
 import { useState, type ReactNode } from "react";
 import { useEditorMotion } from "@/shared/lib/use-editor-motion";
 import { Button } from "@/shared/ui/button";
-import { Combobox } from "@/components/ui/combobox";
+import { Combobox } from "@/features/cv-editor/components/skills/combobox";
 import { FieldFrame, describedBy } from "@/shared/ui/field";
 import type { SkillCategoryFormEntry } from "@/lib/cv/draft-form";
 import { suggestionsFor } from "@/features/cv-editor/lib/skill-catalogue";
@@ -17,7 +17,7 @@ import {
   skillCount,
   suggestionStates,
 } from "@/lib/cv/skills-form";
-import { RemoveButton } from "./remove-button";
+import { RemoveButton } from "../primitives/remove-button";
 import { SkillChip } from "./skill-chip";
 import { SkillSuggestions } from "./skill-suggestions";
 

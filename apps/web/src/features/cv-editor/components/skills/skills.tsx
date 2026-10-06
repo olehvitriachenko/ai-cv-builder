@@ -16,7 +16,7 @@ import {
   skillCount,
 } from "@/lib/cv/skills-form";
 import { NewCategoryCard } from "./new-category-card";
-import { SectionCard } from "./section-card";
+import { SectionCard } from "../primitives/section-card";
 import { SortableSkillCategory } from "./sortable-skill-category";
 
 const skillWord = (count: number): string => (count === 1 ? "skill" : "skills");

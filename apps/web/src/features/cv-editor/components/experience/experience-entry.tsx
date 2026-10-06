@@ -7,8 +7,8 @@ import { experienceHeading } from "@/lib/cv/entry-labels";
 import { experienceDuration } from "@/lib/cv/dates";
 import { useEditorMotion } from "@/shared/lib/use-editor-motion";
 import { Highlights } from "./highlights";
-import { RemoveButton } from "./remove-button";
-import { DateField } from "./date-field";
+import { RemoveButton } from "../primitives/remove-button";
+import { DateField } from "../primitives/date-field";
 
 const PLACEHOLDER = "placeholder:text-muted!";
 

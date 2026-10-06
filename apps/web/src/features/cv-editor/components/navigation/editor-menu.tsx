@@ -4,7 +4,7 @@ import { Ellipsis } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
-import { DeleteCvDialog } from "../../../features/cv-delete/components/delete-cv-dialog";
+import { DeleteCvDialog } from "../../../cv-delete/components/delete-cv-dialog";
 
 /**
  * The more-options menu of the editor navigation: exactly **Back to My CVs** and **Delete CV**.
