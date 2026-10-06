@@ -33,4 +33,5 @@
 
 - "Container tooling", "one command" and the example environment file are named because the project's constitution (XV) and the assignment require local startup through the container workflow; no product or framework is named.
 - FR-009 to FR-012 follow Figma 10.5 ("Desktop / PDF download / Preparing"); the timing is a recorded default, not a design value.
-- Ready for `/speckit-plan`.
+- FR-009 to FR-012 also cover the phone layout (Figma 10.6, node `92:4619`).
+- Final state (2026-10-06): the stack was run from clean copies (with a key, without a key, on other ports, across restart); the README was checked against the code and the commands; all gates are green. See the verification record in `tasks.md`.
