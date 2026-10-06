@@ -78,8 +78,9 @@ description: "Task list for Submission Readiness (feature 006)"
 - [x] T019 [P] [US3] Expected file name rule `WEB/features/pdf-download/model/pdf-filename.ts` with `pdf-filename.test.ts` (same rule as the API, at most 80 characters) — done in `6e9261b`.
 - [x] T020 [US3] Dialog `WEB/features/pdf-download/components/pdf-preparation-dialog.tsx`: dimming, centred surface, spinner, "Preparing your PDF…", "We're formatting your CV for download.", the file name; appears after 300 ms, stays at least 700 ms, polite announcement, never takes focus — done in `6e9261b`.
 - [x] T021 [US3] `DownloadPdfButton` reports `onBusyChange` and takes a `busyLabel`; `WEB/features/cv-editor/components/preview/fullscreen-preview.tsx` mounts the dialog and passes "Preparing…" to the navigation action — done in `6e9261b`.
-- [ ] T022 [US3] Browser-verify quickstart scenario 5 on the final tree: the message after about 0.3 s with the three texts, the button "Preparing…" and unclickable (one download only, SC-006), a fast response shows no message (SC-005), a failed request removes the message and shows the usual error, closing the preview mid-preparation still completes the download, and the message fits at 390 px and 320 px with a very long name wrapping inside the surface (edge case). Fix what fails in the files of T020.
-- [ ] T023 [US3] Record the result in this file's "Verification record" below.
+- [x] T021a [US3] Phone variant of the dialog (Figma 10.6 "Mobile390 / PDF download / Preparing", node `92:4619`): the surface is 358 px wide (16 px side margin), 28 px top and 20 px bottom padding, the text block has 20 px padding and 16 px gap, and a full-width disabled primary button "Preparing…" sits under the text with 20 px side padding; the navigation action stays in place, faded ("↓ PDF"). Desktop keeps no button (10.5). Edit `WEB/features/pdf-download/components/pdf-preparation-dialog.tsx` and the phone `DownloadPdfButton` in `WEB/features/cv-editor/components/preview/fullscreen-preview.tsx` (`busyLabel="PDF"`).
+- [x] T022 [US3] Browser-verify quickstart scenario 5 on the final tree: the message after about 0.3 s with the three texts, the button "Preparing…" and unclickable (one download only, SC-006), a fast response shows no message (SC-005), a failed request removes the message and shows the usual error, closing the preview mid-preparation still completes the download, and the message fits at 390 px and 320 px with a very long name wrapping inside the surface (edge case). Fix what fails in the files of T020.
+- [x] T023 [US3] Record the result in this file's "Verification record" below.
 
 **Checkpoint**: US3 verified on desktop and phone.
 
@@ -133,5 +134,5 @@ description: "Task list for Submission Readiness (feature 006)"
 | No key | | |
 | Ports and secrets | | |
 | README commands | | |
-| Preparing message (desktop, 390, 320, fast, failure, close) | | |
+| Preparing message (desktop, 390, 320, fast, failure, close, repeated clicks) | 2026-10-06 | pass (Playwright against the dev servers: shown after 300 ms with the three texts and the file name, the button reads "Preparing…", no message in the first 150 ms, one request for three clicks, closing mid-way still downloads, a failure removes the message and shows the usual error, 358 px surface with the disabled "Preparing…" button at 390 and 288 px at 320, no horizontal overflow) |
 | Gates (typecheck, lint, unit, e2e, build) | | |

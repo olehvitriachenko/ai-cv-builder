@@ -169,6 +169,7 @@ export function FullscreenPreview({
               variant="text"
               showIcon
               label="PDF"
+              busyLabel="PDF"
               beforeDownload={beforeDownload}
               onBusyChange={setPreparing}
             />

@@ -10,8 +10,9 @@ const MIN_VISIBLE_MS = 700;
 /**
  * "PDF preparation overlay" (Figma 10.5): while the PDF is being prepared, a soft dimming over the
  * full-screen preview and a centred surface with a spinner, "Preparing your PDF…", a line saying
- * what is happening and the name the file will get. It only informs: the person can still close
- * the preview, and the download carries on. Announced politely, never takes focus.
+ * what is happening and the name the file will get. On a phone (Figma 10.6) the surface is 358 px
+ * wide and holds a disabled "Preparing…" button under the text. It only informs: the person can
+ * still close the preview, and the download carries on. Announced politely, never takes focus.
  */
 export function PdfPreparationDialog({ preparing, filename }: { preparing: boolean; filename: string }) {
   const visible = useDelayedVisibility(preparing);
@@ -23,18 +24,27 @@ export function PdfPreparationDialog({ preparing, filename }: { preparing: boole
       <div
         role="status"
         aria-live="polite"
-        className="flex w-[484px] max-w-full flex-col items-center rounded-xl border border-line bg-surface pt-8 shadow-[0_12px_40px_rgba(32,39,53,0.15)]"
+        className="flex w-[484px] max-w-full flex-col items-center rounded-xl border border-line bg-surface pt-7 pb-5 shadow-[0_12px_40px_rgba(32,39,53,0.15)] sm:pt-8 sm:pb-0"
       >
         <span
           aria-hidden
           className="size-8 rounded-full border-[3px] border-line border-t-accent border-r-accent motion-safe:animate-spin"
         />
-        <div className="flex w-full flex-col gap-6 p-6">
+        <div className="flex w-full flex-col gap-4 p-5 sm:gap-6 sm:p-6">
           <h2 className="text-center text-xl leading-[normal] font-semibold text-ink">Preparing your PDF…</h2>
           <div className="flex flex-col items-center gap-2 text-center text-muted">
             <p className="text-sm leading-[1.6]">We’re formatting your CV for download.</p>
             <p className="text-xs leading-[1.6] [overflow-wrap:anywhere]">{filename}</p>
           </div>
+        </div>
+        <div className="w-full px-5 sm:hidden">
+          <button
+            type="button"
+            disabled
+            className="h-11 w-full rounded-lg border border-accent bg-accent px-4 text-sm font-semibold text-white opacity-45"
+          >
+            Preparing…
+          </button>
         </div>
       </div>
     </div>
