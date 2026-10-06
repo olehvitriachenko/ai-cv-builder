@@ -321,13 +321,11 @@ export function CvPdfDocument({ draft, targetRole }: CvPdfDocumentProps) {
           {contactLine || linksLine ? (
             <View style={styles.metaBlock}>
               {contactLine ? (
-                <Text style={styles.meta}>
-                  {contact.location}
-                  {contact.location && (contact.email || contact.phone) ? '  ·  ' : ''}
-                  {contact.email ? <Link src={`mailto:${contact.email}`} style={{ color: MUTED, textDecoration: 'underline' }}>{contact.email}</Link> : null}
-                  {contact.email && contact.phone ? '  ·  ' : ''}
-                  {contact.phone ? <Link src={`tel:${contact.phone.replace(/[^+\d]/gu, '')}`} style={{ color: MUTED, textDecoration: 'underline' }}>{contact.phone}</Link> : null}
-                </Text>
+                <View>
+                  {contact.location ? <Prose text={contact.location} style={styles.meta} /> : null}
+                  {contact.email ? <Prose text={contact.email} style={styles.meta} href={`mailto:${contact.email}`} /> : null}
+                  {contact.phone ? <Prose text={contact.phone} style={styles.meta} href={`tel:${contact.phone.replace(/[^+\d]/gu, '')}`} /> : null}
+                </View>
               ) : null}
               {linksLine ? (
                 <View>
