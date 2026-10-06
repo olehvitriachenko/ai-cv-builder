@@ -9,14 +9,15 @@ import { experienceDuration, parseCvDate } from "@/features/cv-editor/lib/dates"
 import { useEditorMotion } from "@/shared/lib/use-editor-motion";
 import { Highlights } from "./highlights";
 import { RemoveButton } from "../primitives/remove-button";
-import { CheckboxRow } from "../primitives/checkbox-row";
 import { DatePicker } from "../primitives/date-picker";
+import { SwitchRow } from "../primitives/switch-row";
 
 const PLACEHOLDER = "placeholder:text-muted!";
 
 /**
  * One role (05.1/06.3): company and dates as its heading, title, company, a **Start date** and an
- * **End date** picker (the End date reads `Present`, locked, while **Currently working here** is on),
+ * **End date** picker (the End date reads `Present`, locked, while the **Currently working here**
+ * switch under it is on),
  * the highlights and an immediate **Remove experience**. The employer's location stays in the draft untouched (the design
  * has no field for it).
  */
@@ -72,16 +73,20 @@ export function ExperienceEntry({
           bounds={startBounds}
           error={errors?.startDate?.message}
         />
-        <DatePicker
-          label="End date"
-          value={present ? "" : entry.endDate}
-          lockedText={present ? PRESENT : undefined}
-          onChange={(value) => setDate("endDate", value)}
-          bounds={endBounds}
-          error={errors?.endDate?.message}
-        />
+        <div className="flex flex-col items-start gap-2">
+          <div className="w-full">
+            <DatePicker
+              label="End date"
+              value={present ? "" : entry.endDate}
+              lockedText={present ? PRESENT : undefined}
+              onChange={(value) => setDate("endDate", value)}
+              bounds={endBounds}
+              error={errors?.endDate?.message}
+            />
+          </div>
+          <SwitchRow label="Currently working here" checked={present} onChange={setPresent} />
+        </div>
       </div>
-      <CheckboxRow label="Currently working here" checked={present} onChange={setPresent} />
       {duration ? <p className="text-xs leading-normal text-muted">Duration: {duration}</p> : null}
       <Highlights experienceIndex={index} />
     </div>

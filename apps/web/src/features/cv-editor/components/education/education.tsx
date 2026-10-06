@@ -16,8 +16,8 @@ import { educationCount, educationHeading } from "@/features/cv-editor/lib/entry
 import { dateBounds } from "@/features/cv-editor/lib/date-picker";
 import { parseCvDate } from "@/features/cv-editor/lib/dates";
 import { useEditorMotion } from "@/shared/lib/use-editor-motion";
-import { CheckboxRow } from "../primitives/checkbox-row";
 import { DatePicker } from "../primitives/date-picker";
+import { SwitchRow } from "../primitives/switch-row";
 import { EmptySection } from "../primitives/empty-section";
 import { RemoveButton } from "../primitives/remove-button";
 import { SectionCard } from "../primitives/section-card";
@@ -26,7 +26,7 @@ const MAX_ENTRIES = 10;
 const PLACEHOLDER = "placeholder:text-muted!";
 
 /**
- * Year pickers (Figma 06.3). **Currently studying** locks the end year ("Not applicable") and asks for
+ * Year pickers (Figma 06.3). the **Currently studying** switch locks the end year ("Not applicable") and asks for
  * an optional expected graduation instead: a year saves as the end date, none saves as Present.
  */
 function EducationEntry({
@@ -74,14 +74,6 @@ function EducationEntry({
         error={errors?.qualification?.message}
         {...register(`education.${index}.qualification`)}
       />
-      <CheckboxRow
-        label="Currently studying"
-        checked={studying}
-        onChange={(checked) => {
-          setStudying(checked);
-          setDate("endDate", checked ? PRESENT : "");
-        }}
-      />
       <div ref={dateMotionRef} className="flex flex-col gap-4">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-3">
           <DatePicker
@@ -92,15 +84,27 @@ function EducationEntry({
             bounds={dateBounds({ future: false })}
             error={errors?.startDate?.message}
           />
-          <DatePicker
-            label="End year"
-            precision="year"
-            value={entry.endDate}
-            lockedText={studying ? "Not applicable" : undefined}
-            onChange={(value) => setDate("endDate", value)}
-            bounds={dateBounds({ future: false, after: start })}
-            error={errors?.endDate?.message}
-          />
+          <div className="flex flex-col items-start gap-2">
+            <div className="w-full">
+              <DatePicker
+                label="End year"
+                precision="year"
+                value={entry.endDate}
+                lockedText={studying ? "Not applicable" : undefined}
+                onChange={(value) => setDate("endDate", value)}
+                bounds={dateBounds({ future: false, after: start })}
+                error={errors?.endDate?.message}
+              />
+            </div>
+            <SwitchRow
+              label="Currently studying"
+              checked={studying}
+              onChange={(checked) => {
+                setStudying(checked);
+                setDate("endDate", checked ? PRESENT : "");
+              }}
+            />
+          </div>
         </div>
         {studying ? (
           <>
