@@ -42,34 +42,34 @@ export function CompletenessCard({ values }: { values: DraftFormValues }) {
 
   return (
     <section aria-label="CV completeness" className="flex flex-col gap-2 rounded-xl border border-line bg-surface p-4 sm:px-4 sm:py-3">
-      {/* Phone (Figma 05.2): the status badge, the percentage, and the missing items as a list. */}
+      {/* Phone (Figma 320 px editor): the percentage in one badge, the track, then what is missing. */}
       <div className="flex flex-col gap-2.5 sm:hidden">
         <div className="flex items-center justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-2">
-            <p className="text-sm leading-[normal] font-semibold text-ink">CV completeness</p>
-            <span
-              className={`rounded-full px-2 py-[3px] text-[10px] leading-[normal] font-semibold whitespace-nowrap ${
-                left === 0 ? "bg-success-tint text-success" : percent === 0 ? "bg-canvas text-muted" : "bg-accent-tint text-accent"
-              }`}
-            >
-              {left === 0 ? "Ready for PDF" : percent === 0 ? "Not started" : "In progress"}
-            </span>
-          </div>
-          <p className="shrink-0 text-sm leading-[normal] font-bold text-accent">{percent}%</p>
+          <p className="min-w-0 text-sm leading-[normal] font-semibold text-ink">CV completeness</p>
+          <span
+            className={`shrink-0 rounded-full px-2.5 py-[3px] text-xs leading-[normal] font-bold whitespace-nowrap ${
+              left === 0 ? "bg-success-tint text-success" : percent === 0 ? "bg-canvas text-muted" : "bg-accent-tint text-accent"
+            }`}
+          >
+            {left === 0 ? "Ready for PDF" : percent === 0 ? "Not started" : `${percent}% complete`}
+          </span>
         </div>
         <div role="progressbar" aria-label="CV completeness" aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent} className="h-1.5 w-full rounded-full bg-stage">
           <div className="h-1.5 rounded-full bg-accent" style={{ width: `${percent}%` }} />
         </div>
         {left > 0 ? (
-          <ul ref={mobileMotionRef} aria-label="Missing details" className="flex flex-col gap-1">
-            {missing.map((item) => (
-              <li key={item.id}>
-                <button type="button" onClick={() => revealMissingItem(item.id)} className="flex min-h-11 w-full items-center gap-1.5 rounded-lg text-left text-[11px] leading-[normal] text-muted hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent motion-safe:transition-colors">
-                  <span aria-hidden className="size-[5px] shrink-0 rounded-full bg-[#f79009]" />+{item.gain}% · {actionLabel(item)}
-                </button>
-              </li>
-            ))}
-          </ul>
+          <div className="flex flex-col gap-1">
+            <p className="text-[11px] leading-[normal] font-semibold text-ink">Needs details · {left} left</p>
+            <ul ref={mobileMotionRef} aria-label="Missing details" className="flex flex-col">
+              {missing.map((item) => (
+                <li key={item.id}>
+                  <button type="button" onClick={() => revealMissingItem(item.id)} className="flex min-h-6 w-full items-center gap-1.5 rounded text-left text-[11px] leading-[normal] text-muted hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent motion-safe:transition-colors">
+                    <span aria-hidden className="size-1 shrink-0 rounded-full bg-accent" />+{item.gain}% · {actionLabel(item)}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
         ) : null}
       </div>
       <div className="hidden items-center justify-between gap-3 sm:flex">

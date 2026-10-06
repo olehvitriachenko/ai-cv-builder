@@ -2,6 +2,7 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { Download } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import { TextareaField } from "@/shared/ui/field";
 import { answerQuestion, dismissQuestion } from "@/features/cv-editor/api/questions";
@@ -194,12 +195,12 @@ export function QuestionCard({
   return (
     <li className="flex flex-col gap-2">
       <div className="flex flex-col gap-2 rounded-[10px] border border-accent-line bg-surface p-3">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex min-w-0 flex-wrap items-center gap-2">
-            <span className={KIND_PILL}>Factual</span>
-            <p className="min-w-0 text-[11px] leading-[normal] break-words text-muted">{context}</p>
+        <div className="flex items-center justify-between gap-1.5">
+          <div className="flex min-w-0 flex-1 items-center gap-1.5">
+            <span className={`${KIND_PILL} shrink-0`}>Factual</span>
+            <p className="min-w-0 flex-1 text-[11px] leading-[normal] break-words text-muted">{context}</p>
           </div>
-          <span className="w-20 shrink-0 text-right text-[10px] leading-[normal] font-semibold text-accent">{view.label}</span>
+          <span className="shrink-0 text-right text-[10px] leading-[normal] font-semibold whitespace-nowrap text-accent">{view.label}</span>
         </div>
         <p className="text-[13px] leading-[1.4] font-semibold break-words text-ink">{question.question}</p>
         <TextareaField
@@ -236,7 +237,12 @@ export function QuestionCard({
           className="w-full whitespace-nowrap sm:w-32"
           onClick={() => void apply()}
         >
-          {applying ? "Applying…" : "Apply to CV"}
+          {applying ? "Applying…" : (
+            <>
+              <Download aria-hidden className="size-4" strokeWidth={1.75} />
+              Apply to CV
+            </>
+          )}
         </Button>
         <Button type="button" variant="text" stretch={false} disabled={busy} className="w-full whitespace-nowrap sm:w-32" onClick={() => dismiss.mutate()}>
           {dismiss.isPending ? "Dismissing…" : "Dismiss"}

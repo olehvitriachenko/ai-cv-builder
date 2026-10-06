@@ -16,7 +16,7 @@ export function Summary() {
         labelHidden
         rows={3}
         placeholder="Briefly describe your experience and what you bring."
-        className="placeholder:text-muted!"
+        className="field-sizing-content placeholder:text-muted!"
         hint="Briefly describe your experience, strongest skills and the value you bring. Keep it focused on the role you want."
         error={formState.errors.summary?.message}
         {...register("summary")}

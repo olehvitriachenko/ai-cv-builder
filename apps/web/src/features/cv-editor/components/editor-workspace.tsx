@@ -124,7 +124,7 @@ export function EditorWorkspace({
         <main className="mx-auto flex w-full max-w-[1440px] flex-1 flex-col gap-4 px-4 pt-4 pb-28 sm:px-8 lg:flex-row lg:items-start lg:gap-8 lg:py-8">
           {/* Phone: the intro, then Edit / Preview as a pair of 44 px buttons (Figma 05.2). */}
             <div className="flex flex-col gap-1.5 lg:hidden">
-              <h2 className="text-2xl leading-[normal] font-semibold text-ink">Make it yours</h2>
+              <h2 className="text-[22px] leading-[normal] font-semibold text-ink">Make it yours</h2>
               <p className="text-xs leading-normal text-muted">
                 {saveView(saveState, invalid).intro}
               </p>

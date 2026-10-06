@@ -11,6 +11,7 @@ import { Highlights } from "./highlights";
 import { RemoveButton } from "../primitives/remove-button";
 import { DatePicker } from "../primitives/date-picker";
 import { SwitchRow } from "../primitives/switch-row";
+import { Button } from "@/shared/ui/button";
 
 const PLACEHOLDER = "placeholder:text-muted!";
 
@@ -46,7 +47,9 @@ export function ExperienceEntry({
         <p className="min-w-0 text-[13px] leading-[normal] font-semibold text-ink [overflow-wrap:anywhere]">
           {showHeading || entry.employer.trim() !== "" ? experienceHeading(entry) : ""}
         </p>
-        <RemoveButton label={`Remove ${experienceHeading(entry)}`} onClick={onRemove} />
+        <span className="max-sm:hidden">
+          <RemoveButton label={`Remove ${experienceHeading(entry)}`} onClick={onRemove} />
+        </span>
       </div>
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3">
         <DatePicker
@@ -99,6 +102,10 @@ export function ExperienceEntry({
       </div>
       {duration ? <p className="text-xs leading-normal text-muted">Duration: {duration}</p> : null}
       <Highlights experienceIndex={index} />
+      {/* The phone design (320 px) ends the entry with a red text action instead of the trash button. */}
+      <Button type="button" variant="text" stretch={false} className="self-start text-danger hover:bg-danger-tint sm:hidden" onClick={onRemove}>
+        Remove experience
+      </Button>
     </div>
   );
 }

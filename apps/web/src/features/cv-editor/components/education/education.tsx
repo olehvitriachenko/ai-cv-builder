@@ -51,12 +51,17 @@ function EducationEntry({
 
   return (
     <div className="flex flex-col gap-3 sm:gap-4">
-      <div className="order-first flex items-center justify-between gap-3">
-        <p className="min-w-0 text-[13px] leading-[normal] font-semibold text-ink [overflow-wrap:anywhere]">
-          {showHeading ? educationHeading(entry) : ""}
-        </p>
-        <RemoveButton label={`Remove ${educationHeading(entry)}`} onClick={onRemove} />
-      </div>
+      {/* One entry has no heading of its own: its trash button sits in the section's title row instead. */}
+      {showHeading ? (
+        <div className="order-first flex items-center justify-between gap-3">
+          <p className="min-w-0 text-[13px] leading-[normal] font-semibold text-ink [overflow-wrap:anywhere]">
+            {educationHeading(entry)}
+          </p>
+          <span className="max-sm:hidden">
+            <RemoveButton label={`Remove ${educationHeading(entry)}`} onClick={onRemove} />
+          </span>
+        </div>
+      ) : null}
       <div ref={dateMotionRef} className="flex flex-col gap-2 sm:gap-4">
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3">
           <DatePicker
@@ -130,6 +135,13 @@ function EducationEntry({
         error={errors?.details?.message}
         {...register(`education.${index}.details`)}
       />
+      {/* The phone design (320 px) removes an entry from the foot of its card, with a red trash button. */}
+      <div className="flex items-center justify-between gap-3 sm:hidden">
+        <p className="text-[11px] leading-[normal] text-muted">Remove this education entry</p>
+        <span className="[&>button]:text-danger">
+          <RemoveButton label={`Remove ${educationHeading(entry)}`} onClick={onRemove} />
+        </span>
+      </div>
     </div>
   );
 }
@@ -162,7 +174,18 @@ export function Education() {
   );
 
   return (
-    <SectionCard id="cv-section-education" title="Education" count={educationCount(entries)}>
+    <SectionCard
+      id="cv-section-education"
+      title="Education"
+      count={educationCount(entries)}
+      actions={
+        fields.length === 1 ? (
+          <span className="max-sm:hidden">
+            <RemoveButton label="Remove education" onClick={() => remove(0)} />
+          </span>
+        ) : undefined
+      }
+    >
       {fields.length === 0 ? (
         <EmptySection
           icon={GraduationCap}
