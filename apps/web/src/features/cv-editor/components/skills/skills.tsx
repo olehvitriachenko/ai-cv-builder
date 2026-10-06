@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, useRef, useState } from "react";
-import { DndContext, DragOverlay, KeyboardSensor, PointerSensor, closestCenter, pointerWithin, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
+import { DndContext, KeyboardSensor, MouseSensor, closestCenter, pointerWithin, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, arrayMove, sortableKeyboardCoordinates, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { useFormContext, useWatch } from "react-hook-form";
 import { Button } from "@/shared/ui/button";
@@ -15,6 +15,7 @@ import {
   removeCategory,
   skillCount,
 } from "@/features/cv-editor/model/skills-form";
+import { CardTouchSensor } from "./card-touch-sensor";
 import { NewCategoryCard } from "./new-category-card";
 import { SectionCard } from "../primitives/section-card";
 import { SortableSkillCategory } from "./sortable-skill-category";
@@ -44,10 +45,11 @@ export function Skills() {
   const dndId = useId();
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    // A mouse drags by the handle; a finger drags the whole card after a short press.
+    useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(CardTouchSensor, { activationConstraint: { delay: 250, tolerance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
-  const draggingCategory = categories.find((category) => category.id === draggingId);
 
   const total = skillCount(categories);
   const filled = categories.filter((entry) => entry.skills.some((item) => item.value.trim() !== "")).length;
@@ -98,7 +100,7 @@ export function Skills() {
       title="Skills & Technical Competencies"
       aside={`${total} ${skillWord(total)} · ${filled} ${filled === 1 ? "category" : "categories"}`}
     >
-      <p className="text-sm leading-normal text-muted">Choose a category, then add the skills you can support. Drag the handle to reorder categories.</p>
+      <p className="text-sm leading-normal text-muted">Choose a category, then add the skills you can support. <span className="max-sm:hidden">Drag the handle to reorder categories.</span><span className="sm:hidden">Press and hold a category, then drag it to reorder.</span></p>
 
       <DndContext
         id={dndId}
@@ -135,9 +137,6 @@ export function Skills() {
             ))}
           </div>
         </SortableContext>
-        <DragOverlay adjustScale={false} dropAnimation={null}>
-          {draggingCategory ? <div className="pointer-events-none rounded-xl border border-accent-line bg-surface p-4 text-sm font-semibold text-ink shadow-lg">{draggingCategory.name}</div> : null}
-        </DragOverlay>
       </DndContext>
       {categories.length < MAX_CATEGORIES && newVisible ? (
         <div ref={newCardRef}>
