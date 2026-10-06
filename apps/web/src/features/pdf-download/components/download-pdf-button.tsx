@@ -25,6 +25,8 @@ export function DownloadPdfButton({
   disabledReason = null,
   beforeDownload,
   onMessage,
+  onBusyChange,
+  busyLabel,
 }: {
   cvId: string;
   variant?: ButtonVariant;
@@ -42,6 +44,10 @@ export function DownloadPdfButton({
    * layout cannot grow (the editor header keeps its height in every state).
    */
   onMessage?: (message: string | null) => void;
+  /** Tells the caller when the PDF starts and stops being prepared (the full-screen preview shows its dialog). */
+  onBusyChange?: (busy: boolean) => void;
+  /** The text while preparing, with no spinner in the button (the full-screen preview says "Preparing…"). */
+  busyLabel?: string;
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -59,6 +65,7 @@ export function DownloadPdfButton({
     }
     inFlight.current = true;
     setBusy(true);
+    onBusyChange?.(true);
     setMessage(null);
     try {
       await beforeDownload?.();
@@ -77,6 +84,7 @@ export function DownloadPdfButton({
     } finally {
       inFlight.current = false;
       setBusy(false);
+      onBusyChange?.(false);
     }
   }
 
@@ -94,12 +102,14 @@ export function DownloadPdfButton({
         title={unavailable ? disabledReason : undefined}
         onClick={() => void handleClick()}
       >
-        {busy ? (
+        {busy && busyLabel === undefined ? (
           <LoaderCircle aria-hidden className="size-4 motion-safe:animate-spin" strokeWidth={1.75} />
         ) : showIcon ? (
           <Download aria-hidden className="size-4" strokeWidth={1.75} />
         ) : null}
-        {busy ? (
+        {busy && busyLabel !== undefined ? (
+          busyLabel
+        ) : busy ? (
           <>
             <span className="hidden sm:inline">Preparing PDF…</span>
             <span className="sm:hidden">PDF…</span>

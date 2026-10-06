@@ -16,6 +16,8 @@ import {
   zoomOut,
 } from "@/features/cv-editor/lib/preview-zoom";
 import { DownloadPdfButton } from "../../../pdf-download/components/download-pdf-button";
+import { PdfPreparationDialog } from "../../../pdf-download/components/pdf-preparation-dialog";
+import { expectedPdfFilename } from "../../../pdf-download/model/pdf-filename";
 import { PAGE_HEIGHT, ScaledSheet } from "./scaled-sheet";
 import { ZoomControls } from "./zoom-controls";
 
@@ -47,6 +49,7 @@ export function FullscreenPreview({
   const backdropPress = useRef(false);
   const [area, setArea] = useState({ width: 0, height: 0 });
   const [manualZoom, setManualZoom] = useState<number | null>(null);
+  const [preparing, setPreparing] = useState(false);
   const [height, setHeight] = useState(PAGE_HEIGHT);
 
   // No cleanup on purpose: removing an open modal dialog from the DOM already closes it, while
@@ -130,7 +133,13 @@ export function FullscreenPreview({
             </Button>
           </div>
           <div className={`relative ${floatingMessage}`}>
-            <DownloadPdfButton cvId={cvId} size="regular" beforeDownload={beforeDownload} />
+            <DownloadPdfButton
+              cvId={cvId}
+              size="regular"
+              beforeDownload={beforeDownload}
+              onBusyChange={setPreparing}
+              busyLabel="Preparing…"
+            />
           </div>
         </header>
 
@@ -161,6 +170,7 @@ export function FullscreenPreview({
               showIcon
               label="PDF"
               beforeDownload={beforeDownload}
+              onBusyChange={setPreparing}
             />
           </div>
         </header>
@@ -226,6 +236,10 @@ export function FullscreenPreview({
           <p className="text-[11px] text-muted">{status.detail}</p>
         </div>
       </div>
+      <PdfPreparationDialog
+        preparing={preparing}
+        filename={expectedPdfFilename(draft.contact.fullName, targetRole)}
+      />
     </dialog>
   );
 }
