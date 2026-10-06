@@ -12,13 +12,14 @@ import {
   estimatePages,
   fitScale,
   previewStatus,
+  sheetScale,
   zoomIn,
   zoomOut,
 } from "@/features/cv-editor/lib/preview-zoom";
 import { DownloadPdfButton } from "../../../pdf-download/components/download-pdf-button";
 import { PdfPreparationDialog } from "../../../pdf-download/components/pdf-preparation-dialog";
 import { expectedPdfFilename } from "../../../pdf-download/model/pdf-filename";
-import { PAGE_HEIGHT, ScaledSheet } from "./scaled-sheet";
+import { PAGE_GAP, PAGE_HEIGHT, ScaledSheet } from "./scaled-sheet";
 import { ZoomControls } from "./zoom-controls";
 
 /**
@@ -46,11 +47,27 @@ export function FullscreenPreview({
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
+  const sheetRef = useRef<HTMLDivElement>(null);
+  const [page, setPage] = useState(1);
   const backdropPress = useRef(false);
   const [area, setArea] = useState({ width: 0, height: 0 });
   const [manualZoom, setManualZoom] = useState<number | null>(null);
   const [preparing, setPreparing] = useState(false);
   const [height, setHeight] = useState(PAGE_HEIGHT);
+
+  // A modal makes the editor inert, but does not lock the document's scroll position.
+  useEffect(() => {
+    const root = document.documentElement;
+    const body = document.body;
+    const rootOverflow = root.style.overflow;
+    const bodyOverflow = body.style.overflow;
+    root.style.overflow = "hidden";
+    body.style.overflow = "hidden";
+    return () => {
+      root.style.overflow = rootOverflow;
+      body.style.overflow = bodyOverflow;
+    };
+  }, []);
 
   // No cleanup on purpose: removing an open modal dialog from the DOM already closes it, while
   // calling `close()` here would fire `onClose` and, under React Strict Mode's mount-unmount-mount
@@ -108,6 +125,25 @@ export function FullscreenPreview({
       aria-label="Fullscreen preview"
       onClose={onClose}
       onCancel={(event) => { event.preventDefault(); closeEditorDialog(dialogRef.current); }}
+      onKeyDown={(event) => {
+        if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+        const target = event.target;
+        if (target instanceof Element && (target.closest("dialog") !== event.currentTarget || target.closest("input, textarea, select, [contenteditable='true']"))) return;
+        const stage = stageRef.current;
+        if (!stage) return;
+        const steps: Record<string, { left?: number; top?: number }> = {
+          ArrowUp: { top: -40 },
+          ArrowDown: { top: 40 },
+          ArrowLeft: { left: -40 },
+          ArrowRight: { left: 40 },
+          PageUp: { top: -stage.clientHeight },
+          PageDown: { top: stage.clientHeight },
+        };
+        const step = steps[event.key];
+        if (!step) return;
+        event.preventDefault();
+        stage.scrollBy(step);
+      }}
       tabIndex={-1}
       className="cv-editor-motion m-0 outline-none h-dvh max-h-none w-dvw max-w-none overflow-hidden bg-transparent p-0 text-ink backdrop:bg-[rgba(32,39,53,0.14)] backdrop:backdrop-blur-sm"
     >
@@ -194,6 +230,14 @@ export function FullscreenPreview({
 
         <div
           ref={stageRef}
+          onScroll={() => {
+            const stage = stageRef.current;
+            const sheet = sheetRef.current;
+            if (!stage || !sheet) return;
+            const offset = stage.getBoundingClientRect().top - sheet.getBoundingClientRect().top;
+            const lastPage = stage.scrollHeight > stage.clientHeight && stage.scrollTop + stage.clientHeight >= stage.scrollHeight - 1;
+            setPage(lastPage ? pages : Math.max(1, Math.min(pages, Math.floor(Math.max(0, offset) / (PAGE_HEIGHT * sheetScale(zoom) + PAGE_GAP)) + 1)));
+          }}
           onPointerDown={(event) => {
             backdropPress.current = event.button === 0 && event.target === event.currentTarget;
           }}
@@ -201,14 +245,14 @@ export function FullscreenPreview({
             if (backdropPress.current && event.target === event.currentTarget) closeEditorDialog(dialogRef.current);
             backdropPress.current = false;
           }}
-          className="flex min-h-0 flex-1 flex-col overflow-auto bg-stage px-4 py-3 sm:bg-transparent sm:px-8 sm:py-[21px]"
+          className="flex min-h-0 flex-1 flex-col overflow-auto overscroll-contain bg-stage px-4 py-3 sm:bg-transparent sm:px-8 sm:py-[21px]"
         >
           <div className="m-auto flex flex-col items-center gap-4">
-            <div className="shadow-[0_6px_24px_rgba(32,39,53,0.12)] sm:shadow-[0_8px_28px_rgba(40,51,71,0.08)]">
+            <div ref={sheetRef}>
               <ScaledSheet draft={draft} targetRole={targetRole} zoom={zoom} height={height} onHeight={onHeight} />
             </div>
             <p className="text-xs text-muted sm:hidden">
-              Page 1 of {pages}
+              Page {page} of {pages}
             </p>
           </div>
         </div>
@@ -219,7 +263,7 @@ export function FullscreenPreview({
             {status.short} · {status.detail}
           </p>
           <div className="flex items-center gap-3">
-            <p className="text-xs text-ink">Page 1 of {pages}</p>
+            <p className="text-xs text-ink">Page {page} of {pages}</p>
             <ZoomControls
               zoom={zoom}
               size="bar"

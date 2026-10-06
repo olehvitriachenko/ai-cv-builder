@@ -84,8 +84,8 @@ export function PreviewPanel({
         <p className="text-center text-[11px] text-muted">
           {measured ? `${status.short} · ${status.detail}` : "Last saved version · Preview loading…"}
         </p>
-        <div ref={stageRef} className="group relative flex w-full justify-center overflow-x-auto overflow-y-hidden">
-          <div className="relative">
+        <div ref={stageRef} className="group relative flex w-full overflow-x-auto overflow-y-hidden">
+          <div className="relative mx-auto shrink-0">
             <div className="rounded-sm transition-shadow group-hover:shadow-[0_0_0_2px_rgba(69,73,190,0.2)] group-focus-within:shadow-[0_0_0_2px_rgba(69,73,190,0.2)]">
               {measured ? (
                 <ScaledSheet draft={draft} targetRole={targetRole} zoom={zoom} height={height} onHeight={onHeight} />
