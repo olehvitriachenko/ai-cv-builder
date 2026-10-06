@@ -45,6 +45,7 @@ export function SkillCategoryCard({
   options,
   onUpdate,
   dragHandle,
+  cornerHandle,
   motionEnabled,
   onRemove,
 }: {
@@ -52,7 +53,10 @@ export function SkillCategoryCard({
   categories: SkillCategoryFormEntry[];
   options: readonly string[];
   onUpdate: (next: SkillCategoryFormEntry[]) => void;
+  /** Beside the trash button (from `sm` up). */
   dragHandle: ReactNode;
+  /** In the top-left corner above the name (a phone), where a thumb reaches it. */
+  cornerHandle?: ReactNode;
   motionEnabled: boolean;
   onRemove: () => void;
 }) {
@@ -92,6 +96,7 @@ export function SkillCategoryCard({
 
   return (
     <section ref={cardMotionRef} aria-label={category.name} className="flex flex-col gap-3 rounded-xl border border-line bg-surface p-4">
+      {cornerHandle ? <div className="-mb-1 flex">{cornerHandle}</div> : null}
       <Combobox
         label="Category Name"
         value={category.name}
