@@ -4,7 +4,7 @@ import type { CvDraft } from '../src/modules/cv/generation/draft.schema.js';
 import { createTestApp } from './helpers/create-test-app.js';
 import { createCvFromText } from './helpers/cvs.js';
 import { sampleDraft, seedCompleted, seedFailed, seedQuestion } from './helpers/seed.js';
-import { registerUser } from './helpers/users.js';
+import { loginUser, registerUser } from './helpers/users.js';
 
 interface SaveResult {
   revision: number;
@@ -54,6 +54,24 @@ describe('PUT /api/cvs/:id/draft (manual editing)', () => {
     change(draft);
     return draft;
   }
+
+  it.each([false, true])('persists explicit current-year education ongoing=%s across login and unrelated saves', async (ongoing) => {
+    const { user, id } = await completedCv();
+    const draft = sampleDraft();
+    draft.education[0] = { ...draft.education[0]!, startDate: '2022', endDate: String(new Date().getFullYear()), ongoing };
+    draft.experience[0]!.endDate = 'now';
+    expect((await save(user.cookie, id, { revision: 0, draft })).statusCode).toBe(200);
+    await app.inject({ method: 'POST', url: '/api/auth/logout', headers: { cookie: user.cookie } });
+    const login = await loginUser(app, user);
+    expect(login.response.statusCode).toBe(200);
+    const reloaded = await readResult(login.cookie!, id);
+    expect(reloaded.draft.education[0]).toEqual(draft.education[0]);
+    reloaded.draft.summary = 'Unrelated edit';
+    expect((await save(login.cookie, id, { revision: reloaded.revision, draft: reloaded.draft })).statusCode).toBe(200);
+    const saved = await readResult(login.cookie!, id);
+    expect(saved.draft.education[0]!.ongoing).toBe(ongoing);
+    expect(saved.draft.experience[0]!.endDate).toBe('now');
+  });
 
   it('saves each section and reads it back', async () => {
     const { user, id } = await completedCv();

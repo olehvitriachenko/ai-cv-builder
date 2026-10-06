@@ -1,6 +1,7 @@
 /** Matches the editor's year/month precision without inventing an end date. */
-export function educationStatus(end: string | null, today = new Date()): { studying: boolean; expected: boolean } {
+export function educationStatus(end: string | null, today = new Date(), ongoing?: boolean): { studying: boolean; expected: boolean } {
   const value = end?.trim().toLowerCase() ?? '';
+  if (ongoing !== undefined) return { studying: ongoing, expected: ongoing && value !== '' && value !== 'present' };
   if (value === 'present') return { studying: true, expected: false };
   let year: number | undefined;
   let month: number | undefined;

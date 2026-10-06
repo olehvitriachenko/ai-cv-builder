@@ -700,6 +700,8 @@ A persisted source date does not block saving unrelated editor changes.
 
 If the user actively changes a date, the edited value must use a format supported by the date picker.
 
+Education stores an explicit optional `ongoing` choice with each draft entry, so expected graduation in the current year remains distinct from a completed degree. Existing entries without this field keep their previous date-based interpretation.
+
 ---
 
 ## Intentional trade-offs

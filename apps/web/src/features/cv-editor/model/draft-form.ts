@@ -25,6 +25,7 @@ export interface ExperienceFormEntry {
 
 export interface EducationFormEntry {
   id: string;
+  ongoing?: boolean;
   institution: string;
   qualification: string;
   startDate: string;
@@ -124,6 +125,7 @@ export function toFormValues(draft: CvDraft, targetRole: string): DraftFormValue
     })),
     education: draft.education.map((entry) => ({
       id: entry.id,
+      ongoing: entry.ongoing,
       institution: orEmpty(entry.institution),
       qualification: orEmpty(entry.qualification),
       startDate: orEmpty(entry.startDate),
@@ -166,8 +168,9 @@ export function isPresent(value: string): boolean {
   return value.trim().toLowerCase() === PRESENT.toLowerCase();
 }
 
-/** Education counts as ongoing when it ends in the future or is marked Present. */
-export function isCurrentlyStudying(endDate: string, today: Date = new Date()): boolean {
+/** Explicit ongoing wins; old drafts retain their existing future-date/Present interpretation. */
+export function isCurrentlyStudying(endDate: string, today: Date = new Date(), ongoing?: boolean): boolean {
+  if (ongoing !== undefined) return ongoing;
   if (isPresent(endDate)) {
     return true;
   }
@@ -207,6 +210,7 @@ export function toDraft(values: DraftFormValues): CvDraft {
     })),
     education: values.education.map((entry) => ({
       id: entry.id,
+      ...(entry.ongoing === undefined ? {} : { ongoing: entry.ongoing }),
       institution: orNull(entry.institution),
       qualification: orNull(entry.qualification),
       startDate: orNull(entry.startDate),
@@ -255,7 +259,7 @@ export function newExperienceEntry(): ExperienceFormEntry {
 }
 
 export function newEducationEntry(): EducationFormEntry {
-  return { id: newId(), institution: "", qualification: "", startDate: "", endDate: "", details: "" };
+  return { id: newId(), ongoing: false, institution: "", qualification: "", startDate: "", endDate: "", details: "" };
 }
 
 export function newSkillCategory(): SkillCategoryFormEntry {
@@ -361,6 +365,7 @@ const educationEntry = (saved: SavedDates) =>
   z
     .object({
       id: z.string().min(1),
+      ongoing: z.boolean().optional(),
       institution: text(200, "Institution"),
       qualification: text(200, "Qualification"),
       startDate: text(40, "Start date"),

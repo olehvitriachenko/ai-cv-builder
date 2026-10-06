@@ -266,7 +266,7 @@ function ExperienceTail({ entry, last }: { entry: ExperienceEntry; last: boolean
 }
 
 function Education({ entry, last }: { entry: EducationEntry; last: boolean }) {
-  const { studying, expected } = educationStatus(entry.endDate);
+  const { studying, expected } = educationStatus(entry.endDate, new Date(), entry.ongoing);
   const range = dateRange(entry.startDate, entry.endDate);
   const dates = range !== null && expected ? `${range} (expected)` : range;
   return (

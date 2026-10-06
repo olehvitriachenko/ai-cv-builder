@@ -41,6 +41,7 @@ const experienceEntrySchema = z.object({
 
 const educationEntrySchema = z.object({
   id: z.string(),
+  ongoing: z.boolean().optional(),
   institution: z.string().nullable(),
   qualification: z.string().nullable(),
   startDate: z.string().nullable(),

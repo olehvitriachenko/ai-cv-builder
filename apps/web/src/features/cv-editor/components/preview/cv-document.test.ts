@@ -15,3 +15,16 @@ describe('education preview semantics', () => {
     expect(html.includes('(expected)')).toBe(expected);
   });
 });
+
+
+it.each([
+  [String(new Date().getFullYear()), false, false],
+  [String(new Date().getFullYear()), true, true],
+  [String(new Date().getFullYear() + 1), true, true],
+  [null, true, false],
+] as const)('renders explicit education ongoing=%s for %s', (endDate, ongoing, expected) => {
+  const draft: CvDraft = { schemaVersion: 2, languages: [], certifications: [], portfolio: [], hobbies: [], customSections: [], contact: { fullName: null, email: null, phone: null, location: null, links: [] }, summary: null, experience: [], skillCategories: [], education: [{ id: 'edu', institution: 'University', qualification: 'Degree', startDate: '2022', endDate, ongoing, details: null }] };
+  const html = renderToStaticMarkup(createElement(CvDocument, { draft, targetRole: 'Engineer' }));
+  expect(html.includes('Currently studying')).toBe(ongoing);
+  expect(html.includes('(expected)')).toBe(expected);
+});

@@ -1,7 +1,6 @@
 "use client";
 
 import { GraduationCap } from "lucide-react";
-import { useState } from "react";
 import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
 import { Button } from "@/shared/ui/button";
 import { TextareaField, TextField } from "@/shared/ui/field";
@@ -27,7 +26,7 @@ const PLACEHOLDER = "placeholder:text-muted!";
 
 /**
  * Year pickers (Figma 06.3). the **Currently studying** switch locks the end year ("Not applicable") and asks for
- * an optional expected graduation instead: a year saves as the end date, none saves as Present.
+ * an optional expected graduation instead: the choice is persisted separately from the end date; no expected year saves as Present.
  */
 function EducationEntry({
   index,
@@ -42,8 +41,7 @@ function EducationEntry({
   const entry = useWatch({ control, name: `education.${index}` });
   const errors = formState.errors.education?.[index];
   const dateMotionRef = useEditorMotion();
-  // Kept as state because a graduation expected this year is still a year-only end date.
-  const [studying, setStudying] = useState(() => isCurrentlyStudying(entry.endDate));
+  const studying = isCurrentlyStudying(entry.endDate, new Date(), entry.ongoing);
   const setDate = (field: "startDate" | "endDate", value: string) => setValue(`education.${index}.${field}`, value, { shouldDirty: true, shouldValidate: true });
   const start = parseCvDate(entry.startDate);
   const expected = expectedGraduation(entry.endDate);
@@ -89,7 +87,7 @@ function EducationEntry({
               hint={studying ? "No end year required" : undefined}
               checked={studying}
               onChange={(checked) => {
-                setStudying(checked);
+                setValue(`education.${index}.ongoing`, checked, { shouldDirty: true, shouldValidate: true });
                 setDate("endDate", checked ? PRESENT : "");
               }}
             />
@@ -101,7 +99,10 @@ function EducationEntry({
               label="Expected graduation (optional)"
               precision="year"
               value={expected}
-              onChange={(value) => setDate("endDate", value === "" ? PRESENT : value)}
+              onChange={(value) => {
+                setValue(`education.${index}.ongoing`, true, { shouldDirty: true, shouldValidate: true });
+                setDate("endDate", value === "" ? PRESENT : value);
+              }}
               bounds={dateBounds({ future: true, after: { year: Math.max(thisYear, start?.year ?? thisYear), month: null } })}
               error={errors?.endDate?.message}
             />

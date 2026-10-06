@@ -561,3 +561,24 @@ describe("optional sections in the form", () => {
   });
 });
 
+
+
+describe("persisted ongoing choices", () => {
+  it.each([
+    [String(new Date().getFullYear()), false],
+    [String(new Date().getFullYear()), true],
+    [String(new Date().getFullYear() + 1), true],
+    [null, true],
+    ["Present", true],
+  ] as const)("keeps education end %s with ongoing=%s across form save and reload", (endDate, ongoing) => {
+    const stored = draft();
+    stored.education[0] = { ...stored.education[0]!, endDate, ongoing };
+    const values = toFormValues(stored, ROLE);
+    expect(isCurrentlyStudying(values.education[0]!.endDate, new Date(), values.education[0]!.ongoing)).toBe(ongoing);
+    expect(createCvFormSchema(savedDatesOf(stored)).safeParse(values).success).toBe(true);
+    const saved = toDraft(values);
+    expect(saved.education[0]).toEqual(stored.education[0]);
+    expect(toFormValues(saved, ROLE).education[0]!.ongoing).toBe(ongoing);
+  });
+
+});

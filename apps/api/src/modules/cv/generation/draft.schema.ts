@@ -26,6 +26,8 @@ export const experienceEntrySchema = z
 export const educationEntrySchema = z
   .object({
     id: z.string().min(1),
+    /** Explicit user choice; absent preserves legacy date-derived semantics. */
+    ongoing: z.boolean().optional(),
     institution: nullableText(200),
     qualification: nullableText(200),
     startDate: nullableText(40),

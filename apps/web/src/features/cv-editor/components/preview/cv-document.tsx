@@ -59,8 +59,8 @@ function Experience({ entry }: { entry: ExperienceEntry }) {
 }
 
 function Education({ entry }: { entry: EducationEntry }) {
-  const studying = entry.endDate !== null && isCurrentlyStudying(entry.endDate);
-  // A future end year is an expected graduation; "Present" is shown as it is.
+  const studying = isCurrentlyStudying(entry.endDate ?? "", new Date(), entry.ongoing);
+  // An ongoing entry with an end date shows expected graduation; Present/now have no forecast.
   const expected = studying && entry.endDate !== null && !isPresent(entry.endDate);
   const range = dateRange(entry.startDate, entry.endDate);
   const dates = range !== null && expected ? `${range} (expected)` : range;

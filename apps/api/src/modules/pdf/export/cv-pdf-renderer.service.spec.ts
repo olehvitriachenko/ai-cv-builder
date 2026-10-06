@@ -130,6 +130,20 @@ describe('CvPdfRenderer', () => {
     expect(pdf.flat.includes('(expected)')).toBe(expected);
   });
 
+  it.each([
+    [String(new Date().getFullYear()), false, false],
+    [String(new Date().getFullYear()), true, true],
+    [String(new Date().getFullYear() + 1), true, true],
+    ['Present', true, false],
+    [null, true, false],
+  ] as const)('renders persisted education end %s with ongoing=%s', async (endDate, ongoing, expected) => {
+    const draft = typicalDraft();
+    draft.education[0] = { ...draft.education[0]!, startDate: '2022', endDate, ongoing };
+    const pdf = await readPdf(await renderer.render({ draft, targetRole: 'Engineer' }));
+    expect(pdf.flat.includes('Currently studying')).toBe(ongoing);
+    expect(pdf.flat.includes('(expected)')).toBe(expected);
+  });
+
   it('produces a PDF whose every page is A4 portrait', async () => {
     const bytes = await renderer.render({ draft: typicalDraft(), targetRole: 'Backend Engineer' });
 

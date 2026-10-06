@@ -110,12 +110,13 @@ function experienceLines(entry: ExperienceEntry): string[] {
 const EDUCATION_FIELDS: readonly Field<EducationEntry>[] = [
   { label: "institution", read: (e) => clean(e.institution) },
   { label: "degree", read: (e) => clean(e.qualification) },
+  { label: "ongoing", read: (e) => String(isCurrentlyStudying(e.endDate ?? "", new Date(), e.ongoing)) },
   { label: "dates", read: (e) => dateRange(e.startDate, e.endDate) },
   { label: "details", read: (e) => clean(e.details) },
 ];
 
 function educationLines(entry: EducationEntry): string[] {
-  const studying = entry.endDate !== null && isCurrentlyStudying(entry.endDate);
+  const studying = isCurrentlyStudying(entry.endDate ?? "", new Date(), entry.ongoing);
   const expected = studying && entry.endDate !== null && !isPresent(entry.endDate);
   const range = dateRange(entry.startDate, entry.endDate);
   return [
