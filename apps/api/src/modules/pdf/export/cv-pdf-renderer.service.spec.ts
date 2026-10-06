@@ -130,6 +130,16 @@ describe('CvPdfRenderer', () => {
     expect(pdf.flat.includes('(expected)')).toBe(expected);
   });
 
+  it('wraps a bilingual name with parentheses without inserting a hyphen', async () => {
+    const draft = emptyDraft();
+    draft.contact.fullName = 'Олександр Петренко (Oleksandr Petrenko)';
+    const pdf = await readPdf(await renderer.render({ draft, targetRole: 'Engineer' }));
+    expect(pdf.flat).toContain(draft.contact.fullName);
+    expect(pdf.raw).not.toContain('-');
+    const nameItems = pdf.pages[0]!.items.filter((item) => item.y > 700);
+    expect(new Set(nameItems.map((item) => item.y)).size).toBeGreaterThan(1);
+  });
+
   it.each([
     [String(new Date().getFullYear()), false, false],
     [String(new Date().getFullYear()), true, true],

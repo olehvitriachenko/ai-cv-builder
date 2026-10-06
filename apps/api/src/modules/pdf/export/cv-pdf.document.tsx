@@ -124,10 +124,10 @@ function chunks(word: string, limit: number): string[] {
   return result;
 }
 
-/** Plain text, or the chunked layout when the text holds a token that cannot fit a line. */
-function Prose({ text, style, href }: { text: string; style: Style; href?: string }) {
+/** Plain text, or word/chunk wrapping without textkit inserting hyphens at punctuation. */
+function Prose({ text, style, href, wrapWords = false }: { text: string; style: Style; href?: string; wrapWords?: boolean }) {
   const limit = maxTokenLength(style);
-  if (!hasLongToken(text, limit)) {
+  if (!wrapWords && !hasLongToken(text, limit)) {
     return href ? (
       <Link src={href} style={{ ...style, textDecoration: 'underline' }}>
         {text}
@@ -441,7 +441,7 @@ export function CvPdfDocument({ draft, targetRole }: CvPdfDocumentProps) {
     <Document title={contact.fullName ? `${contact.fullName} — ${targetRole}` : targetRole}>
       <Page size="A4" style={styles.page}>
         <View style={styles.header}>
-          {contact.fullName ? <Prose text={contact.fullName} style={styles.name} /> : null}
+          {contact.fullName ? <Prose text={contact.fullName} style={styles.name} wrapWords /> : null}
           <Prose text={targetRole} style={styles.role} />
           {contactLine || linksLine ? (
             <View style={styles.metaBlock}>
