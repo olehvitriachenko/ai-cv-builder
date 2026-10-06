@@ -113,6 +113,7 @@ describe('GET /api/cvs/:id/pdf', () => {
       summary: null,
       experience: [],
       education: [],
+      languages: [], certifications: [], portfolio: [], hobbies: [], customSections: [],
       skillCategories: [],
     };
     const { user: emptyUser, id: emptyId } = await completedCv(emptyDraft);

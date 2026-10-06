@@ -68,6 +68,7 @@ function emptyDraft(): CvDraft {
     summary: null,
     experience: [],
     education: [],
+    languages: [], certifications: [], portfolio: [], hobbies: [], customSections: [],
     skillCategories: [],
   };
 }
@@ -104,6 +105,7 @@ function typicalDraft(): CvDraft {
         details: 'First class honours',
       },
     ],
+    languages: [], certifications: [], portfolio: [], hobbies: [], customSections: [],
     skillCategories: [
       { id: 'cat-1', name: 'Backend', skills: ['Node.js', 'PostgreSQL', 'TypeScript'] },
     ],
@@ -501,6 +503,7 @@ describe('CvPdfRenderer', () => {
         endDate: 'D'.repeat(40),
         details: 'd'.repeat(300),
       })),
+      languages: [], certifications: [], portfolio: [], hobbies: [], customSections: [],
       skillCategories: Array.from({ length: 12 }, (_, category) => ({
         id: `cat-${category}`,
         name: `Category ${category}`,
@@ -525,3 +528,74 @@ describe('CvPdfRenderer', () => {
     }
   }, 60_000);
 });
+
+describe('CvPdfRenderer optional sections', () => {
+  const renderer = new CvPdfRenderer();
+
+  function withSections(): CvDraft {
+    return {
+      ...typicalDraft(),
+      certifications: [
+        { id: 'c1', name: 'AWS Solutions Architect', issuer: 'Amazon Web Services', date: 'Jun 2024', link: 'https://aws.amazon.com/verify/123' },
+        { id: 'c2', name: 'Scrum Master', issuer: null, date: null, link: null },
+      ],
+      languages: [
+        { id: 'l1', name: 'English', level: 'C1' },
+        { id: 'l2', name: 'German', level: null },
+      ],
+      portfolio: [{ id: 'p1', name: 'CV Builder', link: 'https://example.com/cv-builder', description: 'An AI assisted CV tool' }],
+      hobbies: ['Chess', 'Climbing'],
+      customSections: [{ id: 's1', title: 'Volunteering', content: 'Food bank coordinator\nMentoring juniors' }],
+    };
+  }
+
+  it('prints the sections after Skills in a fixed order: Certifications, Languages, Portfolio, Hobbies, custom', async () => {
+    const { flat } = await readPdf(await renderer.render({ draft: withSections(), targetRole: 'Engineer' }));
+
+    const upper = flat.toUpperCase();
+    const order = ['SKILLS', 'CERTIFICATIONS', 'LANGUAGES', 'PORTFOLIO', 'HOBBIES', 'VOLUNTEERING'];
+    const positions = order.map((heading) => upper.lastIndexOf(heading));
+    expect(positions.every((position) => position >= 0)).toBe(true);
+    expect([...positions].sort((a, b) => a - b)).toEqual(positions);
+  });
+
+  it('shows each section with exactly the stored values and nothing invented', async () => {
+    const { flat } = await readPdf(await renderer.render({ draft: withSections(), targetRole: 'Engineer' }));
+
+    expect(flat).toContain('AWS Solutions Architect');
+    expect(flat).toContain('Amazon Web Services · Jun 2024');
+    // The text layer splits a link at its "//"; compare it without spaces.
+    const compact = flat.replace(/\s+/gu, '');
+    expect(compact).toContain('https://aws.amazon.com/verify/123');
+    expect(flat).toContain('Scrum Master');
+    expect(flat).toContain('English — C1');
+    expect(flat).toMatch(/German(?! —)/u);
+    expect(flat).toContain('CV Builder');
+    expect(compact).toContain('https://example.com/cv-builder');
+    expect(flat).toContain('An AI assisted CV tool');
+    expect(flat).toContain('Chess · Climbing');
+    expect(flat).toContain('Food bank coordinator');
+    expect(flat).toContain('Mentoring juniors');
+    expect(flat).not.toContain('null');
+  });
+
+  it('leaves out every section the draft does not hold, headings included', async () => {
+    const { flat } = await readPdf(await renderer.render({ draft: typicalDraft(), targetRole: 'Engineer' }));
+
+    for (const heading of ['CERTIFICATIONS', 'LANGUAGES', 'PORTFOLIO', 'HOBBIES']) {
+      expect(flat.toUpperCase()).not.toContain(heading);
+    }
+  });
+
+  it('keeps the line breaks of a custom section as separate lines', async () => {
+    const { pages } = await readPdf(await renderer.render({ draft: withSections(), targetRole: 'Engineer' }));
+
+    const items = pages.flatMap((page) => page.items);
+    const first = items.find((item) => item.str.includes('Food bank coordinator'));
+    const second = items.find((item) => item.str.includes('Mentoring juniors'));
+    expect(first).toBeDefined();
+    expect(second).toBeDefined();
+    expect(first?.y).not.toBe(second?.y);
+  });
+});
+

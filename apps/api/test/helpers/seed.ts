@@ -35,6 +35,7 @@ export function sampleDraft(): CvDraft {
         details: null,
       },
     ],
+    languages: [], certifications: [], portfolio: [], hobbies: [], customSections: [],
     skillCategories: [{ id: 'cat-1', name: 'Backend', skills: ['Node.js'] }],
   };
 }

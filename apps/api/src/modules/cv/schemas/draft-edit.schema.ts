@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { cvDraftSchema } from '../generation/draft.schema.js';
 import { targetRoleSchema } from './cv.schemas.js';
+import { isWebAddress } from './web-address.js';
 
 /**
  * Body of `PUT /cvs/:id/draft`: the whole draft, the revision it is based on and, optionally, the
@@ -12,7 +13,9 @@ import { targetRoleSchema } from './cv.schemas.js';
  *    entries, and clarification questions refer to entries by id);
  *  - an email, when set, is a syntactically valid address;
  *  - skill category ids and names (ignoring case) are unique, skills are unique across the whole CV
- *    (ignoring case), and no category is empty.
+ *    (ignoring case), and no category is empty;
+ *  - the optional sections: entry ids are unique across them too, language names and hobbies are
+ *    unique (ignoring case), and the link of a certification or a project is a web address.
  * Blank strings are rejected by the draft schema, so an emptied field is sent as `null`.
  */
 export const cvDraftEditBodySchema = z
@@ -33,6 +36,22 @@ export const cvDraftEditBodySchema = z
       ...draft.education.map((entry, index) => ({
         id: entry.id,
         path: ['draft', 'education', index, 'id'],
+      })),
+      ...draft.languages.map((entry, index) => ({
+        id: entry.id,
+        path: ['draft', 'languages', index, 'id'],
+      })),
+      ...draft.certifications.map((entry, index) => ({
+        id: entry.id,
+        path: ['draft', 'certifications', index, 'id'],
+      })),
+      ...draft.portfolio.map((entry, index) => ({
+        id: entry.id,
+        path: ['draft', 'portfolio', index, 'id'],
+      })),
+      ...draft.customSections.map((entry, index) => ({
+        id: entry.id,
+        path: ['draft', 'customSections', index, 'id'],
       })),
     ];
     for (const entry of entries) {
@@ -94,6 +113,44 @@ export const cvDraftEditBodySchema = z
         skills.add(skillKey);
       });
     });
+
+    const languageNames = new Set<string>();
+    draft.languages.forEach((language, index) => {
+      const key = language.name.toLowerCase();
+      if (languageNames.has(key)) {
+        context.issues.push({
+          code: 'custom',
+          message: 'A language can appear only once',
+          path: ['draft', 'languages', index, 'name'],
+          input: language.name,
+        });
+      }
+      languageNames.add(key);
+    });
+
+    const hobbies = new Set<string>();
+    draft.hobbies.forEach((hobby, index) => {
+      const key = hobby.toLowerCase();
+      if (hobbies.has(key)) {
+        context.issues.push({
+          code: 'custom',
+          message: 'A hobby can appear only once',
+          path: ['draft', 'hobbies', index],
+          input: hobby,
+        });
+      }
+      hobbies.add(key);
+    });
+
+    const links = [
+      ...draft.certifications.map((entry, index) => ({ link: entry.link, path: ['draft', 'certifications', index, 'link'] })),
+      ...draft.portfolio.map((entry, index) => ({ link: entry.link, path: ['draft', 'portfolio', index, 'link'] })),
+    ];
+    for (const { link, path } of links) {
+      if (link !== null && !isWebAddress(link)) {
+        context.issues.push({ code: 'custom', message: 'Enter a valid web address', path, input: link });
+      }
+    }
 
     const email = draft.contact.email;
     if (email !== null && !z.email().safeParse(email).success) {

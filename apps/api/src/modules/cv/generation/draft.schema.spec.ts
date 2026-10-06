@@ -43,6 +43,7 @@ function fullDraft(): CvDraft {
         details: null,
       },
     ],
+    languages: [], certifications: [], portfolio: [], hobbies: [], customSections: [],
     skillCategories: [{ id: 'c1', name: 'Backend', skills: ['Node.js', 'PostgreSQL'] }],
   };
 }
@@ -175,3 +176,51 @@ describe('cvDraftSchema', () => {
     expect(cvDraftSchema.safeParse(draft).success).toBe(true);
   });
 });
+
+describe('cvDraftSchema optional sections', () => {
+  it('reads a draft stored before the sections existed as having none', () => {
+    const result = cvDraftSchema.safeParse(minimalDraft());
+
+    expect(result.success && result.data.languages).toEqual([]);
+    expect(result.success && result.data.certifications).toEqual([]);
+    expect(result.success && result.data.portfolio).toEqual([]);
+    expect(result.success && result.data.hobbies).toEqual([]);
+    expect(result.success && result.data.customSections).toEqual([]);
+  });
+
+  it('accepts every section with its optional values null', () => {
+    const result = cvDraftSchema.safeParse({
+      ...minimalDraft(),
+      languages: [{ id: 'l1', name: 'English', level: 'C1' }, { id: 'l2', name: 'German', level: null }],
+      certifications: [{ id: 'c1', name: 'AWS SAA', issuer: null, date: null, link: null }],
+      portfolio: [{ id: 'p1', name: 'CV Builder', link: null, description: null }],
+      hobbies: ['Chess', 'Climbing'],
+      customSections: [{ id: 's1', title: 'Volunteering', content: 'Food bank\nMentoring' }],
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects a level outside the five and blank required values', () => {
+    const base = minimalDraft();
+    expect(cvDraftSchema.safeParse({ ...base, languages: [{ id: 'l', name: 'English', level: 'Excellent' }] }).success).toBe(false);
+    expect(cvDraftSchema.safeParse({ ...base, languages: [{ id: 'l', name: '  ', level: null }] }).success).toBe(false);
+    expect(cvDraftSchema.safeParse({ ...base, hobbies: ['  '] }).success).toBe(false);
+    expect(cvDraftSchema.safeParse({ ...base, customSections: [{ id: 's', title: 'T', content: '' }] }).success).toBe(false);
+  });
+
+  it('enforces the size limits', () => {
+    const base = minimalDraft();
+    const many = (count: number, make: (index: number) => unknown) => Array.from({ length: count }, (_, index) => make(index));
+    expect(cvDraftSchema.safeParse({ ...base, languages: many(13, (i) => ({ id: `l${i}`, name: `L${i}`, level: null })) }).success).toBe(false);
+    expect(cvDraftSchema.safeParse({ ...base, languages: many(12, (i) => ({ id: `l${i}`, name: `L${i}`, level: null })) }).success).toBe(true);
+    expect(cvDraftSchema.safeParse({ ...base, certifications: many(16, (i) => ({ id: `c${i}`, name: `C${i}`, issuer: null, date: null, link: null })) }).success).toBe(false);
+    expect(cvDraftSchema.safeParse({ ...base, portfolio: many(9, (i) => ({ id: `p${i}`, name: `P${i}`, link: null, description: null })) }).success).toBe(false);
+    expect(cvDraftSchema.safeParse({ ...base, hobbies: many(16, (i) => `H${i}`) }).success).toBe(false);
+    expect(cvDraftSchema.safeParse({ ...base, hobbies: ['h'.repeat(61)] }).success).toBe(false);
+    expect(cvDraftSchema.safeParse({ ...base, customSections: many(4, (i) => ({ id: `s${i}`, title: `T${i}`, content: 'x' })) }).success).toBe(false);
+    expect(cvDraftSchema.safeParse({ ...base, customSections: [{ id: 's', title: 'T', content: 'x'.repeat(1201) }] }).success).toBe(false);
+    expect(cvDraftSchema.safeParse({ ...base, portfolio: [{ id: 'p', name: 'P', link: null, description: 'd'.repeat(301) }] }).success).toBe(false);
+  });
+});
+

@@ -12,6 +12,7 @@ function baseDraft(): CvDraft {
       { id: 'exp-2', employer: 'Globex', title: null, location: null, startDate: '2010', endDate: '2012', bullets: [] },
     ],
     education: [{ id: 'edu-1', institution: 'State University', qualification: 'BSc', startDate: null, endDate: null, details: null }],
+    languages: [], certifications: [], portfolio: [], hobbies: [], customSections: [],
     skillCategories: [
       { id: 'cat-1', name: 'Backend', skills: ['Node.js', 'SQL'] },
       { id: 'cat-2', name: 'My tools', skills: ['Vim'] },

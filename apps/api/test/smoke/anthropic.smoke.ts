@@ -204,6 +204,7 @@ const BASE_DRAFT: CvDraft = {
     { id: 'exp-1', employer: 'Acme Corp', title: 'Backend Engineer', location: null, startDate: '2016', endDate: '2023', bullets: ['Built REST APIs in Node.js'] },
   ],
   education: [{ id: 'edu-1', institution: 'State University', qualification: 'BSc Computer Science', startDate: null, endDate: null, details: null }],
+  languages: [], certifications: [], portfolio: [], hobbies: [], customSections: [],
   skillCategories: [{ id: 'cat-1', name: 'Backend', skills: ['Node.js'] }],
 };
 

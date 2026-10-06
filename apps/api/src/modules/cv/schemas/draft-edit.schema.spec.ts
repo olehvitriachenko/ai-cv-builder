@@ -33,6 +33,7 @@ function draft(): CvDraft {
         details: null,
       },
     ],
+    languages: [], certifications: [], portfolio: [], hobbies: [], customSections: [],
     skillCategories: [{ id: 'cat-1', name: 'Backend', skills: ['Node.js', 'PostgreSQL'] }],
   };
 }
@@ -252,3 +253,61 @@ describe('cvDraftEditBodySchema', () => {
     );
   });
 });
+
+describe('cvDraftEditBodySchema optional sections (write-path rules)', () => {
+  const withSections = (patch: Partial<CvDraft>) => ({ revision: 0, draft: { ...draft(), ...patch } });
+
+  it('accepts a draft with all sections filled and one without them', () => {
+    expect(
+      parse(
+        withSections({
+          languages: [{ id: 'lang-1', name: 'English', level: 'C1' }],
+          certifications: [{ id: 'cert-1', name: 'AWS SAA', issuer: 'Amazon', date: 'Jun 2024', link: 'https://aws.amazon.com/cert' }],
+          portfolio: [{ id: 'proj-1', name: 'CV Builder', link: 'example.com/cv', description: 'A tool' }],
+          hobbies: ['Chess'],
+          customSections: [{ id: 'cus-1', title: 'Volunteering', content: 'Food bank' }],
+        }),
+      ).success,
+    ).toBe(true);
+    expect(parse({ revision: 0, draft: draft() }).success).toBe(true);
+  });
+
+  it('rejects a language name that repeats ignoring case', () => {
+    const body = withSections({
+      languages: [
+        { id: 'lang-1', name: 'English', level: null },
+        { id: 'lang-2', name: 'english', level: 'A2' },
+      ],
+    });
+
+    expect(paths(body)).toContain('draft.languages.1.name');
+  });
+
+  it('rejects a hobby that repeats ignoring case', () => {
+    expect(paths(withSections({ hobbies: ['Chess', 'CHESS'] }))).toContain('draft.hobbies.1');
+  });
+
+  it('rejects an entry id that repeats across sections', () => {
+    const body = withSections({
+      languages: [{ id: 'exp-1', name: 'English', level: null }],
+      customSections: [{ id: 'cus-1', title: 'T', content: 'C' }, { id: 'cus-1', title: 'U', content: 'D' }],
+    });
+
+    const found = paths(body);
+    expect(found).toContain('draft.languages.0.id');
+    expect(found).toContain('draft.customSections.1.id');
+  });
+
+  it.each(['not a link', 'ftp://example.com', 'javascript:alert(1)', 'localhost', 'a b.com'])(
+    'rejects %s as a link of a certification or a project',
+    (link) => {
+      expect(paths(withSections({ certifications: [{ id: 'c', name: 'N', issuer: null, date: null, link }] }))).toContain('draft.certifications.0.link');
+      expect(paths(withSections({ portfolio: [{ id: 'p', name: 'N', link, description: null }] }))).toContain('draft.portfolio.0.link');
+    },
+  );
+
+  it.each(['example.com', 'https://example.com/a?b=1', 'http://sub.example.org'])('accepts %s as a link', (link) => {
+    expect(parse(withSections({ portfolio: [{ id: 'p', name: 'N', link, description: null }] })).success).toBe(true);
+  });
+});
+

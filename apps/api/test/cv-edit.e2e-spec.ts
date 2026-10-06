@@ -370,6 +370,97 @@ describe('PUT /api/cvs/:id/draft (manual editing)', () => {
     });
   });
 
+  describe('optional sections', () => {
+    const sections = {
+      languages: [
+        { id: 'lang-1', name: 'English', level: 'C1' as const },
+        { id: 'lang-2', name: 'German', level: null },
+      ],
+      certifications: [
+        { id: 'cert-1', name: 'AWS SAA', issuer: 'Amazon', date: 'Jun 2024', link: 'https://aws.amazon.com/verify' },
+      ],
+      portfolio: [{ id: 'proj-1', name: 'CV Builder', link: 'example.com/cv', description: 'A CV tool' }],
+      hobbies: ['Chess', 'Climbing'],
+      customSections: [{ id: 'cus-1', title: 'Volunteering', content: 'Food bank\nMentoring' }],
+    };
+
+    it('saves the sections and reads them back unchanged and in order', async () => {
+      const { user, id } = await completedCv();
+
+      const response = await save(user.cookie, id, {
+        revision: 0,
+        draft: edited((value) => Object.assign(value, sections)),
+      });
+
+      expect(response.statusCode).toBe(200);
+      const result = await readResult(user.cookie, id);
+      expect(result.draft.languages).toEqual(sections.languages);
+      expect(result.draft.certifications).toEqual(sections.certifications);
+      expect(result.draft.portfolio).toEqual(sections.portfolio);
+      expect(result.draft.hobbies).toEqual(['Chess', 'Climbing']);
+      expect(result.draft.customSections).toEqual(sections.customSections);
+    });
+
+    it('reads a CV stored before the sections existed as having none', async () => {
+      const user = await registerUser(app);
+      const id = await createCvFromText(app, user.cookie);
+      const { languages: _l, certifications: _c, portfolio: _p, hobbies: _h, customSections: _s, ...legacy } = sampleDraft();
+      await seedCompleted(prisma, id, legacy);
+
+      const result = await readResult(user.cookie, id);
+
+      expect(result.draft.languages).toEqual([]);
+      expect(result.draft.certifications).toEqual([]);
+      expect(result.draft.portfolio).toEqual([]);
+      expect(result.draft.hobbies).toEqual([]);
+      expect(result.draft.customSections).toEqual([]);
+    });
+
+    it('accepts a body that leaves the sections out, as an older client sends it', async () => {
+      const { user, id } = await completedCv();
+      const { languages: _l, certifications: _c, portfolio: _p, hobbies: _h, customSections: _s, ...legacy } = sampleDraft();
+
+      const response = await save(user.cookie, id, { revision: 0, draft: legacy });
+
+      expect(response.statusCode).toBe(200);
+    });
+
+    it('rejects a repeated language and a bad link with dotted paths and stores nothing', async () => {
+      const { user, id } = await completedCv();
+      const draft = edited((value) => {
+        value.languages = [
+          { id: 'lang-1', name: 'English', level: null },
+          { id: 'lang-2', name: 'ENGLISH', level: 'A2' },
+        ];
+        value.portfolio = [{ id: 'proj-1', name: 'X', link: 'javascript:alert(1)', description: null }];
+      });
+
+      const response = await save(user.cookie, id, { revision: 0, draft });
+
+      expect(response.statusCode).toBe(400);
+      const body = response.json<{ fieldErrors: Record<string, string[]> }>();
+      expect(Object.keys(body.fieldErrors)).toEqual(
+        expect.arrayContaining(['draft.languages.1.name', 'draft.portfolio.0.link']),
+      );
+      const stored = await readResult(user.cookie, id);
+      expect(stored.revision).toBe(0);
+      expect(stored.draft.languages).toEqual([]);
+    });
+
+    it("cannot be saved into another user's CV (the same 404 as a missing CV)", async () => {
+      const owner = await completedCv();
+      const intruder = await registerUser(app);
+
+      const response = await save(intruder.cookie, owner.id, {
+        revision: 0,
+        draft: edited((value) => Object.assign(value, sections)),
+      });
+
+      expect(response.statusCode).toBe(404);
+      expect((await readResult(owner.user.cookie, owner.id)).draft.languages).toEqual([]);
+    });
+  });
+
   describe('target role', () => {
     it('is part of the result', async () => {
       const { user, id } = await completedCv();

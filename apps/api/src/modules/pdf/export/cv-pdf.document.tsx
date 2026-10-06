@@ -1,8 +1,12 @@
 import { Document, Link, Page, StyleSheet, Text, View, type Styles } from '@react-pdf/renderer';
 import type {
+  CertificationEntry,
+  CustomSection,
   CvDraft,
   EducationEntry,
   ExperienceEntry,
+  LanguageEntry,
+  PortfolioEntry,
   SkillCategory,
 } from '../../cv/generation/draft.schema.js';
 import { educationStatus } from './education-status.js';
@@ -299,6 +303,96 @@ function skillLines(categories: SkillCategory[]): string[] {
   });
 }
 
+/** "English — C1"; a language without a level is just its name. */
+function languageText(entry: LanguageEntry): string {
+  return entry.level === null ? entry.name : `${entry.name} — ${entry.level}`;
+}
+
+/** A certification or a project: a bold name, a muted line, an optional link and description. */
+function TitledEntry({
+  title,
+  line,
+  link,
+  description,
+  last,
+}: {
+  title: string;
+  line?: string | null;
+  link?: string | null;
+  description?: string | null;
+  last: boolean;
+}) {
+  return (
+    <View style={last ? [styles.educationEntry, styles.lastEntry] : styles.educationEntry} wrap={false}>
+      <Prose text={title} style={styles.educationTitle} />
+      {line ? <Prose text={line} style={styles.subline} /> : null}
+      {link ? <Prose text={link} style={styles.subline} href={webHref(link)} /> : null}
+      {description ? <Prose text={description} style={styles.subline} /> : null}
+    </View>
+  );
+}
+
+function certificationLine(entry: CertificationEntry): string | null {
+  const parts = present([entry.issuer, entry.date]);
+  return parts.length > 0 ? parts.join(' · ') : null;
+}
+
+function CertificationsSection({ entries }: { entries: CertificationEntry[] }) {
+  const [first, ...others] = entries;
+  if (first === undefined) return null;
+  return (
+    <Section
+      title="Certifications"
+      lead={<TitledEntry title={first.name} line={certificationLine(first)} link={first.link} last={others.length === 0} />}
+    >
+      {others.map((entry, index) => (
+        <TitledEntry
+          key={entry.id}
+          title={entry.name}
+          line={certificationLine(entry)}
+          link={entry.link}
+          last={index === others.length - 1}
+        />
+      ))}
+    </Section>
+  );
+}
+
+function PortfolioSection({ entries }: { entries: PortfolioEntry[] }) {
+  const [first, ...others] = entries;
+  if (first === undefined) return null;
+  return (
+    <Section
+      title="Portfolio"
+      lead={<TitledEntry title={first.name} link={first.link} description={first.description} last={others.length === 0} />}
+    >
+      {others.map((entry, index) => (
+        <TitledEntry
+          key={entry.id}
+          title={entry.name}
+          link={entry.link}
+          description={entry.description}
+          last={index === others.length - 1}
+        />
+      ))}
+    </Section>
+  );
+}
+
+function CustomSectionBlock({ section }: { section: CustomSection }) {
+  const [first, ...others] = section.content.split(/\r?\n/u).filter((line) => line.trim().length > 0);
+  if (first === undefined) return null;
+  return (
+    <Section title={section.title} lead={<Prose text={first} style={styles.body} />}>
+      {others.map((line, index) => (
+        <View key={index} style={styles.skillLine}>
+          <Prose text={line} style={styles.body} />
+        </View>
+      ))}
+    </Section>
+  );
+}
+
 export interface CvPdfDocumentProps {
   draft: CvDraft;
   targetRole: string;
@@ -378,6 +472,26 @@ export function CvPdfDocument({ draft, targetRole }: CvPdfDocumentProps) {
             ))}
           </Section>
         ) : null}
+
+        <CertificationsSection entries={draft.certifications} />
+
+        {draft.languages.length > 0 ? (
+          <Section
+            title="Languages"
+            lead={<Prose text={draft.languages.map(languageText).join(' · ')} style={styles.body} />}
+            keepTogether={draft.languages.map(languageText).join(' · ').length <= MAX_GROUPED_SKILLS_LENGTH}
+          />
+        ) : null}
+
+        <PortfolioSection entries={draft.portfolio} />
+
+        {draft.hobbies.length > 0 ? (
+          <Section title="Hobbies" lead={<Prose text={draft.hobbies.join(' · ')} style={styles.body} />} />
+        ) : null}
+
+        {draft.customSections.map((section) => (
+          <CustomSectionBlock key={section.id} section={section} />
+        ))}
       </Page>
     </Document>
   );
