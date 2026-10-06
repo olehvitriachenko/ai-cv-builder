@@ -200,3 +200,21 @@ describe('organisation names (tolerant of formatting, strict about names)', () =
     expect(indexSource('Acme').hasOrganisation('The Company')).toBe(false);
   });
 });
+
+describe('free text words (custom sections)', () => {
+  const source = indexSource('Paper: "Crop yield prediction from Sentinel-2", 2021. Volunteering: food bank coordinator.');
+
+  it('accepts text that uses only the source words, in any order and case', () => {
+    expect(source.hasWords('"Crop yield prediction from Sentinel-2", 2021')).toBe(true);
+    expect(source.hasWords('Food bank coordinator')).toBe(true);
+  });
+
+  it('ignores short connecting words and numbers (numbers are checked separately)', () => {
+    expect(source.hasWords('Coordinator at the food bank in 2030')).toBe(true);
+  });
+
+  it('rejects any longer word the source does not hold', () => {
+    expect(source.hasWords('Nobel Prize in Physics')).toBe(false);
+    expect(source.hasWords('Crop yield prediction, cited by researchers')).toBe(false);
+  });
+});

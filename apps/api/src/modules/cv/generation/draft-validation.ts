@@ -4,6 +4,7 @@ import {
   mapQuestions,
   normalizeQuestions,
   type DraftCandidate,
+  type LlmQuestion,
   type QuestionRow,
 } from './draft-mapper.js';
 import { MAX_QUESTIONS, MAX_QUESTION_TEXT, cvDraftSchema, type CvDraft } from './draft.schema.js';
@@ -19,8 +20,8 @@ import { indexSource, type SourceIndex } from './source-matching.js';
  *    draft schema), and valid clarification questions;
  *  - contact details and the person's name against the source (strict, see source-matching);
  *  - employer and institution names against the source (tolerant of formatting, not of names);
- *  - the names of languages, certifications, projects, hobbies and custom sections, and their
- *    links, against the source.
+ *  - the facts of optional-section items (names, issuers, links, dates, numbers and custom-section
+ *    text) against the source; an item that fails is removed instead of failing the CV.
  *
  * Explicit dates, skills and numeric claims are source-checked. Arbitrary prose and titles remain governed
  * by the prompt contract and by clarification questions.
@@ -34,7 +35,8 @@ export interface ValidationIssue {
 }
 
 export type GenerationValidation =
-  { ok: true; draft: CvDraft; questions: QuestionRow[] } | { ok: false; issues: ValidationIssue[] };
+  | { ok: true; draft: CvDraft; questions: QuestionRow[]; removed: ValidationIssue[] }
+  | { ok: false; issues: ValidationIssue[] };
 
 export function formatIssue(issue: ValidationIssue): string {
   return `${issue.path || '(root)'}: ${issue.rule}`;
@@ -109,7 +111,12 @@ function questionIssues(output: LlmCvOutput): ValidationIssue[] {
  * Contact details alone are not a CV: it needs a summary or at least one entry. A draft without
  * that is only acceptable when the model asked what is missing.
  */
-function hasMeaningfulContent({ summary, experience, education, skillCategories }: CvDraft): boolean {
+function hasMeaningfulContent({
+  summary,
+  experience,
+  education,
+  skillCategories,
+}: CvDraft): boolean {
   return (
     summary !== null ||
     experience.length > 0 ||
@@ -148,69 +155,212 @@ function sourceIssues(draft: CvDraft, source: SourceIndex, sourceText: string): 
     }
   });
 
-  // Optional sections: every name must be in the source (formatting tolerated, names not), like
-  // employers and institutions; a link must be one the source holds. Levels and dates are governed
-  // by the prompt, as for experience dates.
-  const names: { value: string; path: string }[] = [
-    ...draft.languages.map((entry, index) => ({ value: entry.name, path: `languages.${index}.name` })),
-    ...draft.certifications.map((entry, index) => ({ value: entry.name, path: `certifications.${index}.name` })),
-    ...draft.portfolio.map((entry, index) => ({ value: entry.name, path: `portfolio.${index}.name` })),
-    ...draft.hobbies.map((value, index) => ({ value, path: `hobbies.${index}` })),
-    ...draft.customSections.map((entry, index) => ({ value: entry.title, path: `customSections.${index}.title` })),
-  ];
-  for (const { value, path } of names) {
-    if (!source.hasOrganisation(value)) {
-      issues.push({ rule: 'unsupported_section_value', path });
-    }
-  }
-  const links: { value: string | null; path: string }[] = [
-    ...draft.certifications.map((entry, index) => ({ value: entry.link, path: `certifications.${index}.link` })),
-    ...draft.portfolio.map((entry, index) => ({ value: entry.link, path: `portfolio.${index}.link` })),
-  ];
-  for (const { value, path } of links) {
-    if (value !== null && !source.hasLink(value)) {
-      issues.push({ rule: 'unsupported_contact', path });
-    }
-  }
   const checkQuantity = (value: string | null, path: string) => {
-    if (value !== null && !supportsQuantities(sourceText, value)) issues.push({ rule: 'unsupported_quantity', path });
+    if (value !== null && !supportsQuantities(sourceText, value))
+      issues.push({ rule: 'unsupported_quantity', path });
   };
   checkQuantity(draft.summary, 'summary');
   for (const section of ['experience', 'education'] as const) {
     draft[section].forEach((entry, index) => {
       for (const field of ['startDate', 'endDate'] as const) {
         const value = entry[field];
-        if (value !== null && !containsFact(sourceText, value)) issues.push({ rule: 'unsupported_date', path: `${section}.${index}.${field}` });
+        if (value !== null && !containsFact(sourceText, value))
+          issues.push({ rule: 'unsupported_date', path: `${section}.${index}.${field}` });
       }
-      if ('bullets' in entry) entry.bullets.forEach((bullet, i) => checkQuantity(bullet, `${section}.${index}.bullets.${i}`));
+      if ('bullets' in entry)
+        entry.bullets.forEach((bullet, i) =>
+          checkQuantity(bullet, `${section}.${index}.bullets.${i}`),
+        );
       if ('details' in entry) checkQuantity(entry.details, `${section}.${index}.details`);
     });
   }
-  draft.skillCategories.forEach((category, index) => category.skills.forEach((skill, i) => {
-    if (!containsFact(sourceText, skill)) issues.push({ rule: 'unsupported_skill', path: `skillCategories.${index}.skills.${i}` });
-  }));
+  draft.skillCategories.forEach((category, index) =>
+    category.skills.forEach((skill, i) => {
+      if (!containsFact(sourceText, skill))
+        issues.push({ rule: 'unsupported_skill', path: `skillCategories.${index}.skills.${i}` });
+    }),
+  );
 
   return issues;
 }
 
-/** Returns the validated draft and question rows, or every rule violation found. */
+/** The first unsupported fact of an item, or null when every check passes. */
+function firstFailure(
+  checks: [supported: boolean, rule: string, path: string][],
+): ValidationIssue | null {
+  const failed = checks.find(([supported]) => !supported);
+  return failed ? { rule: failed[1], path: failed[2] } : null;
+}
+
+/** Keeps the items without an unsupported fact; records why each other one was removed. */
+function keepSupported<T>(
+  items: T[],
+  check: (item: T, index: number) => ValidationIssue | null,
+  removed: ValidationIssue[],
+): T[] {
+  return items.filter((item, index) => {
+    const issue = check(item, index);
+    if (issue) {
+      removed.push(issue);
+    }
+    return issue === null;
+  });
+}
+
+/**
+ * Optional sections are extras, not the CV the person asked for, so an item with an unsupported
+ * fact is removed whole (never kept in part) instead of failing an otherwise valid CV. Their facts
+ * are checked like the core ones: names, issuers, links, dates and numbers must be in the source,
+ * and a custom section's text must use only the source's words. A custom section's title is not a
+ * fact but a label the model chooses ("Publications" for a "Paper:" line), so it is not checked.
+ */
+function withoutUnsupportedOptionalItems(
+  draft: CvDraft,
+  source: SourceIndex,
+  sourceText: string,
+): { draft: CvDraft; removed: ValidationIssue[] } {
+  const removed: ValidationIssue[] = [];
+  const quantities = (value: string | null) =>
+    value === null || supportsQuantities(sourceText, value);
+
+  const languages = keepSupported(
+    draft.languages,
+    (entry, index) =>
+      firstFailure([
+        [
+          source.hasOrganisation(entry.name),
+          'unsupported_section_value',
+          `languages.${index}.name`,
+        ],
+      ]),
+    removed,
+  );
+  const certifications = keepSupported(
+    draft.certifications,
+    (entry, index) =>
+      firstFailure([
+        [
+          source.hasOrganisation(entry.name),
+          'unsupported_section_value',
+          `certifications.${index}.name`,
+        ],
+        [
+          entry.issuer === null || source.hasOrganisation(entry.issuer),
+          'unsupported_organisation',
+          `certifications.${index}.issuer`,
+        ],
+        [
+          entry.date === null || containsFact(sourceText, entry.date),
+          'unsupported_date',
+          `certifications.${index}.date`,
+        ],
+        [
+          entry.link === null || source.hasLink(entry.link),
+          'unsupported_contact',
+          `certifications.${index}.link`,
+        ],
+      ]),
+    removed,
+  );
+  const portfolio = keepSupported(
+    draft.portfolio,
+    (entry, index) =>
+      firstFailure([
+        [
+          source.hasOrganisation(entry.name),
+          'unsupported_section_value',
+          `portfolio.${index}.name`,
+        ],
+        [
+          entry.link === null || source.hasLink(entry.link),
+          'unsupported_contact',
+          `portfolio.${index}.link`,
+        ],
+        [quantities(entry.description), 'unsupported_quantity', `portfolio.${index}.description`],
+      ]),
+    removed,
+  );
+  const hobbies = keepSupported(
+    draft.hobbies,
+    (hobby, index) =>
+      firstFailure([
+        [source.hasOrganisation(hobby), 'unsupported_section_value', `hobbies.${index}`],
+      ]),
+    removed,
+  );
+  const customSections = keepSupported(
+    draft.customSections,
+    (entry, index) =>
+      firstFailure([
+        [
+          source.hasWords(entry.content),
+          'unsupported_section_value',
+          `customSections.${index}.content`,
+        ],
+        [quantities(entry.content), 'unsupported_quantity', `customSections.${index}.content`],
+      ]),
+    removed,
+  );
+
+  return {
+    draft: { ...draft, languages, certifications, portfolio, hobbies, customSections },
+    removed,
+  };
+}
+
+/** Words only a question about language levels uses; see `aboutOptionalSection`. */
+const LANGUAGE_LEVEL_WORDS = /\b(?:CEFR|native speaker|mother tongue|speak|spoken)\b/iu;
+
+/**
+ * A clarification answer can land only in contact, summary, experience, education or skills. A
+ * question about a language, certification, project or hobby has no such target (an answer about
+ * language levels would land among the skills), so it is not stored. Such a question names one of
+ * those items or asks about language levels.
+ */
+function aboutOptionalSection(question: LlmQuestion, draft: CvDraft): boolean {
+  const text = `${question.missing}\n${question.question}`;
+  if (LANGUAGE_LEVEL_WORDS.test(text)) {
+    return true;
+  }
+  const names = [
+    ...draft.languages.map((entry) => entry.name),
+    ...draft.certifications.map((entry) => entry.name),
+    ...draft.portfolio.map((entry) => entry.name),
+    ...draft.hobbies,
+  ];
+  return names.some((name) => containsFact(text, name));
+}
+
+/**
+ * Returns the validated draft and question rows, or every rule violation found. `removed` lists the
+ * optional items left out of the draft (rule ids and paths only, for the log).
+ */
 export function validateGeneration(output: LlmCvOutput, sourceText: string): GenerationValidation {
   const structure = structureIssues(mapOutputToDraft(output));
   const issues = [...structure.issues, ...questionIssues(output)];
+  let checked: { draft: CvDraft; removed: ValidationIssue[] } | undefined;
 
   if (structure.draft) {
-    issues.push(...sourceIssues(structure.draft, indexSource(sourceText), sourceText));
-    if (!hasMeaningfulContent(structure.draft) && output.questions.length === 0) {
+    const source = indexSource(sourceText);
+    checked = withoutUnsupportedOptionalItems(structure.draft, source, sourceText);
+    issues.push(...sourceIssues(checked.draft, source, sourceText));
+    if (!hasMeaningfulContent(checked.draft) && output.questions.length === 0) {
       issues.push({ rule: 'empty_result', path: '' });
     }
   }
 
-  if (issues.length > 0 || !structure.draft) {
+  if (issues.length > 0 || !checked) {
     return { ok: false, issues };
   }
   return {
     ok: true,
-    draft: structure.draft,
-    questions: mapQuestions(normalizeQuestions(output.questions), structure.draft),
+    draft: checked.draft,
+    questions: mapQuestions(
+      normalizeQuestions(output.questions).filter(
+        (question) => !aboutOptionalSection(question, checked.draft),
+      ),
+      checked.draft,
+    ),
+    removed: checked.removed,
   };
 }

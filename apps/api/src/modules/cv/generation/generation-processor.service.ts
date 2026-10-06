@@ -136,7 +136,7 @@ export class GenerationProcessor {
       if (signal.aborted) {
         return this.cancelled(signal);
       }
-      const checked = this.validate(raw, job.sourceText);
+      const checked = this.validate(raw, job);
       if (checked.kind === 'ok') {
         return checked;
       }
@@ -158,7 +158,7 @@ export class GenerationProcessor {
   /** Output schema, then domain validation. Nothing is persisted from output that fails either. */
   private validate(
     raw: unknown,
-    sourceText: string,
+    job: ClaimedJob,
   ):
     | { kind: 'ok'; draft: CvDraft; questions: QuestionRow[] }
     | { kind: 'invalid'; issues: ValidationIssue[] } {
@@ -173,10 +173,17 @@ export class GenerationProcessor {
       };
     }
 
-    const result = validateGeneration(parsed.data, sourceText);
-    return result.ok
-      ? { kind: 'ok', draft: result.draft, questions: result.questions }
-      : { kind: 'invalid', issues: result.issues };
+    const result = validateGeneration(parsed.data, job.sourceText);
+    if (!result.ok) {
+      return { kind: 'invalid', issues: result.issues };
+    }
+    if (result.removed.length > 0) {
+      // Rule ids and paths only: the removed optional items are left out of the draft.
+      this.logger.warn(
+        `event=generation_items_removed cvId=${job.id} attempt=${job.attempt} rules=${result.removed.map(formatIssue).join(';').slice(0, MAX_DETAIL_CHARS)}`,
+      );
+    }
+    return { kind: 'ok', draft: result.draft, questions: result.questions };
   }
 
   /**

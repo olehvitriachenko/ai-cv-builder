@@ -5,7 +5,7 @@ const SOURCE = 'Ada worked at Acme Corp as an engineer.';
 
 describe('cv-draft prompt', () => {
   it('has a version', () => {
-    expect(PROMPT_VERSION).toBe('cv-draft-v5');
+    expect(PROMPT_VERSION).toBe('cv-draft-v6');
   });
 
   describe('system prompt', () => {

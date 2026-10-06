@@ -80,6 +80,42 @@ describe('validateGeneration', () => {
     }
   });
 
+  it('does not store questions about optional sections, which have no clarification target', () => {
+    const source = [SOURCE, 'Languages: Ukrainian, English. Certifications: CKA.'].join('\n');
+    const question = (text: string, section: 'SKILLS' | 'CONTACT' = 'SKILLS') => ({
+      section,
+      itemIndex: null,
+      field: undefined,
+      missing: 'Unclear',
+      question: text,
+    });
+    const result = validateGeneration(
+      output({
+        optionalItems: [
+          { section: 'language', name: 'Ukrainian', detail: '', date: '', link: '' },
+          { section: 'language', name: 'English', detail: '', date: '', link: '' },
+          { section: 'certification', name: 'CKA', detail: '', date: '', link: '' },
+        ],
+        questions: [
+          question('What is your level in Ukrainian and English (e.g., native, or CEFR such as B2/C1)?'),
+          question('Which languages do you speak?'),
+          question('When did you obtain the CKA?', 'CONTACT'),
+          question('Which programming languages did you use most at Acme Corp?'),
+          question('Which Node.js frameworks did you use?'),
+        ],
+      }),
+      source,
+    );
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.questions.map((stored) => [stored.question, stored.position])).toEqual([
+        ['Which programming languages did you use most at Acme Corp?', 0],
+        ['Which Node.js frameworks did you use?', 1],
+      ]);
+    }
+  });
+
   it('accepts a partial draft (unknown facts null, empty sections) together with questions', () => {
     const result = validateGeneration(
       output({
@@ -572,35 +608,106 @@ describe('validateGeneration optional sections', () => {
     }
   });
 
-  it('rejects a language, certification, project, hobby or section title the source does not mention', () => {
+  it('removes a language, certification, project or hobby the source does not mention and keeps the CV', () => {
     const invented = output({
       optionalItems: [
+        ...supported(),
         item('language', 'Klingon'),
         item('certification', 'PMP Certification'),
         item('portfolio', 'Moon Base'),
         item('hobby', 'skydiving'),
-        item('custom', 'Awards', { detail: 'Nobel' }),
       ],
     });
 
-    expect(issuesOf(validateGeneration(invented, SOURCE_WITH_SECTIONS))).toEqual(
-      expect.arrayContaining([
-        'languages.0.name: unsupported_section_value',
-        'certifications.0.name: unsupported_section_value',
-        'portfolio.0.name: unsupported_section_value',
-        'hobbies.0: unsupported_section_value',
-        'customSections.0.title: unsupported_section_value',
-      ]),
-    );
+    const result = validateGeneration(invented, SOURCE_WITH_SECTIONS);
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.draft.languages.map((entry) => entry.name)).toEqual(['English', 'German']);
+      expect(result.draft.certifications.map((entry) => entry.name)).toEqual(['AWS Solutions Architect']);
+      expect(result.draft.portfolio.map((entry) => entry.name)).toEqual(['CV Builder']);
+      expect(result.draft.hobbies).toEqual(['chess', 'climbing']);
+      expect(result.removed.map(formatIssue)).toEqual([
+        'languages.2.name: unsupported_section_value',
+        'certifications.1.name: unsupported_section_value',
+        'portfolio.1.name: unsupported_section_value',
+        'hobbies.2: unsupported_section_value',
+      ]);
+    }
   });
 
-  it('rejects a link the source does not hold', () => {
+  it('removes an item whose link, issuer, date or numbers the source does not hold', () => {
     const result = validateGeneration(
-      output({ optionalItems: [item('portfolio', 'CV Builder', { link: 'https://evil.example/x' })] }),
+      output({
+        optionalItems: [
+          item('portfolio', 'CV Builder', { link: 'https://evil.example/x' }),
+          item('portfolio', 'CV Builder', { detail: 'Used by 2 million people' }),
+          item('certification', 'AWS Solutions Architect', { detail: 'Google' }),
+          item('certification', 'AWS Solutions Architect', { date: '2019' }),
+        ],
+      }),
       SOURCE_WITH_SECTIONS,
     );
 
-    expect(issuesOf(result)).toContain('portfolio.0.link: unsupported_contact');
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.draft.portfolio).toEqual([]);
+      expect(result.draft.certifications).toEqual([]);
+      expect(result.removed.map(formatIssue)).toEqual([
+        'certifications.0.issuer: unsupported_organisation',
+        'certifications.1.date: unsupported_date',
+        'portfolio.0.link: unsupported_contact',
+        'portfolio.1.description: unsupported_quantity',
+      ]);
+    }
+  });
+
+  it('accepts a section label the model chose (Publications for a "Paper:" line)', () => {
+    const source = [SOURCE, 'Paper: "Crop yield prediction from Sentinel-2", 2021.'].join('\n');
+    const result = validateGeneration(
+      output({ optionalItems: [item('custom', 'Publications', { detail: '"Crop yield prediction from Sentinel-2", 2021' })] }),
+      source,
+    );
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.draft.customSections).toEqual([
+        expect.objectContaining({ title: 'Publications', content: '"Crop yield prediction from Sentinel-2", 2021' }),
+      ]);
+      expect(result.removed).toEqual([]);
+    }
+  });
+
+  it('removes a custom section whose content the source does not hold, whatever its label', () => {
+    const source = [SOURCE, 'Paper: "Crop yield prediction from Sentinel-2", 2021.'].join('\n');
+    const result = validateGeneration(
+      output({
+        optionalItems: [
+          item('custom', 'Publications', { detail: '"Crop yield prediction from Sentinel-2", 2021' }),
+          item('custom', 'Awards', { detail: 'Nobel Prize in Physics' }),
+          item('custom', 'Publications', { detail: '"Crop yield prediction from Sentinel-2", 2019' }),
+        ],
+      }),
+      source,
+    );
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.draft.customSections.map((entry) => entry.content)).toEqual(['"Crop yield prediction from Sentinel-2", 2021']);
+      expect(result.removed.map(formatIssue)).toEqual([
+        'customSections.1.content: unsupported_section_value',
+        'customSections.2.content: unsupported_quantity',
+      ]);
+    }
+  });
+
+  it('still rejects the whole draft for an unsupported fact in a core section', () => {
+    const result = validateGeneration(
+      output({ optionalItems: supported(), experience: [{ ...output().experience[0]!, employer: 'Google' }] }),
+      SOURCE_WITH_SECTIONS,
+    );
+
+    expect(issuesOf(result)).toEqual(['experience.0.employer: unsupported_organisation']);
   });
 
   it('keeps accepting output with no optional items', () => {

@@ -143,7 +143,16 @@ export interface SourceIndex {
   hasPersonName(name: string): boolean;
   /** Employer or institution: tolerant of case, punctuation, word order and legal suffixes. */
   hasOrganisation(name: string): boolean;
+  /**
+   * Every word of `MIN_CONTENT_WORD_LETTERS` or more letters occurs somewhere in the source. For
+   * short free text copied from the source (a custom section): rewording that brings in new words
+   * fails, so does an invented claim. Short connecting words and numbers are not checked here.
+   */
+  hasWords(text: string): boolean;
 }
+
+/** Shorter words ("in", "the", "and") connect a tidied sentence and carry no fact on their own. */
+const MIN_CONTENT_WORD_LETTERS = 4;
 
 /** Prepares the source once so every check in a validation run reuses the same normalisation. */
 export function indexSource(sourceText: string): SourceIndex {
@@ -152,6 +161,7 @@ export function indexSource(sourceText: string): SourceIndex {
   const runs = phoneRuns(sourceText);
   const rawTokens = tokenize(sourceText);
   const sourceSignificant = significantTokens(rawTokens);
+  const sourceWords = new Set(rawTokens);
 
   return {
     hasEmail: (email) => occursAsToken(foldCase(email).trim(), folded),
@@ -171,5 +181,10 @@ export function indexSource(sourceText: string): SourceIndex {
 
     hasOrganisation: (name) =>
       tokensWithinWindow(significantTokens(tokenize(name)), sourceSignificant),
+
+    hasWords: (text) =>
+      tokenize(text)
+        .filter((token) => /^\p{L}/u.test(token) && Array.from(token).length >= MIN_CONTENT_WORD_LETTERS)
+        .every((token) => sourceWords.has(token)),
   };
 }

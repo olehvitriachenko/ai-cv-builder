@@ -235,29 +235,49 @@ describe('Generation lifecycle', () => {
       expect(body.draft.certifications).toEqual([]);
     });
 
-    it('sends back only the rule id and path for an invented language, then completes on the retry', async () => {
-      generator.enqueueOutput(validLlmOutput({ optionalItems: [{ section: 'language', name: 'Klingon', detail: 'Native speaker', date: '', link: '' }] }));
-      generator.enqueueOutput(validLlmOutput());
-      const id = await createCvFromText(app, user.cookie);
-
-      await runner.runCv(id);
-
-      expect(generator.calls[1]?.feedback).toEqual(['languages.0.name: unsupported_section_value']);
-      expect(JSON.stringify(generator.calls)).not.toContain('Klingon');
-      expect((await rowOf(id)).generationStatus).toBe('COMPLETED');
-    });
-
-    it('fails the generation and stores no draft when the model keeps inventing a section', async () => {
-      generator.enqueueOutput(validLlmOutput({ optionalItems: [{ section: 'hobby', name: 'skydiving', detail: '', date: '', link: '' }] }));
-      generator.enqueueOutput(validLlmOutput({ optionalItems: [{ section: 'hobby', name: 'skydiving', detail: '', date: '', link: '' }] }));
-      const id = await createCvFromText(app, user.cookie);
+    it('removes an invented optional item and completes without a retry; the item is never stored', async () => {
+      generator.enqueueOutput(
+        validLlmOutput({
+          optionalItems: [
+            { section: 'language', name: 'English', detail: 'C1', date: '', link: '' },
+            { section: 'language', name: 'Klingon', detail: 'Native speaker', date: '', link: '' },
+            { section: 'hobby', name: 'skydiving', detail: '', date: '', link: '' },
+          ],
+        }),
+      );
+      const id = await createCvFromText(app, user.cookie, { sourceText: SOURCE_WITH_SECTIONS });
 
       await runner.runCv(id);
 
       const row = await rowOf(id);
-      expect(row.generationStatus).toBe('FAILED');
-      expect(row.failureReason).toBe('INVALID_OUTPUT');
-      expect(row.draft).toBeNull();
+      expect(row.generationStatus).toBe('COMPLETED');
+      expect(generator.calls).toHaveLength(1);
+      expect(JSON.stringify(row.draft)).not.toMatch(/Klingon|skydiving/);
+      const body = (await result(id)).json<{ draft: { languages: { name: string }[]; hobbies: string[] } }>();
+      expect(body.draft.languages.map((language) => language.name)).toEqual(['English']);
+      expect(body.draft.hobbies).toEqual([]);
+    });
+
+    it('accepts a section label the model chose for a "Paper:" line and removes invented section content', async () => {
+      generator.enqueueOutput(
+        validLlmOutput({
+          optionalItems: [
+            { section: 'custom', name: 'Publications', detail: '"Crop yield prediction using satellite imagery", 2021', date: '', link: '' },
+            { section: 'custom', name: 'Awards', detail: 'Nobel Prize in Physics', date: '', link: '' },
+          ],
+        }),
+      );
+      const id = await createCvFromText(app, user.cookie, {
+        sourceText: `${VALID_SOURCE_TEXT} Paper: "Crop yield prediction using satellite imagery", 2021.`,
+      });
+
+      await runner.runCv(id);
+
+      expect((await rowOf(id)).generationStatus).toBe('COMPLETED');
+      const body = (await result(id)).json<{ draft: { customSections: { title: string; content: string }[] } }>();
+      expect(body.draft.customSections).toEqual([
+        expect.objectContaining({ title: 'Publications', content: '"Crop yield prediction using satellite imagery", 2021' }),
+      ]);
     });
   });
 
