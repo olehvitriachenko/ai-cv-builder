@@ -4,6 +4,7 @@ import { Download, LoaderCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useRef, useState, type ReactNode } from "react";
 import { Button, type ButtonSize, type ButtonVariant } from "@/shared/ui/button";
+import { PdfPreparationDialog } from "@/features/pdf-download/components/pdf-preparation-dialog";
 import { fetchCvPdf } from "@/features/pdf-download/api";
 import {
   DownloadBlockedError,
@@ -27,6 +28,7 @@ export function DownloadPdfButton({
   onMessage,
   onBusyChange,
   busyLabel,
+  filename,
 }: {
   cvId: string;
   variant?: ButtonVariant;
@@ -48,6 +50,11 @@ export function DownloadPdfButton({
   onBusyChange?: (busy: boolean) => void;
   /** The text while preparing, with no spinner in the button (the full-screen preview says "Preparing…"). */
   busyLabel?: string;
+  /**
+   * The name the file will get. When given, the button shows the "Preparing your PDF…" message itself
+   * (the editor and My CVs); the full-screen preview shows its own inside its dialog.
+   */
+  filename?: string;
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -118,6 +125,7 @@ export function DownloadPdfButton({
           label
         )}
       </Button>
+      {filename !== undefined ? <PdfPreparationDialog portal preparing={busy} filename={filename} /> : null}
       {/* Announced without moving focus; the button stays available to try again. */}
       {inlineMessage && onMessage === undefined ? (
         <p role="alert" className="basis-full rounded-lg bg-danger-tint p-3 text-[13px] text-danger">

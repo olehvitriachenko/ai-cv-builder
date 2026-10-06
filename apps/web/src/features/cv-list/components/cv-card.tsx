@@ -14,6 +14,7 @@ import { deleteSubject } from "@/features/cv-delete/model/delete-flow";
 import { downloadDisabledReason } from "@/features/pdf-download/model/download-flow";
 import { CVS_QUERY_KEY } from "@/entities/cv/lib/query-keys";
 import { DeleteCvDialog } from "../../cv-delete/components/delete-cv-dialog";
+import { expectedPdfFilename } from "../../pdf-download/model/pdf-filename";
 import { DownloadPdfButton } from "../../pdf-download/components/download-pdf-button";
 
 const MESSAGE_TONE: Record<CvListItem["displayStatus"], string> = {
@@ -102,6 +103,7 @@ export function CvCard({ item }: { item: CvListItem }) {
           <DownloadPdfButton
             cvId={item.id}
             variant="secondary"
+            filename={expectedPdfFilename(item.candidateName ?? "", item.targetRole)}
             disabledReason={downloadDisabledReason(item)}
           />
           <button

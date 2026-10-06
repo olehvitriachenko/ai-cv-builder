@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 
 /** A very fast download needs no dialog: it appears only if preparing takes longer than this. */
 const SHOW_AFTER_MS = 300;
@@ -14,12 +15,21 @@ const MIN_VISIBLE_MS = 700;
  * wide and holds a disabled "Preparing…" button under the text. It only informs: the person can
  * still close the preview, and the download carries on. Announced politely, never takes focus.
  */
-export function PdfPreparationDialog({ preparing, filename }: { preparing: boolean; filename: string }) {
+export function PdfPreparationDialog({
+  preparing,
+  filename,
+  portal = false,
+}: {
+  preparing: boolean;
+  filename: string;
+  /** Render on the page itself, for a caller outside the full-screen preview's modal dialog. */
+  portal?: boolean;
+}) {
   const visible = useDelayedVisibility(preparing);
   if (!visible) {
     return null;
   }
-  return (
+  const overlay = (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(32,39,53,0.14)] p-4">
       <div
         role="status"
@@ -49,6 +59,7 @@ export function PdfPreparationDialog({ preparing, filename }: { preparing: boole
       </div>
     </div>
   );
+  return portal ? createPortal(overlay, document.body) : overlay;
 }
 
 /** True a moment after `active` turns on, and for a minimum time once it has shown. */

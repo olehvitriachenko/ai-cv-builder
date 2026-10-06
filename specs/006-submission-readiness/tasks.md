@@ -141,3 +141,4 @@ description: "Task list for Submission Readiness (feature 006)"
 
 - T025: `.claude/rules/file-structure.md` has uncommitted changes by its author; left to them, not committed here.
 - T029: not pushed. `006-submission-readiness` has no remote branch and holds another author's unpushed commits; pushing waits for the owner.
+- US3 follow-up (2026-10-06): the owner pressed Download PDF outside the preview and saw no message. `DownloadPdfButton` now takes a `filename` and shows the message itself (editor header, My CVs); verified with Playwright at 1440 and 390 px (none in the first 150 ms, shown with the file name, download completes, message gone).

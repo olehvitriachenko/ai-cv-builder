@@ -47,7 +47,7 @@ A reviewer opens the README and learns how to run the product, how to run the te
 
 ### User Story 3 - See that the PDF is being prepared (Priority: P2)
 
-While a person downloads a PDF from the full-screen preview, a clear "Preparing your PDF…" message appears over the dimmed preview, so they know the download is in progress and what file they will get.
+While a person downloads a PDF (from the full-screen preview, the editor or My CVs), a clear "Preparing your PDF…" message appears over the dimmed page, so they know the download is in progress and what file they will get.
 
 **Why this priority**: Preparing the file can take a moment; without feedback the person may click again or leave. It completes the already built full-screen preview and download.
 
@@ -129,6 +129,6 @@ A reviewer browsing the web code finds each product area (sign-in, My CVs, gener
 - The reviewer has the container tooling and a browser; the real AI key is theirs.
 - Deployment to a hosted environment is out of scope; only local reproducibility is required.
 - The web code reorganisation and the stack files are being produced on this branch in parallel; this specification states the outcome they must reach, not how.
-- The preparing message applies to the full-screen preview only (the only frame designed); other download buttons keep their current busy state.
+- The preparing message appears for every Download PDF button (the full-screen preview, the editor header, My CVs); the full-screen preview is the only frame designed, so the others reuse its message over their own page. Their button keeps its busy state as before.
 - The "ready" and "failed" states of the download are not new designs: ready is the file arriving, failed keeps the existing error message.
 - The preparing message's timing (appears after about 0.3 s, stays at least 0.7 s) is a default chosen for the design; the design does not specify it.

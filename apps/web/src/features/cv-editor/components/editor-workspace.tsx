@@ -9,6 +9,7 @@ import { ANSWER_APPLIED_NOTICE } from "@/features/cv-editor/lib/action-feedback"
 import { ActionNotice } from "./saving/action-notice";
 import { prepareDownload } from "@/features/pdf-download/model/download-flow";
 import { deleteSubject } from "@/features/cv-delete/model/delete-flow";
+import { expectedPdfFilename } from "../../pdf-download/model/pdf-filename";
 import { DownloadPdfButton } from "../../pdf-download/components/download-pdf-button";
 import { ClarificationPanel } from "./clarifications/clarification-panel";
 import { CompletenessCard } from "./completeness/completeness-card";
@@ -101,6 +102,7 @@ export function EditorWorkspace({
                   </>
                 }
                 onMessage={setDownloadMessage}
+                filename={expectedPdfFilename(name, targetRole)}
                 beforeDownload={() =>
                   prepareDownload({
                     blockedReason: invalid ? "Fix the highlighted fields first, then download the PDF." : null,
