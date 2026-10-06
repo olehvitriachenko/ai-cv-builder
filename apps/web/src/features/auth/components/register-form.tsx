@@ -5,11 +5,11 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { Button } from "@/components/ui/button";
-import { TextField } from "@/components/ui/field";
-import { PasswordField } from "@/components/ui/password-field";
-import { registerAccount } from "@/lib/api/auth";
-import { isApiError } from "@/lib/api/fetcher";
+import { Button } from "@/shared/ui/button";
+import { TextField } from "@/shared/ui/field";
+import { PasswordField } from "@/shared/ui/password-field";
+import { registerAccount } from "@/features/auth/api";
+import { isApiError } from "@/shared/api/fetcher";
 
 // Mirrors the server rules for fast feedback; the server stays authoritative.
 const registerFormSchema = z.object({

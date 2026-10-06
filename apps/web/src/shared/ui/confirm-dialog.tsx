@@ -2,8 +2,8 @@
 
 import { X } from "lucide-react";
 import { useEffect, useId, useRef, type ReactNode } from "react";
-import { Button } from "@/components/ui/button";
-import { closeEditorDialog } from "@/lib/cv/dialog-motion";
+import { Button } from "@/shared/ui/button";
+import { closeEditorDialog } from "@/shared/lib/dialog-motion";
 
 /**
  * A destructive confirmation on the native `<dialog>` (Figma "Delete confirmation" pattern):

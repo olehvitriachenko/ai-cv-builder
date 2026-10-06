@@ -1,7 +1,7 @@
 import { Check, Circle, LoaderCircle, RotateCw } from "lucide-react";
 import type { ReactNode } from "react";
-import { Button, ButtonLink } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Button, ButtonLink } from "@/shared/ui/button";
+import { Card } from "@/shared/ui/card";
 import type { CvStatus } from "@/lib/api/cvs";
 import { failureMessage } from "@/lib/cv/failure-copy";
 

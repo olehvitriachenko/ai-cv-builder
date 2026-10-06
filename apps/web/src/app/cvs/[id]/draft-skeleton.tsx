@@ -1,5 +1,5 @@
-import { Card } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Card } from "@/shared/ui/card";
+import { Skeleton } from "@/shared/ui/skeleton";
 
 function SectionPlaceholder() {
   return (

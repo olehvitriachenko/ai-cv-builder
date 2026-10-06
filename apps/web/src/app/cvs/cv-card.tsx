@@ -3,11 +3,11 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { FileText, Trash2 } from "lucide-react";
 import { useState } from "react";
-import { Button, ButtonLink } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Button, ButtonLink } from "@/shared/ui/button";
+import { Card } from "@/shared/ui/card";
 import { DisplayStatusBadge } from "@/components/ui/status-badge";
 import { retryCv, type CvListItem } from "@/lib/api/cvs";
-import { isApiError } from "@/lib/api/fetcher";
+import { isApiError } from "@/shared/api/fetcher";
 import { cardActions, cardMessage, cardName, formatUpdated } from "@/lib/cv/card-copy";
 import { deleteSubject } from "@/lib/cv/delete-flow";
 import { downloadDisabledReason } from "@/lib/cv/download-flow";

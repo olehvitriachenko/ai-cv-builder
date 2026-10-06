@@ -1,5 +1,5 @@
-import { ButtonLink } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { ButtonLink } from "@/shared/ui/button";
+import { Card } from "@/shared/ui/card";
 
 /** Shown for a missing CV and for someone else’s: the two are deliberately indistinguishable. */
 export function CvNotFound() {

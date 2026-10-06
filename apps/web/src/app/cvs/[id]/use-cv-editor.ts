@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { applyQuestion, saveDraft, type ClarificationQuestion, type CvResult } from "@/lib/api/cvs";
-import { isApiError } from "@/lib/api/fetcher";
+import { isApiError } from "@/shared/api/fetcher";
 import { ApplyBlockedError, ApplyFailureError, applyAnswer, applyErrorOutcome } from "@/lib/cv/apply-flow";
 import { questionTargetName, sectionLabel } from "@/lib/cv/question-form";
 import { DraftAutosaver, type SavePayload } from "@/lib/cv/autosave";

@@ -4,8 +4,8 @@ import { useId, useRef, useState } from "react";
 import { DndContext, DragOverlay, KeyboardSensor, PointerSensor, closestCenter, pointerWithin, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, arrayMove, sortableKeyboardCoordinates, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { useFormContext, useWatch } from "react-hook-form";
-import { Button } from "@/components/ui/button";
-import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { Button } from "@/shared/ui/button";
+import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
 import type { DraftFormValues, SkillCategoryFormEntry } from "@/lib/cv/draft-form";
 import { SKILL_CATALOGUE } from "@/lib/cv/skill-catalogue";
 import {

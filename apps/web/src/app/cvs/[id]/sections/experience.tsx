@@ -3,8 +3,8 @@
 import { BriefcaseBusiness } from "lucide-react";
 import { useState } from "react";
 import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
-import { Button } from "@/components/ui/button";
-import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { Button } from "@/shared/ui/button";
+import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
 import { experienceCount, experienceHasContent, experienceHeading, experienceRemovalText } from "@/lib/cv/entry-labels";
 import { newExperienceEntry, type DraftFormValues } from "@/lib/cv/draft-form";
 import { EmptySection } from "./empty-section";

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ApiError } from "@/lib/api/fetcher";
+import { ApiError } from "@/shared/api/fetcher";
 import { canDelete, deleteOutcome, deleteSubject } from "./delete-flow";
 
 describe("canDelete", () => {

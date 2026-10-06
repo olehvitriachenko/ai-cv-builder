@@ -5,10 +5,10 @@ import { Pencil, Sparkles, Upload } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, type ReactNode } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { TextField, TextareaField } from "@/components/ui/field";
-import { ApiError } from "@/lib/api/fetcher";
+import { Button } from "@/shared/ui/button";
+import { Card } from "@/shared/ui/card";
+import { TextField, TextareaField } from "@/shared/ui/field";
+import { ApiError } from "@/shared/api/fetcher";
 import { createCvFromText, uploadCvPdf } from "@/lib/api/cvs";
 import {
   createCvFormSchema,

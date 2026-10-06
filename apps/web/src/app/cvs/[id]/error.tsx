@@ -1,8 +1,8 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { AppShell } from "../app-shell";
+import { Button } from "@/shared/ui/button";
+import { Card } from "@/shared/ui/card";
+import { AppShell } from "../../_components/app-shell";
 
 /** Safe fallback for an unexpected failure while loading the page; nothing technical is shown. */
 export default function CvError({

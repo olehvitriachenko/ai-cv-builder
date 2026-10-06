@@ -1,5 +1,5 @@
 import { TriangleAlert } from "lucide-react";
-import { Button, ButtonLink } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/shared/ui/button";
 import type { SaveState } from "@/lib/cv/autosave";
 
 /**

@@ -2,7 +2,7 @@
 
 import { Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
-import { TextField, type TextFieldProps } from "@/components/ui/field";
+import { TextField, type TextFieldProps } from "@/shared/ui/field";
 
 /** A password input with a show/hide button. The value stays in the input, so form libraries are unaffected. */
 export function PasswordField({

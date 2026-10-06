@@ -2,7 +2,7 @@
 
 import { useLayoutEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
-import { TextareaField } from "@/components/ui/field";
+import { TextareaField } from "@/shared/ui/field";
 import type { DraftFormValues } from "@/lib/cv/draft-form";
 import { MARKER, bulletsToText, insertBulletBreak, removeEmptyBullet, textToBullets } from "@/lib/cv/highlights-text";
 

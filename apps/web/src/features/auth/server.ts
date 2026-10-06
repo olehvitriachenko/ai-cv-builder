@@ -1,6 +1,6 @@
 import { cookies } from 'next/headers';
-import { userSchema, type User } from '@/lib/api/auth';
-import { apiFetch, isApiError } from '@/lib/api/fetcher';
+import { userSchema, type User } from '@/features/auth/api';
+import { apiFetch, isApiError } from '@/shared/api/fetcher';
 
 /**
  * Server-side only. Asks the API who the current user is by forwarding the incoming session

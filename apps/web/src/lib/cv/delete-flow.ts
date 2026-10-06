@@ -1,5 +1,5 @@
 import type { CvListItem } from "@/lib/api/cvs";
-import { isApiError } from "@/lib/api/fetcher";
+import { isApiError } from "@/shared/api/fetcher";
 import { cardName } from "./card-copy";
 
 /** Only finished CVs can be deleted; a generating CV would race with the generation. */

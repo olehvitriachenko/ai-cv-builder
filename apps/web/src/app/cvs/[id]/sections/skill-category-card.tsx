@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { useEditorMotion } from "@/lib/cv/use-editor-motion";
-import { Button } from "@/components/ui/button";
+import { useEditorMotion } from "@/shared/lib/use-editor-motion";
+import { Button } from "@/shared/ui/button";
 import { Combobox } from "@/components/ui/combobox";
-import { FieldFrame, describedBy } from "@/components/ui/field";
+import { FieldFrame, describedBy } from "@/shared/ui/field";
 import type { SkillCategoryFormEntry } from "@/lib/cv/draft-form";
 import { suggestionsFor } from "@/lib/cv/skill-catalogue";
 import {

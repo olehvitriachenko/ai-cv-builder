@@ -2,8 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { signOut } from "@/lib/api/auth";
+import { Button } from "@/shared/ui/button";
+import { signOut } from "@/features/auth/api";
 
 export function SignOutButton() {
   const router = useRouter();

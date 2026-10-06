@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { Card } from "@/components/ui/card";
+import { Card } from "@/shared/ui/card";
 
 interface AuthShellProps {
   title: string;

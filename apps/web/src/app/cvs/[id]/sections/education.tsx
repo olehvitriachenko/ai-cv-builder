@@ -2,15 +2,15 @@
 
 import { GraduationCap } from "lucide-react";
 import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
-import { Button } from "@/components/ui/button";
-import { TextField } from "@/components/ui/field";
+import { Button } from "@/shared/ui/button";
+import { TextField } from "@/shared/ui/field";
 import {
   newEducationEntry,
   type DraftFormValues,
 } from "@/lib/cv/draft-form";
 import { educationCount, educationHeading } from "@/lib/cv/entry-labels";
 import { maxEducationYear } from "@/lib/cv/dates";
-import { useEditorMotion } from "@/lib/cv/use-editor-motion";
+import { useEditorMotion } from "@/shared/lib/use-editor-motion";
 import { DateField } from "./date-field";
 import { EmptySection } from "./empty-section";
 import { RemoveButton } from "./remove-button";

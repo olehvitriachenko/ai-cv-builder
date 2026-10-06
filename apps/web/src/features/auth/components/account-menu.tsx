@@ -2,8 +2,8 @@
 
 import { ChevronDown } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
-import { SignOutButton } from "@/components/sign-out-button";
-import type { User } from "@/lib/api/auth";
+import { SignOutButton } from "@/features/auth/components/sign-out-button";
+import type { User } from "@/features/auth/api";
 
 function initials(email: string): string {
   return email.slice(0, 2).toUpperCase();

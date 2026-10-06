@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { apiFetch } from './fetcher';
+import { apiFetch } from '../../shared/api/fetcher';
 
 export const userSchema = z.object({ id: z.string(), email: z.string() });
 

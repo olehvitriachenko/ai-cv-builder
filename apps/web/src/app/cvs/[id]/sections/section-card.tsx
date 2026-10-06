@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useEditorMotion } from "@/lib/cv/use-editor-motion";
+import { useEditorMotion } from "@/shared/lib/use-editor-motion";
 
 /**
  * "Section card" of the structured editor (Figma 05.1/06.1): always open, 16px padding, a 16px

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { apiFetch } from "./fetcher";
+import { apiFetch } from "../../shared/api/fetcher";
 
 // Mirrors specs/002-cv-ai-generation/contracts/cv-generation-api.md. Every response is parsed
 // with these schemas, so nothing from the network is trusted by type alone.

@@ -2,11 +2,11 @@
 
 import { Sparkles } from "lucide-react";
 import { useCallback, useState } from "react";
-import { Card } from "@/components/ui/card";
+import { Card } from "@/shared/ui/card";
 import type { ClarificationQuestion, CvDraft } from "@/lib/api/cvs";
 import { assistantSummary, questionAlreadyFilled, questionView } from "@/lib/cv/question-form";
 import { QuestionCard } from "./question-card";
-import { useEditorMotion } from "@/lib/cv/use-editor-motion";
+import { useEditorMotion } from "@/shared/lib/use-editor-motion";
 
 /**
  * Figma "AI Assistant" (05.1, 07.1 to 07.3): the persisted clarification questions, secondary to

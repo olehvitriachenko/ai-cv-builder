@@ -1,5 +1,5 @@
 import type { CvDraft } from "@/lib/api/cvs";
-import { isApiError } from "@/lib/api/fetcher";
+import { isApiError } from "@/shared/api/fetcher";
 
 /**
  * Debounced, serialized autosave of the draft. Framework-free so it can be tested without a DOM:

@@ -1,8 +1,8 @@
 import { FileText } from "lucide-react";
 import Link from "next/link";
-import { NavLink } from "@/components/nav-link";
-import { AccountMenu } from "@/components/account-menu";
-import type { User } from "@/lib/api/auth";
+import { NavLink } from "@/shared/ui/nav-link";
+import { AccountMenu } from "@/features/auth/components/account-menu";
+import type { User } from "@/features/auth/api";
 
 /**
  * App header from the Figma "App navigation": product mark, the "My CVs" item (desktop only, as in

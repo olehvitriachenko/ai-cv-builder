@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import type { CvResult } from "@/lib/api/cvs";
-import { isApiError } from "@/lib/api/fetcher";
+import { isApiError } from "@/shared/api/fetcher";
 import { getCvResultServer, getCvStatusServer } from "@/lib/cv/server";
-import { AppShell } from "../app-shell";
+import { AppShell } from "../../_components/app-shell";
 import { CvEditor } from "./cv-editor";
 import { GenerationView } from "./generation-view";
 

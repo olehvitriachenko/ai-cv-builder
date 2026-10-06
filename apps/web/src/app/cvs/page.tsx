@@ -2,10 +2,10 @@ import { LockKeyhole, Plus } from "lucide-react";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
-import { ButtonLink } from "@/components/ui/button";
-import { isApiError } from "@/lib/api/fetcher";
+import { ButtonLink } from "@/shared/ui/button";
+import { isApiError } from "@/shared/api/fetcher";
 import { listCvsServer } from "@/lib/cv/server";
-import { AppShell } from "./app-shell";
+import { AppShell } from "../_components/app-shell";
 import { CvList } from "./cv-list";
 import { CvListSkeleton } from "./cv-list-skeleton";
 

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import { AuthShell } from "@/components/auth-shell";
-import { RegisterForm } from "./register-form";
+import { AuthShell } from "@/features/auth/components/auth-shell";
+import { RegisterForm } from "../../features/auth/components/register-form";
 
 export const metadata: Metadata = { title: "Create account · AI CV Builder" };
 

@@ -1,5 +1,5 @@
 import { TriangleAlert } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/shared/ui/button";
 import { APPLY_ACTION_LABELS, type ApplyAction, type ApplyFailure } from "@/lib/cv/apply-flow";
 
 /**

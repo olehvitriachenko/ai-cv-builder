@@ -2,11 +2,11 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { TextareaField } from "@/components/ui/field";
+import { Button } from "@/shared/ui/button";
+import { TextareaField } from "@/shared/ui/field";
 import { answerQuestion, dismissQuestion, type ClarificationQuestion, type CvDraft } from "@/lib/api/cvs";
 import { expireActionFeedback, FEEDBACK_FADE_MS } from "@/lib/cv/action-feedback";
-import { isApiError } from "@/lib/api/fetcher";
+import { isApiError } from "@/shared/api/fetcher";
 import { ApplyBlockedError, ApplyFailureError, type ApplyAction, type ApplyFailure } from "@/lib/cv/apply-flow";
 import { CVS_QUERY_KEY } from "@/lib/cv/query-keys";
 import {

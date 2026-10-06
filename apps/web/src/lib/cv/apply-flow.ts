@@ -1,5 +1,5 @@
 import type { CvResult } from "@/lib/api/cvs";
-import { isApiError } from "@/lib/api/fetcher";
+import { isApiError } from "@/shared/api/fetcher";
 import type { SaveState } from "./autosave";
 
 /** The apply was not attempted (the form has errors, or the last save did not succeed). */

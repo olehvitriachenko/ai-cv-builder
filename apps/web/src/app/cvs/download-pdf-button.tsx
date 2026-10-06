@@ -3,7 +3,7 @@
 import { Download, LoaderCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useRef, useState, type ReactNode } from "react";
-import { Button, type ButtonSize, type ButtonVariant } from "@/components/ui/button";
+import { Button, type ButtonSize, type ButtonVariant } from "@/shared/ui/button";
 import { fetchCvPdf } from "@/lib/api/cv-pdf";
 import {
   DownloadBlockedError,

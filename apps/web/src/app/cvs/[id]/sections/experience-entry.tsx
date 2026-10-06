@@ -1,11 +1,11 @@
 "use client";
 
 import { useFormContext, useWatch } from "react-hook-form";
-import { SelectField, TextField } from "@/components/ui/field";
+import { SelectField, TextField } from "@/shared/ui/field";
 import { PRESENT, isPresent, type DraftFormValues } from "@/lib/cv/draft-form";
 import { experienceHeading } from "@/lib/cv/entry-labels";
 import { experienceDuration } from "@/lib/cv/dates";
-import { useEditorMotion } from "@/lib/cv/use-editor-motion";
+import { useEditorMotion } from "@/shared/lib/use-editor-motion";
 import { Highlights } from "./highlights";
 import { RemoveButton } from "./remove-button";
 import { DateField } from "./date-field";

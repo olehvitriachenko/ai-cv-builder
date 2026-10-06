@@ -1,5 +1,5 @@
 import type { CvListItem } from "@/lib/api/cvs";
-import { isApiError } from "@/lib/api/fetcher";
+import { isApiError } from "@/shared/api/fetcher";
 import type { SaveState } from "./autosave";
 
 /** What the PDF request returns: the file and the server's suggested name (the raw header). */

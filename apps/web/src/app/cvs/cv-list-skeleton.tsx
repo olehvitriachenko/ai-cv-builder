@@ -1,5 +1,5 @@
-import { Card } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Card } from "@/shared/ui/card";
+import { Skeleton } from "@/shared/ui/skeleton";
 
 /** Placeholder toolbar and cards with the real list's rhythm, so nothing jumps when it arrives. */
 export function CvListSkeleton({ count = 4 }: { count?: number }) {

@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
-import { getCurrentUser } from "@/lib/auth/server";
-import { QueryProvider } from "./query-provider";
-import { UserProvider } from "./user-context";
+import { getCurrentUser } from "@/features/auth/server";
+import { QueryProvider } from "../../shared/providers/query-provider";
+import { UserProvider } from "../../features/auth/providers/user-context";
 
 /**
  * Shared shell for the CV screens: authentication, the signed-in user and the query client. The

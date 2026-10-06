@@ -2,7 +2,7 @@
 
 import { useId } from "react";
 import { Controller, useFormContext, type FieldPath } from "react-hook-form";
-import { SelectField, TextField } from "@/components/ui/field";
+import { SelectField, TextField } from "@/shared/ui/field";
 import { MIN_CV_YEAR, MONTHS, parseCvDate } from "@/lib/cv/dates";
 import type { DraftFormValues } from "@/lib/cv/draft-form";
 

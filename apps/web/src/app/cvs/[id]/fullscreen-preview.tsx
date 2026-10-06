@@ -2,8 +2,8 @@
 
 import { ChevronLeft, FileText, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { closeEditorDialog } from "@/lib/cv/dialog-motion";
+import { Button } from "@/shared/ui/button";
+import { closeEditorDialog } from "@/shared/lib/dialog-motion";
 import type { CvDraft } from "@/lib/api/cvs";
 import type { SaveStatus } from "@/lib/cv/autosave";
 import {

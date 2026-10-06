@@ -1,7 +1,7 @@
 import { ArrowLeft } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { AppShell } from "../app-shell";
+import { AppShell } from "../../_components/app-shell";
 import { NewCvForm } from "./new-cv-form";
 
 export const metadata: Metadata = { title: "Create your CV · AI CV Builder" };

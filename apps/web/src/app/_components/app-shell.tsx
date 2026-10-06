@@ -1,8 +1,8 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { AppHeader } from "@/components/app-header";
-import { useCurrentUser } from "./user-context";
+import { AppHeader } from "@/app/_components/app-header";
+import { useCurrentUser } from "../../features/auth/providers/user-context";
 
 /**
  * The page frame of My CVs, the create flow, generation and the error states: the app header and

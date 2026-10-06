@@ -1,8 +1,8 @@
 "use client";
 
 import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
-import { Button } from "@/components/ui/button";
-import { TextField } from "@/components/ui/field";
+import { Button } from "@/shared/ui/button";
+import { TextField } from "@/shared/ui/field";
 import type { DraftFormValues } from "@/lib/cv/draft-form";
 import { MAX_LINKS } from "@/lib/cv/links";
 import { RemoveButton } from "./remove-button";

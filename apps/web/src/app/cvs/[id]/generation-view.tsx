@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { ApiError, isApiError } from "@/lib/api/fetcher";
+import { ApiError, isApiError } from "@/shared/api/fetcher";
 import { getCvStatus, retryCv, type CvStatus } from "@/lib/api/cvs";
 import { pollInterval } from "@/lib/cv/poll";
 import { CvNotFound } from "./cv-not-found";

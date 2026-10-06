@@ -1,7 +1,7 @@
 "use client";
 
 import { useFormContext } from "react-hook-form";
-import { TextareaField } from "@/components/ui/field";
+import { TextareaField } from "@/shared/ui/field";
 import type { DraftFormValues } from "@/lib/cv/draft-form";
 import { SectionCard } from "./section-card";
 

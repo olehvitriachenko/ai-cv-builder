@@ -1,6 +1,6 @@
 import { FilePlus2, Plus } from "lucide-react";
-import { ButtonLink } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { ButtonLink } from "@/shared/ui/button";
+import { Card } from "@/shared/ui/card";
 
 /** Figma 02.2 "Empty state": shown when the user has no CVs yet. */
 export function CvListEmpty() {

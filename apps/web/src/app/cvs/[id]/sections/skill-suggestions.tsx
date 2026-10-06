@@ -1,5 +1,5 @@
 import type { SuggestionState } from "@/lib/cv/skills-form";
-import { useEditorMotion } from "@/lib/cv/use-editor-motion";
+import { useEditorMotion } from "@/shared/lib/use-editor-motion";
 
 /**
  * The suggested skills of a category (Figma "Skills & Technical Competencies"): "+ Skill" buttons

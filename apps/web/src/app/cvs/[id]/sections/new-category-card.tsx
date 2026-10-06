@@ -1,8 +1,8 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
+import { Button } from "@/shared/ui/button";
 import { Combobox } from "@/components/ui/combobox";
-import { FieldFrame } from "@/components/ui/field";
+import { FieldFrame } from "@/shared/ui/field";
 import { RemoveButton } from "./remove-button";
 import { CATEGORY_COMBOBOX } from "./skill-category-card";
 

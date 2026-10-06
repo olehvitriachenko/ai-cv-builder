@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth/server";
+import { getCurrentUser } from "@/features/auth/server";
 
 /**
  * `/cvs` (My CVs) is the authenticated product home. A convenience redirect only: the API enforces
