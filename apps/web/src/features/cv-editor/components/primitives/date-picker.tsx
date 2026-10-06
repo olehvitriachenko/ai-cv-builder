@@ -1,7 +1,7 @@
 "use client";
 
 import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
-import { useEffect, useId, useRef, useState, type RefObject } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode, type RefObject } from "react";
 import { Button } from "@/shared/ui/button";
 import { FieldFrame, describedBy } from "@/shared/ui/field";
 import { MONTHS, parseCvDate } from "@/features/cv-editor/lib/dates";
@@ -48,7 +48,7 @@ export function DatePicker({
   precision?: "month" | "year";
   error?: string;
   hint?: string;
-  lockedText?: string;
+  lockedText?: ReactNode;
 }) {
   const id = useId();
   const [open, setOpen] = useState(false);
@@ -71,17 +71,20 @@ export function DatePicker({
   const shown = value.trim();
 
   if (lockedText !== undefined) {
+    // Locked fields are dimmed as a whole on a phone (Figma 06.7) and filled grey from `sm` up.
     return (
-      <FieldFrame label={label} controlId={id} hint={hint} error={error}>
-        <button
-          id={id}
-          type="button"
-          disabled
-          className="flex h-11 w-full cursor-not-allowed items-center rounded-lg border border-line bg-canvas px-3 text-left text-sm text-muted"
-        >
-          {lockedText}
-        </button>
-      </FieldFrame>
+      <div className="max-sm:opacity-45">
+        <FieldFrame label={label} controlId={id} hint={hint} error={error}>
+          <button
+            id={id}
+            type="button"
+            disabled
+            className="flex h-11 w-full cursor-not-allowed items-center rounded-lg border border-line bg-surface px-3 text-left text-sm text-muted sm:bg-canvas"
+          >
+            {lockedText}
+          </button>
+        </FieldFrame>
+      </div>
     );
   }
 

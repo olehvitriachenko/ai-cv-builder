@@ -47,33 +47,16 @@ function EducationEntry({
   const setDate = (field: "startDate" | "endDate", value: string) => setValue(`education.${index}.${field}`, value, { shouldDirty: true, shouldValidate: true });
   const start = parseCvDate(entry.startDate);
   const expected = expectedGraduation(entry.endDate);
-  const expectedYear = parseCvDate(expected)?.year;
   const thisYear = new Date().getFullYear();
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between gap-3">
+      <div className="order-first flex items-center justify-between gap-3">
         <p className="min-w-0 text-[13px] leading-[normal] font-semibold text-ink [overflow-wrap:anywhere]">
           {showHeading ? educationHeading(entry) : ""}
         </p>
         <RemoveButton label={`Remove ${educationHeading(entry)}`} onClick={onRemove} />
       </div>
-      <TextField
-        label="Institution"
-        placeholder="Enter institution"
-        autoComplete="off"
-        className={PLACEHOLDER}
-        error={errors?.institution?.message}
-        {...register(`education.${index}.institution`)}
-      />
-      <TextField
-        label="Degree / Program"
-        placeholder="Enter degree or program"
-        autoComplete="off"
-        className={PLACEHOLDER}
-        error={errors?.qualification?.message}
-        {...register(`education.${index}.qualification`)}
-      />
       <div ref={dateMotionRef} className="flex flex-col gap-4">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-3">
           <DatePicker
@@ -90,14 +73,15 @@ function EducationEntry({
                 label="End year"
                 precision="year"
                 value={entry.endDate}
-                lockedText={studying ? "Not applicable" : undefined}
+                lockedText={studying ? <><span className="max-sm:hidden">Not applicable</span><span className="sm:hidden">—</span></> : undefined}
                 onChange={(value) => setDate("endDate", value)}
                 bounds={dateBounds({ future: false, after: start })}
                 error={errors?.endDate?.message}
               />
             </div>
             <SwitchRow
-              label="Currently studying"
+              label="Currently studying here"
+              hint="Turn off to set a graduation year"
               checked={studying}
               onChange={(checked) => {
                 setStudying(checked);
@@ -107,20 +91,36 @@ function EducationEntry({
           </div>
         </div>
         {studying ? (
-          <>
+          <div className="flex flex-col gap-1.5 max-sm:border-t max-sm:border-line max-sm:pt-1.5">
             <DatePicker
-              label="Expected graduation (optional)"
+              label="Expected graduation year"
               precision="year"
               value={expected}
               onChange={(value) => setDate("endDate", value === "" ? PRESENT : value)}
               bounds={dateBounds({ future: true, after: { year: Math.max(thisYear, start?.year ?? thisYear), month: null } })}
               error={errors?.endDate?.message}
             />
-            <p className="text-xs leading-normal text-muted">
-              Currently studying{expectedYear ? ` · Expected completion in ${expectedYear}` : ""}
-            </p>
-          </>
+            <p className="text-[11px] leading-normal text-muted">Forecast year shown on CV · Not a confirmed end date</p>
+          </div>
         ) : null}
+      </div>
+      <div className="flex flex-col gap-4 sm:-order-1">
+        <TextField
+          label="Institution"
+          placeholder="Enter institution"
+          autoComplete="off"
+          className={PLACEHOLDER}
+          error={errors?.institution?.message}
+          {...register(`education.${index}.institution`)}
+        />
+        <TextField
+          label="Degree / Program"
+          placeholder="Enter degree or program"
+          autoComplete="off"
+          className={PLACEHOLDER}
+          error={errors?.qualification?.message}
+          {...register(`education.${index}.qualification`)}
+        />
       </div>
     </div>
   );

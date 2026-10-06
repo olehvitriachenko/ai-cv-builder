@@ -43,28 +43,12 @@ export function ExperienceEntry({
 
   return (
     <div ref={motionRef} className="flex flex-col gap-4">
-      <div className="flex items-center justify-between gap-3">
+      <div className="order-first flex items-center justify-between gap-3">
         <p className="min-w-0 text-[13px] leading-[normal] font-semibold text-ink [overflow-wrap:anywhere]">
           {showHeading || entry.employer.trim() !== "" ? experienceHeading(entry) : ""}
         </p>
         <RemoveButton label={`Remove ${experienceHeading(entry)}`} onClick={onRemove} />
       </div>
-      <TextField
-        label="Title"
-        placeholder="Enter job title"
-        autoComplete="off"
-        className={PLACEHOLDER}
-        error={errors?.title?.message}
-        {...register(`experience.${index}.title`)}
-      />
-      <TextField
-        label="Company"
-        placeholder="Enter company"
-        autoComplete="off"
-        className={PLACEHOLDER}
-        error={errors?.employer?.message}
-        {...register(`experience.${index}.employer`)}
-      />
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-3">
         <DatePicker
           label="Start date"
@@ -84,8 +68,26 @@ export function ExperienceEntry({
               error={errors?.endDate?.message}
             />
           </div>
-          <SwitchRow label="Currently working here" checked={present} onChange={setPresent} />
+          <SwitchRow label="Currently working here" hint="Turn off to set an end date" checked={present} onChange={setPresent} />
         </div>
+      </div>
+      <div className="flex flex-col gap-4 sm:-order-1">
+        <TextField
+          label="Title"
+          placeholder="Enter job title"
+          autoComplete="off"
+          className={PLACEHOLDER}
+          error={errors?.title?.message}
+          {...register(`experience.${index}.title`)}
+        />
+        <TextField
+          label="Company"
+          placeholder="Enter company"
+          autoComplete="off"
+          className={PLACEHOLDER}
+          error={errors?.employer?.message}
+          {...register(`experience.${index}.employer`)}
+        />
       </div>
       {duration ? <p className="text-xs leading-normal text-muted">Duration: {duration}</p> : null}
       <Highlights experienceIndex={index} />
