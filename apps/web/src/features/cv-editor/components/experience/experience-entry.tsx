@@ -1,22 +1,24 @@
 "use client";
 
 import { useFormContext, useWatch } from "react-hook-form";
-import { SelectField, TextField } from "@/shared/ui/field";
+import { TextField } from "@/shared/ui/field";
 import { PRESENT, isPresent, type DraftFormValues } from "@/features/cv-editor/model/draft-form";
 import { experienceHeading } from "@/features/cv-editor/lib/entry-labels";
-import { experienceDuration } from "@/features/cv-editor/lib/dates";
+import { dateBounds } from "@/features/cv-editor/lib/date-picker";
+import { experienceDuration, parseCvDate } from "@/features/cv-editor/lib/dates";
 import { useEditorMotion } from "@/shared/lib/use-editor-motion";
 import { Highlights } from "./highlights";
 import { RemoveButton } from "../primitives/remove-button";
-import { DateField } from "../primitives/date-field";
+import { CheckboxRow } from "../primitives/checkbox-row";
+import { DatePicker } from "../primitives/date-picker";
 
 const PLACEHOLDER = "placeholder:text-muted!";
 
 /**
- * One role (05.1/06.1): company and dates as its heading, title, company, start date, an **End date**
- * select (`Present` or a specific date, which then asks for it), the highlights and an immediate
- * **Remove experience**. The employer's location stays in the draft untouched (the design has no
- * field for it).
+ * One role (05.1/06.3): company and dates as its heading, title, company, a **Start date** and an
+ * **End date** picker (the End date reads `Present`, locked, while **Currently working here** is on),
+ * the highlights and an immediate **Remove experience**. The employer's location stays in the draft untouched (the design
+ * has no field for it).
  */
 export function ExperienceEntry({
   index,
@@ -34,6 +36,10 @@ export function ExperienceEntry({
   const duration = experienceDuration(entry.startDate, entry.endDate);
   const motionRef = useEditorMotion();
   const setDate = (field: "startDate" | "endDate", value: string) => setValue(`experience.${index}.${field}`, value, { shouldDirty: true, shouldValidate: true });
+  const setPresent = (checked: boolean) => setDate("endDate", checked ? PRESENT : "");
+  const currentToggle = { label: "Currently working here", checked: present, onChange: setPresent };
+  const startBounds = dateBounds({ future: false });
+  const endBounds = dateBounds({ future: false, after: parseCvDate(entry.startDate) });
 
   return (
     <div ref={motionRef} className="flex flex-col gap-4">
@@ -60,38 +66,25 @@ export function ExperienceEntry({
         {...register(`experience.${index}.employer`)}
       />
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-3">
-        <DateField
+        <DatePicker
           label="Start date"
-          name={`experience.${index}.startDate`}
           value={entry.startDate}
           onChange={(value) => setDate("startDate", value)}
-          maxYear={new Date().getFullYear()}
+          bounds={startBounds}
           error={errors?.startDate?.message}
+          current={currentToggle}
         />
-        <SelectField
+        <DatePicker
           label="End date"
-          value={present ? "present" : "date"}
-          onChange={(event) =>
-            setValue(`experience.${index}.endDate`, event.target.value === "present" ? PRESENT : "", {
-              shouldDirty: true,
-              shouldValidate: true,
-            })
-          }
-        >
-          <option value="present">Present</option>
-          <option value="date">End date</option>
-        </SelectField>
-      </div>
-      {present ? null : (
-        <DateField
-          label="Date ended"
-          name={`experience.${index}.endDate`}
-          value={entry.endDate}
+          value={present ? "" : entry.endDate}
+          lockedText={present ? PRESENT : undefined}
           onChange={(value) => setDate("endDate", value)}
-          maxYear={new Date().getFullYear()}
+          bounds={endBounds}
           error={errors?.endDate?.message}
+          current={currentToggle}
         />
-      )}
+      </div>
+      <CheckboxRow label={currentToggle.label} checked={present} onChange={setPresent} />
       {duration ? <p className="text-xs leading-normal text-muted">Duration: {duration}</p> : null}
       <Highlights experienceIndex={index} />
     </div>
