@@ -26,6 +26,7 @@ import { ConflictNotice, SaveErrorNotice } from "./saving/save-problems";
 import { Education } from "./education/education";
 import { Experience } from "./experience/experience";
 import { PersonalDetails } from "./personal-details/personal-details";
+import { OptionalSections } from "./sections/optional-sections";
 import { Skills } from "./skills/skills";
 import { Summary } from "./summary/summary";
 import { useCvEditor } from "../hooks/use-cv-editor";
@@ -195,6 +196,7 @@ export function EditorWorkspace({
               <Experience />
               <Skills />
               <Education />
+              <OptionalSections />
             </fieldset>
             <p className="text-xs leading-normal text-muted">
               You’re in control. Review wording, dates and claims before downloading.

@@ -12,6 +12,7 @@ export function SectionCard({
   title,
   count,
   aside,
+  actions,
   children,
 }: {
   /** The anchor the AI assistant's "Review section" actions scroll to. */
@@ -20,13 +21,20 @@ export function SectionCard({
   count?: string | null;
   /** A short note at the right end of the title row (for example "6 skills · By category"). */
   aside?: string | null;
+  /** A control at the right end of the title row (for example "Remove section"). */
+  actions?: ReactNode;
   children: ReactNode;
 }) {
   const motionRef = useEditorMotion<HTMLElement>();
   return (
     <section ref={motionRef} id={id} aria-label={title} className="flex scroll-mt-24 flex-col gap-4 rounded-xl border border-line bg-surface p-4 [&_button]:scroll-mt-24 [&_input]:scroll-mt-24 [&_select]:scroll-mt-24 [&_textarea]:scroll-mt-24">
       <header className="flex flex-col gap-2">
-        {aside ? (
+        {actions ? (
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="text-base leading-[normal] font-semibold text-ink">{title}</h3>
+            {actions}
+          </div>
+        ) : aside ? (
           <div className="flex items-baseline justify-between gap-3">
             <h3 className="text-base leading-[normal] font-semibold text-ink">{title}</h3>
             <p className="shrink-0 text-[11px] leading-[normal] text-muted">{aside}</p>
