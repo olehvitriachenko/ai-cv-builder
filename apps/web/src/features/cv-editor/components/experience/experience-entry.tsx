@@ -37,7 +37,6 @@ export function ExperienceEntry({
   const motionRef = useEditorMotion();
   const setDate = (field: "startDate" | "endDate", value: string) => setValue(`experience.${index}.${field}`, value, { shouldDirty: true, shouldValidate: true });
   const setPresent = (checked: boolean) => setDate("endDate", checked ? PRESENT : "");
-  const currentToggle = { label: "Currently working here", checked: present, onChange: setPresent };
   const startBounds = dateBounds({ future: false });
   const endBounds = dateBounds({ future: false, after: parseCvDate(entry.startDate) });
 
@@ -72,7 +71,6 @@ export function ExperienceEntry({
           onChange={(value) => setDate("startDate", value)}
           bounds={startBounds}
           error={errors?.startDate?.message}
-          current={currentToggle}
         />
         <DatePicker
           label="End date"
@@ -81,10 +79,9 @@ export function ExperienceEntry({
           onChange={(value) => setDate("endDate", value)}
           bounds={endBounds}
           error={errors?.endDate?.message}
-          current={currentToggle}
         />
       </div>
-      <CheckboxRow label={currentToggle.label} checked={present} onChange={setPresent} />
+      <CheckboxRow label="Currently working here" checked={present} onChange={setPresent} />
       {duration ? <p className="text-xs leading-normal text-muted">Duration: {duration}</p> : null}
       <Highlights experienceIndex={index} />
     </div>

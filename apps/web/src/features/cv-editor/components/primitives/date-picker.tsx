@@ -20,23 +20,16 @@ import {
   type DateBounds,
 } from "@/features/cv-editor/lib/date-picker";
 import type { CvDate } from "@/features/cv-editor/lib/dates";
-import { CheckboxRow } from "./checkbox-row";
 
 /** Room the picker needs above its field; with less it opens below the field instead. */
 const PANEL_HEIGHT = 560;
-
-export interface CurrentToggle {
-  label: string;
-  checked: boolean;
-  onChange: (checked: boolean) => void;
-}
 
 /**
  * "Forma / Date field" with its month picker (Figma 06.3, 06.5): a field that shows the date and
  * opens a picker instead of taking typed text. The picker is an anchored popup from `sm` up and a
  * bottom sheet on a phone. What the person picks stays a draft until Apply; Cancel, Escape and a
  * press outside leave the date as it was. `lockedText` shows a fixed value ("Present") that cannot
- * be opened, and `current` adds the "currently here" checkbox that decides it.
+ * be opened.
  */
 export function DatePicker({
   label,
@@ -47,7 +40,6 @@ export function DatePicker({
   error,
   hint,
   lockedText,
-  current,
 }: {
   label: string;
   value: string;
@@ -57,7 +49,6 @@ export function DatePicker({
   error?: string;
   hint?: string;
   lockedText?: string;
-  current?: CurrentToggle;
 }) {
   const id = useId();
   const [open, setOpen] = useState(false);
@@ -126,11 +117,8 @@ export function DatePicker({
           precision={precision}
           bounds={bounds}
           placement={placement}
-          current={current}
           triggerRef={triggerRef}
-          onApply={(next) => {
-            if (next !== null) onChange(next);
-          }}
+          onApply={onChange}
           onClose={closePicker}
         />
       ) : null}
@@ -144,7 +132,6 @@ function DatePickerPanel({
   precision,
   bounds,
   placement,
-  current,
   triggerRef,
   onApply,
   onClose,
@@ -154,9 +141,8 @@ function DatePickerPanel({
   precision: "month" | "year";
   bounds: DateBounds;
   placement: "above" | "below";
-  current: CurrentToggle | undefined;
   triggerRef: RefObject<HTMLButtonElement | null>;
-  onApply: (value: string | null) => void;
+  onApply: (value: string) => void;
   onClose: () => void;
 }) {
   const headingId = useId();
@@ -169,7 +155,6 @@ function DatePickerPanel({
   const [selected, setSelected] = useState<CvDate | null>(
     parsed && precision === "year" ? { year: parsed.year, month: null } : parsed,
   );
-  const [isCurrent, setIsCurrent] = useState(current?.checked ?? false);
 
   // Focus moves into the picker (the chosen tile, else the first free one) and Tab can leave it.
   useEffect(() => {
@@ -216,13 +201,8 @@ function DatePickerPanel({
     panelRef.current?.querySelector<HTMLElement>("[data-tile][aria-pressed='true']:not(:disabled), [data-tile]:not(:disabled)")?.focus();
   }, [view]);
 
-  const currentChanged = current !== undefined && isCurrent !== current.checked;
-  const canApply = selected !== null || currentChanged;
-
   function apply() {
-    onApply(selected ? formatPicked(selected) : null);
-    // Applied after the date, so "currently here" wins over a date picked in the same visit.
-    if (currentChanged) current?.onChange(isCurrent);
+    if (selected) onApply(formatPicked(selected));
     onClose();
   }
 
@@ -340,12 +320,6 @@ function DatePickerPanel({
           </p>
         </div>
 
-        {current ? (
-          <div className="max-sm:hidden">
-            <CheckboxRow label={current.label} checked={isCurrent} onChange={setIsCurrent} />
-          </div>
-        ) : null}
-
         <div className="flex items-center justify-between gap-2">
           <p className="text-[11px] leading-normal text-muted">
             <span className="max-sm:hidden">
@@ -372,7 +346,7 @@ function DatePickerPanel({
           <Button type="button" variant="text" onClick={onClose} className="flex-1 border-surface bg-surface">
             Cancel
           </Button>
-          <Button type="button" disabled={!canApply} onClick={apply} className="flex-1">
+          <Button type="button" disabled={selected === null} onClick={apply} className="flex-1">
             Apply
           </Button>
         </div>
