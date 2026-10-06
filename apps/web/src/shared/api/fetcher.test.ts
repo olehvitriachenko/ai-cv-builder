@@ -19,9 +19,25 @@ function lastRequest(fetchMock: ReturnType<typeof mockFetch>) {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
 });
 
 describe("apiFetch", () => {
+  it("uses the internal API address for server requests", async () => {
+    vi.stubEnv("API_INTERNAL_URL", "http://api:3001/api");
+    const fetchMock = mockFetch(new Response(null, { status: 204 }));
+    await apiFetch("/auth/logout", { method: "POST", cookie: "session=test" });
+    expect(lastRequest(fetchMock).url).toBe("http://api:3001/api/auth/logout");
+    expect(lastRequest(fetchMock).headers.get("cookie")).toBe("session=test");
+  });
+
+  it("uses the same-origin proxy for browser requests", async () => {
+    vi.stubGlobal("window", {});
+    vi.stubEnv("NEXT_PUBLIC_API_URL", undefined);
+    const fetchMock = mockFetch(new Response(null, { status: 204 }));
+    await apiFetch("/auth/logout", { method: "POST" });
+    expect(lastRequest(fetchMock).url).toBe("/api/auth/logout");
+  });
   it("sends a JSON body with a JSON content type and the session cookie", async () => {
     const fetchMock = mockFetch(Response.json({ ok: true }));
 

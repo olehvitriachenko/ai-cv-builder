@@ -24,7 +24,12 @@ export function isApiError(error: unknown, status?: number): error is ApiError {
   return error instanceof ApiError && (status === undefined || error.status === status);
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api';
+function apiBaseUrl(): string {
+  if (typeof window === 'undefined') {
+    return process.env.API_INTERNAL_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api';
+  }
+  return process.env.NEXT_PUBLIC_API_URL ?? '/api';
+}
 
 const errorBodySchema = z.object({
   code: z.string(),
@@ -71,7 +76,7 @@ export async function apiFetch<TResponse, TBody = undefined>(
 
   let response: Response;
   try {
-    response = await fetch(`${API_BASE_URL}${path}`, {
+    response = await fetch(`${apiBaseUrl()}${path}`, {
       method: options.method ?? 'GET',
       headers,
       body: options.body === undefined ? undefined : serializeBody(options.body),
@@ -114,7 +119,7 @@ export interface BlobResponse {
 export async function apiFetchBlob(path: string, accept: string): Promise<BlobResponse> {
   let response: Response;
   try {
-    response = await fetch(`${API_BASE_URL}${path}`, {
+    response = await fetch(`${apiBaseUrl()}${path}`, {
       method: 'GET',
       headers: { Accept: accept },
       credentials: 'include',

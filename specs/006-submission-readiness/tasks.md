@@ -19,15 +19,15 @@ description: "Task list for Submission Readiness (feature 006)"
 
 ## Phase 1: Setup
 
-- [ ] T001 Confirm `.specify/feature.json` points to `specs/006-submission-readiness` and the working branch is `006-submission-readiness`; list the uncommitted drafts (`git status --short`) and note which belong to this feature (Compose, Dockerfiles, `.env.example`, `.dockerignore`, `README.md`, `WEB/../next.config.ts`, `WEB/shared/api/fetcher.ts`).
-- [ ] T002 [P] Check `.gitignore` ignores `.env`, `.env.*` (except `*.example`), `**/node_modules`, `**/.next`, `**/dist` and that `git ls-files | xargs grep -l "sk-ant"` finds nothing (FR-002).
+- [x] T001 Confirm `.specify/feature.json` points to `specs/006-submission-readiness` and the working branch is `006-submission-readiness`; list the uncommitted drafts (`git status --short`) and note which belong to this feature (Compose, Dockerfiles, `.env.example`, `.dockerignore`, `README.md`, `WEB/../next.config.ts`, `WEB/shared/api/fetcher.ts`).
+- [x] T002 [P] Check `.gitignore` ignores `.env`, `.env.*` (except `*.example`), `**/node_modules`, `**/.next`, `**/dist` and that `git ls-files | xargs grep -l "sk-ant"` finds nothing (FR-002).
 
 ---
 
 ## Phase 2: Foundational (blocks US1)
 
-- [ ] T003 Make the browser reach the API through the web app's own `/api` path and the web server through the internal address: `apps/web/next.config.ts` rewrites `/api/:path*` to `${API_INTERNAL_URL}` (default `http://localhost:3001/api` for host development); `WEB/shared/api/fetcher.ts` uses `NEXT_PUBLIC_API_URL` (`/api` in the container, `http://localhost:3001/api` on the host) in the browser and `API_INTERNAL_URL` on the server. Update `WEB/shared/api/fetcher.test.ts` for both cases (research R2).
-- [ ] T004 Verify host development still works with the change: start the API and the web app on the host, sign in, open a CV; the session cookie is sent and server-rendered pages load.
+- [x] T003 Make the browser reach the API through the web app's own `/api` path and the web server through the internal address: `apps/web/next.config.ts` rewrites `/api/:path*` to `${API_INTERNAL_URL}` (default `http://localhost:3001/api` for host development); `WEB/shared/api/fetcher.ts` uses `NEXT_PUBLIC_API_URL` (`/api` in the container, `http://localhost:3001/api` on the host) in the browser and `API_INTERNAL_URL` on the server. Update `WEB/shared/api/fetcher.test.ts` for both cases (research R2).
+- [x] T004 Verify host development still works with the change: start the API and the web app on the host, sign in, open a CV; the session cookie is sent and server-rendered pages load.
 
 **Checkpoint**: both the host and the container address forms work.
 
@@ -39,15 +39,15 @@ description: "Task list for Submission Readiness (feature 006)"
 
 **Independent Test**: quickstart scenarios 1 to 3.
 
-- [ ] T005 [P] [US1] Review `apps/api/Dockerfile`: builds the workspace packages and the API, installs only what the API needs (`pnpm install --frozen-lockfile --filter api...`), starts with `prisma migrate deploy` then `node dist/main.js`, runs as the unprivileged user; a failed migration stops the container (FR-001, research R1).
-- [ ] T006 [P] [US1] Review `apps/web/Dockerfile`: builds with `NEXT_PUBLIC_API_URL=/api` and `API_INTERNAL_URL=http://api:3001/api`, runs `next start` on `0.0.0.0:3000` as the unprivileged user.
-- [ ] T007 [P] [US1] Review `.dockerignore` (excludes `.git`, `node_modules`, `.next`, `dist`, `.env*`, the generated Prisma client) so the build context is small and holds no secret.
-- [ ] T008 [US1] Review `docker-compose.yaml` against [contracts/run-configuration.md](./contracts/run-configuration.md): services `postgres`, `api`, `web`; `postgres` has a readiness health check and a named volume; `api` waits for a healthy database and has a health check that expects `401` from an unauthenticated request; `web` waits for a healthy `api`; ports `${WEB_PORT:-3000}`, `${API_PORT:-3001}`, `${POSTGRES_PORT:-5432}`; `ANTHROPIC_API_KEY` and `ANTHROPIC_MODEL` come from the environment; `NODE_ENV=development` with the comment that an internet deployment needs HTTPS (FR-001, FR-003, FR-005).
-- [ ] T009 [US1] Review `.env.example`: it lists `ANTHROPIC_API_KEY` (empty) and `ANTHROPIC_MODEL=claude-sonnet-5-5` with the comments from the contract, and no real secret (FR-002).
-- [ ] T010 [US1] Run quickstart scenario 1 on a clean checkout (new clone or clean worktree, no `.env`, no `node_modules`, no volume): `cp .env.example .env`, set the key, `docker compose up --build`, register, create a CV from free text, see it in the editor, `docker compose down`, `docker compose up`, sign in and find the CV. Record the elapsed time (target: under 10 minutes) and any fix needed in the files of T003 and T005 to T009.
-- [ ] T011 [US1] Run quickstart scenario 2 (no key): sign-up, My CVs, the editor on an existing CV and PDF download work; a new CV ends in the failed state with a retry and a clear message within the generation time limit. If anything crashes or waits forever, fix it in `API/src/config/env.ts` or the generation runner and add a regression test (FR-004).
-- [ ] T012 [US1] Run quickstart scenario 3 (ports and secrets): `WEB_PORT=3100`, `API_PORT=3101` start and work, the session is kept; no secret in `git ls-files` (FR-002, FR-005).
-- [ ] T013 [US1] Commit the verified stack files separately (`feat: run the whole stack with docker compose`): `docker-compose.yaml`, `.env.example`, `.dockerignore`, `apps/api/Dockerfile`, `apps/web/Dockerfile`, `apps/web/next.config.ts`, `WEB/shared/api/fetcher.ts` and its test. Do not commit `.env`.
+- [x] T005 [P] [US1] Review `apps/api/Dockerfile`: builds the workspace packages and the API, installs only what the API needs (`pnpm install --frozen-lockfile --filter api...`), starts with `prisma migrate deploy` then `node dist/main.js`, runs as the unprivileged user; a failed migration stops the container (FR-001, research R1).
+- [x] T006 [P] [US1] Review `apps/web/Dockerfile`: builds with `NEXT_PUBLIC_API_URL=/api` and `API_INTERNAL_URL=http://api:3001/api`, runs `next start` on `0.0.0.0:3000` as the unprivileged user.
+- [x] T007 [P] [US1] Review `.dockerignore` (excludes `.git`, `node_modules`, `.next`, `dist`, `.env*`, the generated Prisma client) so the build context is small and holds no secret.
+- [x] T008 [US1] Review `docker-compose.yaml` against [contracts/run-configuration.md](./contracts/run-configuration.md): services `postgres`, `api`, `web`; `postgres` has a readiness health check and a named volume; `api` waits for a healthy database and has a health check that expects `401` from an unauthenticated request; `web` waits for a healthy `api`; ports `${WEB_PORT:-3000}`, `${API_PORT:-3001}`, `${POSTGRES_PORT:-5432}`; `ANTHROPIC_API_KEY` and `ANTHROPIC_MODEL` come from the environment; `NODE_ENV=development` with the comment that an internet deployment needs HTTPS (FR-001, FR-003, FR-005).
+- [x] T009 [US1] Review `.env.example`: it lists `ANTHROPIC_API_KEY` (empty) and `ANTHROPIC_MODEL=claude-sonnet-5-5` with the comments from the contract, and no real secret (FR-002).
+- [x] T010 [US1] Run quickstart scenario 1 on a clean checkout (new clone or clean worktree, no `.env`, no `node_modules`, no volume): `cp .env.example .env`, set the key, `docker compose up --build`, register, create a CV from free text, see it in the editor, `docker compose down`, `docker compose up`, sign in and find the CV. Record the elapsed time (target: under 10 minutes) and any fix needed in the files of T003 and T005 to T009.
+- [x] T011 [US1] Run quickstart scenario 2 (no key): sign-up, My CVs, the editor on an existing CV and PDF download work; a new CV ends in the failed state with a retry and a clear message within the generation time limit. If anything crashes or waits forever, fix it in `API/src/config/env.ts` or the generation runner and add a regression test (FR-004).
+- [x] T012 [US1] Run quickstart scenario 3 (ports and secrets): `WEB_PORT=3100`, `API_PORT=3101` start and work, the session is kept; no secret in `git ls-files` (FR-002, FR-005).
+- [x] T013 [US1] Commit the verified stack files separately (`feat: run the whole stack with docker compose`): `docker-compose.yaml`, `.env.example`, `.dockerignore`, `apps/api/Dockerfile`, `apps/web/Dockerfile`, `apps/web/next.config.ts`, `WEB/shared/api/fetcher.ts` and its test. Do not commit `.env`.
 
 **Checkpoint**: one command runs the product; US1 is demonstrable on its own.
 
@@ -130,9 +130,9 @@ description: "Task list for Submission Readiness (feature 006)"
 
 | Check | Date | Result |
 |-------|------|--------|
-| Clean-checkout run, elapsed time | | |
-| No key | | |
-| Ports and secrets | | |
+| Clean-checkout run, elapsed time | 2026-10-06 | pass: two clean temp copies (no `.env`, `node_modules` or volume) built and started; register → create CV → `COMPLETED` with the real model on the keyed copy; images built in a few minutes. Not timed end to end by the owner |
+| No key | 2026-10-06 | found `UNKNOWN` instead of `PROVIDER_NOT_CONFIGURED` (empty key from Compose), fixed in `ada9dde`; then the CV ends `FAILED PROVIDER_NOT_CONFIGURED` within a second, retry gives the same, sign-in and the list work |
+| Ports and secrets | 2026-10-06 | web 3300, API 3301, database 55440 worked and kept the session; both CVs and the account survived `down` and `up`; no key-like string in `git ls-files`; `.env` ignored |
 | README commands | | |
 | Preparing message (desktop, 390, 320, fast, failure, close, repeated clicks) | 2026-10-06 | pass (Playwright against the dev servers: shown after 300 ms with the three texts and the file name, the button reads "Preparing…", no message in the first 150 ms, one request for three clicks, closing mid-way still downloads, a failure removes the message and shows the usual error, 358 px surface with the disabled "Preparing…" button at 390 and 288 px at 320, no horizontal overflow) |
 | Gates (typecheck, lint, unit, e2e, build) | | |
