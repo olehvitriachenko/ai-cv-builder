@@ -6,7 +6,7 @@ import { Button } from "@/shared/ui/button";
 import { Combobox } from "@/components/ui/combobox";
 import { FieldFrame, describedBy } from "@/shared/ui/field";
 import type { SkillCategoryFormEntry } from "@/lib/cv/draft-form";
-import { suggestionsFor } from "@/lib/cv/skill-catalogue";
+import { suggestionsFor } from "@/features/cv-editor/lib/skill-catalogue";
 import {
   MAX_SKILLS_TOTAL,
   addSkill,

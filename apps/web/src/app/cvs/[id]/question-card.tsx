@@ -9,7 +9,7 @@ import { type ClarificationQuestion, type CvDraft } from "@/entities/cv/schemas"
 import { expireActionFeedback, FEEDBACK_FADE_MS } from "@/lib/cv/action-feedback";
 import { isApiError } from "@/shared/api/fetcher";
 import { ApplyBlockedError, ApplyFailureError, type ApplyAction, type ApplyFailure } from "@/lib/cv/apply-flow";
-import { CVS_QUERY_KEY } from "@/lib/cv/query-keys";
+import { CVS_QUERY_KEY } from "@/entities/cv/lib/query-keys";
 import {
   MAX_ANSWER_CHARS,
   answerHelper,

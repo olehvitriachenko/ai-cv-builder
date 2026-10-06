@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import type { CvDraft, EducationEntry, ExperienceEntry } from "@/entities/cv/schemas";
 import { isCurrentlyStudying, isPresent } from "@/lib/cv/draft-form";
-import { skillLines } from "@/lib/cv/skill-lines";
+import { skillLines } from "@/features/cv-editor/lib/skill-lines";
 
 // The A4 document surface from Figma 05.1: Lora body, Inter section headings, 1px rules, white
 // sheet on a light stage. Read-only in this feature. Facts the source did not support are null

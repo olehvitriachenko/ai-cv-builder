@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/shared/ui/button";
 import { deleteCv } from "@/features/cv-delete/api";
 import { deleteOutcome } from "@/features/cv-delete/model/delete-flow";
-import { CVS_QUERY_KEY } from "@/lib/cv/query-keys";
+import { CVS_QUERY_KEY } from "@/entities/cv/lib/query-keys";
 
 /**
  * Figma "Delete confirmation" dialog on the native `<dialog>`: modal, Escape closes it, focus is

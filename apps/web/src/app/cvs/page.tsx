@@ -4,10 +4,10 @@ import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { ButtonLink } from "@/shared/ui/button";
 import { isApiError } from "@/shared/api/fetcher";
-import { listCvsServer } from "@/lib/cv/server";
+import { listCvsServer } from "@/features/cv-list/server";
 import { AppShell } from "../_components/app-shell";
-import { CvList } from "./cv-list";
-import { CvListSkeleton } from "./cv-list-skeleton";
+import { CvList } from "../../features/cv-list/components/cv-list";
+import { CvListSkeleton } from "../../features/cv-list/components/cv-list-skeleton";
 
 export const metadata: Metadata = { title: "My CVs · AI CV Builder" };
 

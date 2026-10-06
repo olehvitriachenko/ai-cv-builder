@@ -3,7 +3,7 @@
 import { FileText, Upload, X } from "lucide-react";
 import { useId, useRef, useState, type DragEvent } from "react";
 import { Button } from "@/shared/ui/button";
-import { MAX_PDF_BYTES } from "@/lib/cv/create-form";
+import { MAX_PDF_BYTES } from "@/features/cv-generation/model/create-form";
 
 function formatSize(bytes: number): string {
   return bytes >= 1024 * 1024

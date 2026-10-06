@@ -8,8 +8,8 @@ import { Button } from "@/shared/ui/button";
 import { listCvs } from "@/features/cv-list/api";
 import { type CvListItem } from "@/entities/cv/schemas";
 import { isApiError } from "@/shared/api/fetcher";
-import { listPollInterval } from "@/lib/cv/list-poll";
-import { CVS_QUERY_KEY } from "@/lib/cv/query-keys";
+import { listPollInterval } from "@/features/cv-list/model/list-poll";
+import { CVS_QUERY_KEY } from "@/entities/cv/lib/query-keys";
 import { CvCard } from "./cv-card";
 import { CvListEmpty } from "./cv-list-empty";
 

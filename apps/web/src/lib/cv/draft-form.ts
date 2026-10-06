@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { CvDraft } from "@/entities/cv/schemas";
-import { MAX_TARGET_ROLE_CHARS } from "./create-form";
+import { MAX_TARGET_ROLE_CHARS } from "../../features/cv-generation/model/create-form";
 import { MAX_LINKS, linkError, mergeLinks, splitLinks } from "./links";
 import { dateError, parseCvDate, reversedDateRange } from "./dates";
 

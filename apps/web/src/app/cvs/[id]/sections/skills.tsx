@@ -7,7 +7,7 @@ import { useFormContext, useWatch } from "react-hook-form";
 import { Button } from "@/shared/ui/button";
 import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
 import type { DraftFormValues, SkillCategoryFormEntry } from "@/lib/cv/draft-form";
-import { SKILL_CATALOGUE } from "@/lib/cv/skill-catalogue";
+import { SKILL_CATALOGUE } from "@/features/cv-editor/lib/skill-catalogue";
 import {
   MAX_CATEGORIES,
   addCategory,

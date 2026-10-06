@@ -3,12 +3,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { StatusBadge } from "@/components/ui/status-badge";
+import { StatusBadge } from "@/entities/cv/components/status-badge";
 import { ApiError, isApiError } from "@/shared/api/fetcher";
 import { getCvStatus, retryCv } from "@/features/cv-generation/api";
 import { type CvStatus } from "@/entities/cv/schemas";
-import { pollInterval } from "@/lib/cv/poll";
-import { CvNotFound } from "./cv-not-found";
+import { pollInterval } from "@/features/cv-generation/model/poll";
+import { CvNotFound } from "../../../entities/cv/components/cv-not-found";
 import { DraftSkeleton } from "./draft-skeleton";
 import { GenerationIntro, GenerationProgress } from "./generation-progress";
 

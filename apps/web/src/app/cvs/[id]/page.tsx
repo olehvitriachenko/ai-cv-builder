@@ -2,10 +2,11 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import type { CvResult } from "@/entities/cv/schemas";
 import { isApiError } from "@/shared/api/fetcher";
-import { getCvResultServer, getCvStatusServer } from "@/lib/cv/server";
+import { getCvResultServer } from "@/features/cv-editor/server";
+import { getCvStatusServer } from "@/features/cv-generation/server";
 import { AppShell } from "../../_components/app-shell";
 import { CvEditor } from "./cv-editor";
-import { GenerationView } from "./generation-view";
+import { GenerationView } from "../../../features/cv-generation/components/generation-view";
 
 export const metadata: Metadata = { title: "Your CV · AI CV Builder" };
 

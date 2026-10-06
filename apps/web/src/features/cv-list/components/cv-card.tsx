@@ -5,16 +5,16 @@ import { FileText, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { Button, ButtonLink } from "@/shared/ui/button";
 import { Card } from "@/shared/ui/card";
-import { DisplayStatusBadge } from "@/components/ui/status-badge";
+import { DisplayStatusBadge } from "@/entities/cv/components/status-badge";
 import { retryCv } from "@/features/cv-generation/api";
 import { type CvListItem } from "@/entities/cv/schemas";
 import { isApiError } from "@/shared/api/fetcher";
-import { cardActions, cardMessage, cardName, formatUpdated } from "@/lib/cv/card-copy";
+import { cardActions, cardMessage, cardName, formatUpdated } from "@/entities/cv/lib/card-copy";
 import { deleteSubject } from "@/features/cv-delete/model/delete-flow";
 import { downloadDisabledReason } from "@/features/pdf-download/model/download-flow";
-import { CVS_QUERY_KEY } from "@/lib/cv/query-keys";
-import { DeleteCvDialog } from "../../features/cv-delete/components/delete-cv-dialog";
-import { DownloadPdfButton } from "../../features/pdf-download/components/download-pdf-button";
+import { CVS_QUERY_KEY } from "@/entities/cv/lib/query-keys";
+import { DeleteCvDialog } from "../../cv-delete/components/delete-cv-dialog";
+import { DownloadPdfButton } from "../../pdf-download/components/download-pdf-button";
 
 const MESSAGE_TONE: Record<CvListItem["displayStatus"], string> = {
   DRAFT: "text-accent",

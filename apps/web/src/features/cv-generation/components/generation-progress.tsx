@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { Button, ButtonLink } from "@/shared/ui/button";
 import { Card } from "@/shared/ui/card";
 import type { CvStatus } from "@/entities/cv/schemas";
-import { failureMessage } from "@/lib/cv/failure-copy";
+import { failureMessage } from "@/entities/cv/lib/failure-copy";
 
 type StageState = "done" | "active" | "waiting" | "failed";
 

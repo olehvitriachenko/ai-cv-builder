@@ -14,7 +14,7 @@ import {
   createCvFormSchema,
   type CreateCvFormValues,
   type SourceMode,
-} from "@/lib/cv/create-form";
+} from "@/features/cv-generation/model/create-form";
 import { PdfUploadField } from "./pdf-upload-field";
 
 const FIELD_ERROR_KEYS = ["targetRole", "sourceText", "file"] as const;
