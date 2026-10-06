@@ -1,5 +1,6 @@
 "use client";
 
+import { Download } from "lucide-react";
 import { useRef, useState } from "react";
 import { PreviewBar } from "./preview/preview-bar";
 import { useOffline } from "../hooks/use-offline";
@@ -98,7 +99,11 @@ export function EditorWorkspace({
                 label={
                   <>
                     <span className="hidden sm:inline">Download PDF</span>
-                    <span className="sm:hidden">PDF</span>
+                    {/* A phone has room for "PDF" only: the icon and the hidden word say it downloads. */}
+                    <Download aria-hidden className="size-4 sm:hidden" strokeWidth={1.75} />
+                    <span className="sm:hidden">
+                      <span className="sr-only">Download </span>PDF
+                    </span>
                   </>
                 }
                 onMessage={setDownloadMessage}
