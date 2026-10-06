@@ -119,10 +119,10 @@ describe("preview status", () => {
     }
   });
 
-  it("says the preview shows the last saved version when the save failed or is blocked", () => {
+  it("identifies the local unsaved preview when a save fails or conflicts", () => {
     for (const saveStatus of ["error", "conflict"] as const) {
       expect(statusLine({ saveStatus, invalid: false })).toBe(
-        "Last saved version · Current edits remain in the editor",
+        "Your unsaved version · Current edits remain in the editor",
       );
     }
     expect(previewStatus({ saveStatus: "saved", invalid: true }).upToDate).toBe(false);

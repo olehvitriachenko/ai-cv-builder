@@ -82,7 +82,7 @@ export function PreviewPanel({
 
       <div className="flex flex-col items-center gap-4 rounded-xl bg-stage px-4 pt-4 pb-5 sm:px-6">
         <p className="text-center text-[11px] text-muted">
-          {measured ? `${status.short} · ${status.detail}` : "Last saved version · Preview loading…"}
+          {measured ? `${status.short} · ${status.detail}` : `${status.short} · Preview loading…`}
         </p>
         <div ref={stageRef} className="group relative flex w-full overflow-x-auto overflow-y-hidden">
           <div className="relative mx-auto shrink-0">

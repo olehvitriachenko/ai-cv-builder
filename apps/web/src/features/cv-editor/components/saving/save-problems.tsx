@@ -86,7 +86,7 @@ export function ConflictNotice({
         </div>
         <div className="flex flex-col gap-1">
           <p className="text-[11px] leading-[normal] font-semibold text-ink uppercase">Saved account version</p>
-          <p className="text-xs leading-normal text-muted">Last known document in preview</p>
+          <p className="text-xs leading-normal text-muted">Available in version review</p>
         </div>
       </div>
       {error ? <p className="text-xs text-danger">{error}</p> : null}
