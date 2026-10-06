@@ -4,15 +4,14 @@ import { Button, ButtonLink } from "@/shared/ui/button";
 import { Card } from "@/shared/ui/card";
 import type { CvStatus } from "@/entities/cv/schemas";
 import { failureMessage } from "@/entities/cv/lib/failure-copy";
-
-type StageState = "done" | "active" | "waiting" | "failed";
+import { stageStates, type StageState } from "@/features/cv-generation/model/stages";
 
 function StageSymbol({ state }: { state: StageState }) {
   const base = "flex size-7 shrink-0 items-center justify-center rounded-full";
   switch (state) {
     case "done":
       return (
-        <span className={`${base} bg-canvas`}>
+        <span className={`${base} bg-canvas motion-safe:animate-check-in`}>
           <Check aria-hidden className="size-4 text-success" strokeWidth={1.5} />
         </span>
       );
@@ -65,12 +64,15 @@ function Stage({
 }
 
 /**
- * The honest bar: the API reports a state, not a percentage, so the active bar is indeterminate and
- * the stopped bar is a plain red rule (the failure is also stated in text, never by colour alone).
+ * The honest bar: the API reports a state, not a percentage, so the active bar is indeterminate, the
+ * finished bar is full and the stopped bar is a plain red rule (both also stated in text).
  */
-function ProgressBar({ state }: { state: "waiting" | "active" | "failed" }) {
+function ProgressBar({ state }: { state: "waiting" | "active" | "done" | "failed" }) {
   if (state === "failed") {
     return <div aria-hidden className="h-1.5 w-full rounded-full bg-danger" />;
+  }
+  if (state === "done") {
+    return <div aria-hidden className="h-1.5 w-full rounded-full bg-success transition-colors duration-500" />;
   }
   return (
     <div
@@ -96,12 +98,14 @@ interface GenerationProgressProps {
 }
 
 /**
- * Figma "Generation progress" for the in-progress (`PENDING` / `PROCESSING`) and failed states.
- * Nothing here is a made-up percentage: stages follow the persisted status only.
+ * Figma "Generation progress" for the in-progress (`PENDING` / `PROCESSING`), failed and just
+ * completed states. Nothing here is a made-up percentage: stages follow the persisted status only.
  */
 export function GenerationProgress({ status, onRetry, retrying, retryError }: GenerationProgressProps) {
   const failed = status.status === "FAILED";
   const processing = status.status === "PROCESSING";
+  const completed = status.status === "COMPLETED";
+  const stages = stageStates(status.status);
   const sourceDescription =
     status.sourceType === "PDF"
       ? "Your PDF has been read successfully."
@@ -112,32 +116,44 @@ export function GenerationProgress({ status, onRetry, retrying, retryError }: Ge
       <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between gap-3">
           <h2 className="text-base leading-[normal] font-semibold text-ink">
-            {failed ? "Generation stopped" : "Building your draft"}
+            {failed ? "Generation stopped" : completed ? "Your draft is ready" : "Building your draft"}
           </h2>
-          <p className={`text-[13px] leading-[normal] font-medium ${failed ? "text-danger" : "text-accent"}`}>
-            {failed ? "Stopped" : processing ? "In progress" : "Waiting to start"}
+          <p
+            className={`text-[13px] leading-[normal] font-medium ${
+              failed ? "text-danger" : completed ? "text-success" : "text-accent"
+            }`}
+          >
+            {failed ? "Stopped" : completed ? "Done" : processing ? "In progress" : "Waiting to start"}
           </p>
         </div>
-        <ProgressBar state={failed ? "failed" : processing ? "active" : "waiting"} />
+        <ProgressBar state={failed ? "failed" : completed ? "done" : processing ? "active" : "waiting"} />
       </div>
 
       <ol className="flex flex-col gap-6">
-        <Stage state="done" title="Preparing information" description={sourceDescription} />
+        <Stage state={stages.preparing} title="Preparing information" description={sourceDescription} />
         <Stage
-          state={failed ? "failed" : processing ? "active" : "waiting"}
+          state={stages.structuring}
           title="Structuring experience"
           description={
             failed
               ? failureMessage(status.failureReason)
-              : processing
-                ? "Organizing your roles, education and skills."
-                : "Waiting for a free slot. This starts automatically."
+              : completed
+                ? "Your roles, education and skills are organized."
+                : processing
+                  ? "Organizing your roles, education and skills."
+                  : "Waiting for a free slot. This starts automatically."
           }
         />
         <Stage
-          state="waiting"
+          state={stages.generating}
           title="Generating CV"
-          description={failed ? "Starts again when you retry." : "Up next: your editable first draft."}
+          description={
+            failed
+              ? "Starts again when you retry."
+              : completed
+                ? "Opening your editable draft…"
+                : "Up next: your editable first draft."
+          }
         />
       </ol>
 
@@ -145,12 +161,14 @@ export function GenerationProgress({ status, onRetry, retrying, retryError }: Ge
 
       <div className="flex flex-col gap-3">
         <p className="text-sm leading-[normal] font-medium text-ink">
-          {failed ? "Your information is safe." : "Good work takes a moment."}
+          {failed ? "Your information is safe." : completed ? "All done." : "Good work takes a moment."}
         </p>
         <p className="text-[13px] leading-[1.6] text-muted">
           {failed
             ? `Your target role and ${status.sourceType === "PDF" ? "PDF" : "background"} are saved. Retry generation, or go back to change them.`
-            : "Generation continues even if you leave this page. You can check the progress in My CVs and open your draft when it’s ready."}
+            : completed
+              ? "Your first draft is ready to review. Every section stays editable."
+              : "Generation continues even if you leave this page. You can check the progress in My CVs and open your draft when it’s ready."}
         </p>
       </div>
 

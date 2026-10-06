@@ -8,6 +8,7 @@ import { ApiError, isApiError } from "@/shared/api/fetcher";
 import { getCvStatus, retryCv } from "@/features/cv-generation/api";
 import { type CvStatus } from "@/entities/cv/schemas";
 import { pollInterval } from "@/features/cv-generation/model/poll";
+import { COMPLETION_HOLD_MS } from "@/features/cv-generation/model/stages";
 import { CvNotFound } from "../../../entities/cv/components/cv-not-found";
 import { DraftSkeleton } from "./draft-skeleton";
 import { GenerationIntro, GenerationProgress } from "./generation-progress";
@@ -16,6 +17,7 @@ const TITLES = {
   PENDING: "Getting your CV ready",
   PROCESSING: "Putting your experience into words",
   FAILED: "We couldn’t finish your draft",
+  COMPLETED: "Your CV is ready",
 } as const;
 
 function retryErrorMessage(error: unknown): string {
@@ -61,12 +63,15 @@ export function GenerationView({ initialStatus }: { initialStatus: CvStatus }) {
     },
   });
 
-  // The generation just finished: the server page renders the editor for a COMPLETED CV.
+  // The generation just finished: the finished stages stay on screen for a moment, then the server
+  // page renders the editor for the COMPLETED CV.
   const completed = status.status === "COMPLETED";
   useEffect(() => {
-    if (completed) {
-      router.refresh();
+    if (!completed) {
+      return;
     }
+    const timer = setTimeout(() => router.refresh(), COMPLETION_HOLD_MS);
+    return () => clearTimeout(timer);
   }, [completed, router]);
 
   const sessionExpired = isApiError(statusQuery.error, 401);
@@ -78,17 +83,6 @@ export function GenerationView({ initialStatus }: { initialStatus: CvStatus }) {
 
   if (isApiError(statusQuery.error, 404)) {
     return <CvNotFound />;
-  }
-
-  if (status.status === "COMPLETED") {
-    return (
-      <div className="mx-auto flex w-full max-w-[1120px] flex-col gap-4 px-4 py-8 sm:px-8 lg:px-12">
-        <p role="status" className="text-sm text-muted">
-          Your CV is ready. Opening the editor…
-        </p>
-        <DraftSkeleton caption="Your draft is ready" note="Opening the editor…" />
-      </div>
-    );
   }
 
   const failed = status.status === "FAILED";
@@ -105,7 +99,9 @@ export function GenerationView({ initialStatus }: { initialStatus: CvStatus }) {
       <p role="status" className="sr-only">
         {failed
           ? "Generation failed."
-          : status.status === "PROCESSING"
+          : completed
+            ? "Your CV is ready. Opening the editor…"
+            : status.status === "PROCESSING"
             ? "Your CV is being generated."
             : "Your CV is waiting to start."}
       </p>
@@ -123,8 +119,14 @@ export function GenerationView({ initialStatus }: { initialStatus: CvStatus }) {
         />
         <div className="hidden lg:block">
           <DraftSkeleton
-            caption={failed ? "Draft not created yet" : "Your CV is taking shape"}
-            note={failed ? "Retry to build your editable draft." : "You’ll be able to edit every section next."}
+            caption={failed ? "Draft not created yet" : completed ? "Your draft is ready" : "Your CV is taking shape"}
+            note={
+              failed
+                ? "Retry to build your editable draft."
+                : completed
+                  ? "Opening the editor…"
+                  : "You’ll be able to edit every section next."
+            }
           />
         </div>
       </div>
