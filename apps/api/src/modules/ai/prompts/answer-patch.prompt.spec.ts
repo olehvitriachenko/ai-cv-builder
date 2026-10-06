@@ -26,7 +26,7 @@ const REQUEST = {
 
 describe('answer-patch prompt', () => {
   it('has its own version', () => {
-    expect(ANSWER_PATCH_PROMPT_VERSION).toBe('answer-patch-v1');
+    expect(ANSWER_PATCH_PROMPT_VERSION).toBe('answer-patch-v2');
   });
 
   describe('system prompt', () => {
@@ -48,7 +48,7 @@ describe('answer-patch prompt', () => {
 
     it('differs per section and names only that section’s output', () => {
       expect(buildAnswerPatchSystemPrompt('EXPERIENCE')).toContain('bullets');
-      expect(buildAnswerPatchSystemPrompt('SKILLS')).toContain('skills');
+      expect(buildAnswerPatchSystemPrompt('SKILLS')).toContain('additions');
       expect(buildAnswerPatchSystemPrompt('SUMMARY')).toContain('summary');
       expect(buildAnswerPatchSystemPrompt('SKILLS')).not.toContain('bullets');
     });
@@ -79,14 +79,32 @@ describe('answer-patch prompt', () => {
       expect(content).not.toContain('current_content');
     });
 
-    it('sends the current skills so the model does not repeat them', () => {
+    it('sends the current categories and skills so the model does not repeat them', () => {
       const content = buildAnswerPatchUserContent({
         ...REQUEST,
-        scope: { section: 'SKILLS', skills: ['Node.js', 'SQL'] },
+        scope: {
+          section: 'SKILLS',
+          categories: [
+            { name: 'Backend', skills: ['Node.js', 'SQL'] },
+            { name: 'My tools', skills: ['Vim'] },
+          ],
+        },
       });
 
+      expect(content).toContain('Backend');
       expect(content).toContain('Node.js');
-      expect(content).toContain('SQL');
+      expect(content).toContain('My tools');
+      expect(content).toContain('Vim');
+      expect(content).not.toMatch(/"id"/);
+    });
+
+    it('tells the model to use an existing category name, then a predefined one, then Skills', () => {
+      const prompt = buildAnswerPatchSystemPrompt('SKILLS');
+
+      expect(prompt).toMatch(/existing category/i);
+      expect(prompt).toContain('- Programming Languages');
+      expect(prompt).toContain('"Skills"');
+      expect(prompt).toMatch(/do not invent category names/i);
     });
 
     it('keeps delimiter look-alikes in the answer from forging a block', () => {
@@ -101,7 +119,10 @@ describe('answer-patch prompt', () => {
     });
 
     it('appends rule-id feedback on a retry, never values', () => {
-      const content = buildAnswerPatchUserContent({ ...REQUEST, feedback: ['patch.employer: unsupported_organisation'] });
+      const content = buildAnswerPatchUserContent({
+        ...REQUEST,
+        feedback: ['patch.employer: unsupported_organisation'],
+      });
 
       expect(content).toContain('patch.employer: unsupported_organisation');
       expect(content).toContain('validation_feedback');

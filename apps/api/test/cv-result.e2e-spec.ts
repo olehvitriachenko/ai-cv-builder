@@ -120,7 +120,7 @@ describe('GET /api/cvs/:id/result', () => {
   it('answers a generic 500 (and echoes nothing) when the stored JSON is no longer a valid draft', async () => {
     const user = await registerUser(app);
     const id = await createCvFromText(app, user.cookie);
-    await seedCompleted(prisma, id, { schemaVersion: 1, contact: 'Secret stored content' });
+    await seedCompleted(prisma, id, { schemaVersion: 2, contact: 'Secret stored content' });
 
     const response = await getResult(user.cookie, id);
 

@@ -90,7 +90,7 @@ function questionIssues(output: LlmCvOutput): ValidationIssue[] {
 
     // A field names the one value the answer fills, so it must belong to the question's section
     // (the prefix), and an entry field needs an entry while a contact field must not point at one.
-    if (question.field !== null) {
+    if (question.field !== undefined) {
       const inSection = question.field.startsWith(`${question.section}_`);
       const needsEntry = hasEntry;
       if (!inSection || needsEntry !== (question.itemIndex !== null)) {
@@ -106,8 +106,13 @@ function questionIssues(output: LlmCvOutput): ValidationIssue[] {
  * Contact details alone are not a CV: it needs a summary or at least one entry. A draft without
  * that is only acceptable when the model asked what is missing.
  */
-function hasMeaningfulContent({ summary, experience, education, skills }: CvDraft): boolean {
-  return summary !== null || experience.length > 0 || education.length > 0 || skills.length > 0;
+function hasMeaningfulContent({ summary, experience, education, skillCategories }: CvDraft): boolean {
+  return (
+    summary !== null ||
+    experience.length > 0 ||
+    education.length > 0 ||
+    skillCategories.some((category) => category.skills.length > 0)
+  );
 }
 
 function sourceIssues(draft: CvDraft, source: SourceIndex): ValidationIssue[] {

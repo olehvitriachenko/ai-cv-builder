@@ -4,7 +4,7 @@ import { applyAnswerPatch, type PatchTarget } from './answer-patch.js';
 
 function baseDraft(): CvDraft {
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     contact: { fullName: null, email: null, phone: null, location: 'London', links: ['github.com/ada'] },
     summary: null,
     experience: [
@@ -12,7 +12,10 @@ function baseDraft(): CvDraft {
       { id: 'exp-2', employer: 'Globex', title: null, location: null, startDate: '2010', endDate: '2012', bullets: [] },
     ],
     education: [{ id: 'edu-1', institution: 'State University', qualification: 'BSc', startDate: null, endDate: null, details: null }],
-    skills: ['Node.js', 'SQL'],
+    skillCategories: [
+      { id: 'cat-1', name: 'Backend', skills: ['Node.js', 'SQL'] },
+      { id: 'cat-2', name: 'My tools', skills: ['Vim'] },
+    ],
   };
 }
 
@@ -168,7 +171,7 @@ describe('applyAnswerPatch', () => {
     });
   });
 
-  describe('summary and skills', () => {
+  describe('summary', () => {
     it('writes a summary only into an empty summary', () => {
       const result = applyAnswerPatch(baseDraft(), { section: 'SUMMARY', itemId: null }, { summary: 'Backend engineer focused on APIs.' }, 'focus on APIs');
       const draft = baseDraft();
@@ -182,19 +185,104 @@ describe('applyAnswerPatch', () => {
     it('rejects a null summary patch as empty', () => {
       expect(issues(applyAnswerPatch(baseDraft(), { section: 'SUMMARY', itemId: null }, { summary: null }, 'x'))).toEqual(['patch: empty_patch']);
     });
+  });
 
-    it('appends new skills, ignores case-insensitive duplicates and caps at 60', () => {
-      const result = applyAnswerPatch(baseDraft(), { section: 'SKILLS', itemId: null }, { skills: ['node.js', 'Go', ' Rust '] }, 'Go and Rust');
-      const draft = baseDraft();
-      draft.skills = Array.from({ length: 60 }, (_, index) => `skill-${index}`);
-      const full = applyAnswerPatch(draft, { section: 'SKILLS', itemId: null }, { skills: ['One more'] }, 'x');
+  describe('skills', () => {
+    const skillsTarget: PatchTarget = { section: 'SKILLS', itemId: null };
+    const additions = (...items: { category: string; skills: string[] }[]): AnswerPatch => ({ additions: items });
+    const categories = (result: ReturnType<typeof applyAnswerPatch>) =>
+      result.ok ? result.draft.skillCategories.map((c) => [c.name, c.skills]) : [];
+    let counter = 0;
+    const newId = () => `new-${++counter}`;
 
-      expect(result.ok && result.draft.skills).toEqual(['Node.js', 'SQL', 'Go', 'Rust']);
-      expect(issues(full)).toEqual(['patch.skills: too_many_skills']);
+    it('appends to the category with the same name, ignoring case, and never removes anything', () => {
+      const result = applyAnswerPatch(baseDraft(), skillsTarget, additions({ category: 'backend', skills: ['Go', ' Rust '] }), 'Go and Rust', newId);
+
+      expect(categories(result)).toEqual([
+        ['Backend', ['Node.js', 'SQL', 'Go', 'Rust']],
+        ['My tools', ['Vim']],
+      ]);
     });
 
-    it('treats only-duplicate skills as an empty patch', () => {
-      expect(issues(applyAnswerPatch(baseDraft(), { section: 'SKILLS', itemId: null }, { skills: ['SQL'] }, 'x'))).toEqual(['patch: empty_patch']);
+    it('can append to an existing custom category', () => {
+      const result = applyAnswerPatch(baseDraft(), skillsTarget, additions({ category: 'My tools', skills: ['Emacs'] }), 'x', newId);
+
+      expect(categories(result)).toEqual([
+        ['Backend', ['Node.js', 'SQL']],
+        ['My tools', ['Vim', 'Emacs']],
+      ]);
+    });
+
+    it('creates a new category at the end when it is a predefined name, using the catalogue spelling and a generated id', () => {
+      counter = 0;
+      const result = applyAnswerPatch(baseDraft(), skillsTarget, additions({ category: ' databases ', skills: ['PostgreSQL'] }), 'x', newId);
+
+      expect(categories(result)).toEqual([
+        ['Backend', ['Node.js', 'SQL']],
+        ['My tools', ['Vim']],
+        ['Databases', ['PostgreSQL']],
+      ]);
+      expect(result.ok && result.draft.skillCategories[2]?.id).toBe('new-1');
+    });
+
+    it('creates the fallback Skills category when needed', () => {
+      const result = applyAnswerPatch(baseDraft(), skillsTarget, additions({ category: 'skills', skills: ['Origami'] }), 'x', newId);
+
+      expect(categories(result).at(-1)).toEqual(['Skills', ['Origami']]);
+    });
+
+    it('rejects a new category that is neither predefined nor the fallback, naming only the path', () => {
+      const result = applyAnswerPatch(baseDraft(), skillsTarget, additions({ category: 'Secret Category', skills: ['Go'] }), 'x', newId);
+
+      expect(issues(result)).toEqual(['patch.additions.0.category: unknown_category']);
+      expect(JSON.stringify(result)).not.toContain('Secret Category');
+    });
+
+    it('rejects a blank category name', () => {
+      expect(issues(applyAnswerPatch(baseDraft(), skillsTarget, additions({ category: '  ', skills: ['Go'] }), 'x', newId))).toEqual(['patch.additions.0.category: blank_category']);
+    });
+
+    it('ignores skills that already exist anywhere in the CV (ignoring case) and duplicates inside the patch', () => {
+      const result = applyAnswerPatch(
+        baseDraft(),
+        skillsTarget,
+        additions({ category: 'Backend', skills: ['node.js', 'vim', 'Go', 'GO', ''] }),
+        'x',
+        newId,
+      );
+
+      expect(categories(result)[0]).toEqual(['Backend', ['Node.js', 'SQL', 'Go']]);
+    });
+
+    it('treats only-duplicate or empty additions as an empty patch', () => {
+      expect(issues(applyAnswerPatch(baseDraft(), skillsTarget, additions({ category: 'Backend', skills: ['SQL'] }), 'x', newId))).toEqual(['patch: empty_patch']);
+      expect(issues(applyAnswerPatch(baseDraft(), skillsTarget, additions(), 'x', newId))).toEqual(['patch: empty_patch']);
+    });
+
+    it('does not create a category when every skill in it is a duplicate', () => {
+      const result = applyAnswerPatch(baseDraft(), skillsTarget, additions({ category: 'Databases', skills: ['sql'] }), 'x', newId);
+
+      expect(issues(result)).toEqual(['patch: empty_patch']);
+    });
+
+    it('caps at 60 skills in total and at 12 categories', () => {
+      const full = baseDraft();
+      full.skillCategories = [{ id: 'c', name: 'Backend', skills: Array.from({ length: 60 }, (_, i) => `skill-${i}`) }];
+      const tooMany = applyAnswerPatch(full, skillsTarget, additions({ category: 'Backend', skills: ['One more'] }), 'x', newId);
+
+      const twelve = baseDraft();
+      twelve.skillCategories = Array.from({ length: 12 }, (_, i) => ({ id: `c${i}`, name: `Custom ${i}`, skills: [`s${i}`] }));
+      const tooManyCategories = applyAnswerPatch(twelve, skillsTarget, additions({ category: 'Databases', skills: ['PostgreSQL'] }), 'x', newId);
+
+      expect(issues(tooMany)).toEqual(['patch.additions: too_many_skills']);
+      expect(issues(tooManyCategories)).toEqual(['patch.additions: too_many_categories']);
+    });
+
+    it('does not mutate the input draft', () => {
+      const draft = baseDraft();
+      applyAnswerPatch(draft, skillsTarget, additions({ category: 'Backend', skills: ['Go'] }), 'x', newId);
+
+      expect(draft).toEqual(baseDraft());
     });
   });
 

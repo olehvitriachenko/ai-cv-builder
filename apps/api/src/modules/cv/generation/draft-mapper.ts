@@ -39,14 +39,47 @@ export function mapOutputToDraft(
   output: LlmCvOutput,
   newId: () => string = randomUUID,
 ): DraftCandidate {
+  const experience = output.experience.map((entry) => ({ id: newId(), ...entry }));
+  const education = output.education.map((entry) => ({ id: newId(), ...entry }));
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     contact: { ...output.contact, links: [...output.contact.links] },
     summary: output.summary,
-    experience: output.experience.map((entry) => ({ id: newId(), ...entry })),
-    education: output.education.map((entry) => ({ id: newId(), ...entry })),
-    skills: [...output.skills],
+    experience,
+    education,
+    skillCategories: groupSkills(output.skillCategories, newId),
   };
+}
+
+/**
+ * Turns the model's `{ category, skills }` list into stored categories: the same category named
+ * twice merges into its first occurrence, blank skills and case-insensitive duplicates across the
+ * whole CV are dropped (first wins), categories left empty are dropped, and ids are generated here.
+ * Caps are not applied: an over-cap result is rejected by `validateGeneration` and retried.
+ */
+function groupSkills(
+  groups: LlmCvOutput['skillCategories'],
+  newId: () => string,
+): DraftCandidate['skillCategories'] {
+  const seenSkills = new Set<string>();
+  const byName = new Map<string, string[]>();
+
+  for (const group of groups) {
+    const skills = byName.get(group.category) ?? [];
+    for (const raw of group.skills) {
+      const skill = raw.trim();
+      const key = skill.toLowerCase();
+      if (skill !== '' && !seenSkills.has(key)) {
+        seenSkills.add(key);
+        skills.push(skill);
+      }
+    }
+    byName.set(group.category, skills);
+  }
+
+  return [...byName]
+    .filter(([, skills]) => skills.length > 0)
+    .map(([name, skills]) => ({ id: newId(), name, skills }));
 }
 
 function questionKey(question: LlmQuestion): string {
@@ -92,7 +125,7 @@ export function mapQuestions(questions: LlmQuestion[], draft: CvDraft): Question
     return {
       section: question.section,
       itemId: entry ? entry.id : null,
-      field: question.field,
+      field: question.field ?? null,
       missing: question.missing,
       question: question.question,
       position,

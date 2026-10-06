@@ -4,7 +4,7 @@ import { applyFieldAnswer, checkTarget } from './question-target.js';
 
 function emptyDraft(): CvDraft {
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     contact: { fullName: null, email: null, phone: null, location: null, links: [] },
     summary: null,
     experience: [
@@ -12,7 +12,7 @@ function emptyDraft(): CvDraft {
       { id: 'exp-2', employer: null, title: 'Engineer', location: null, startDate: null, endDate: null, bullets: [] },
     ],
     education: [{ id: 'edu-1', institution: 'State University', qualification: null, startDate: null, endDate: null, details: null }],
-    skills: ['Node.js'],
+    skillCategories: [{ id: 'cat-1', name: 'Backend', skills: ['Node.js'] }],
   };
 }
 

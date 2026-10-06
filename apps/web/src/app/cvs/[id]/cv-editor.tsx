@@ -9,22 +9,23 @@ import { EditorWorkspace } from "./editor-workspace";
  * workspace (new form defaults, new autosaver on the new revision), so there is never a half-reset
  * form. Everything the user sees after a reload comes from the server.
  */
-export function CvEditor({ cvId, targetRole, initialResult }: { cvId: string; targetRole: string; initialResult: CvResult }) {
-  const [version, setVersion] = useState<{ key: number; result: CvResult; notice: string | null }>({
+export function CvEditor({ cvId, initialResult }: { cvId: string; initialResult: CvResult }) {
+  const [version, setVersion] = useState<{ key: number; result: CvResult; notice: string | null; appliedQuestionId: string | null }>({
     key: 0,
     result: initialResult,
     notice: null,
+    appliedQuestionId: null,
   });
 
   return (
     <EditorWorkspace
       key={version.key}
       cvId={cvId}
-      targetRole={targetRole}
       result={version.result}
       fetchLatest={() => getCvResult(cvId)}
       notice={version.notice}
-      onReplace={(result, notice) => setVersion((current) => ({ key: current.key + 1, result, notice: notice ?? null }))}
+      appliedQuestionId={version.appliedQuestionId}
+      onReplace={(result, notice, appliedQuestionId) => setVersion((current) => ({ key: current.key + 1, result, notice: notice ?? null, appliedQuestionId: appliedQuestionId ?? null }))}
     />
   );
 }

@@ -1,3 +1,4 @@
+import { SKILL_CATEGORY_NAMES } from '../../ai/catalogue/skill-categories.js';
 import type { LlmCvOutput } from '../../ai/schemas/llm-cv-output.schema.js';
 import { cvDraftSchema } from './draft.schema.js';
 import { mapOutputToDraft, mapQuestions, normalizeQuestions } from './draft-mapper.js';
@@ -33,19 +34,88 @@ function output(overrides: Partial<LlmCvOutput> = {}): LlmCvOutput {
         details: null,
       },
     ],
-    skills: ['Node.js'],
+    skillCategories: [{ category: 'Frameworks', skills: ['Node.js'] }],
     questions: [],
     ...overrides,
   };
 }
 
 describe('mapOutputToDraft', () => {
-  it('produces a schema-valid draft with schemaVersion 1', () => {
+  it('produces a schema-valid draft with schemaVersion 2 and grouped skills', () => {
     const draft = cvDraftSchema.parse(mapOutputToDraft(output()));
 
-    expect(draft.schemaVersion).toBe(1);
+    expect(draft.schemaVersion).toBe(2);
     expect(draft.contact.links).toEqual(['a.dev']);
-    expect(draft.skills).toEqual(['Node.js']);
+    expect(draft.skillCategories).toEqual([
+      { id: expect.any(String), name: 'Frameworks', skills: ['Node.js'] },
+    ]);
+  });
+
+  describe('skill categories', () => {
+    const map = (skillCategories: LlmCvOutput['skillCategories']) =>
+      mapOutputToDraft(output({ skillCategories }));
+
+    it('assigns a unique, model-independent id to every category', () => {
+      let next = 0;
+      const draft = mapOutputToDraft(
+        output({
+          skillCategories: [
+            { category: 'Databases', skills: ['PostgreSQL'] },
+            { category: 'Frameworks', skills: ['NestJS'] },
+          ],
+        }),
+        () => `id-${++next}`,
+      );
+
+      expect(draft.skillCategories.map((c) => c.id)).toEqual(['id-4', 'id-5']);
+      expect(new Set(draft.skillCategories.map((c) => c.id)).size).toBe(2);
+    });
+
+    it('keeps category and skill order', () => {
+      const draft = map([
+        { category: 'Frameworks', skills: ['NestJS', 'React'] },
+        { category: 'Databases', skills: ['PostgreSQL'] },
+      ]);
+
+      expect(draft.skillCategories.map((c) => [c.name, c.skills])).toEqual([
+        ['Frameworks', ['NestJS', 'React']],
+        ['Databases', ['PostgreSQL']],
+      ]);
+    });
+
+    it('merges a category that appears twice into the first occurrence', () => {
+      const draft = map([
+        { category: 'Databases', skills: ['PostgreSQL'] },
+        { category: 'Frameworks', skills: ['NestJS'] },
+        { category: 'Databases', skills: ['Redis'] },
+      ]);
+
+      expect(draft.skillCategories.map((c) => [c.name, c.skills])).toEqual([
+        ['Databases', ['PostgreSQL', 'Redis']],
+        ['Frameworks', ['NestJS']],
+      ]);
+    });
+
+    it('drops blank skills, case-insensitive duplicates across categories (first wins) and empty categories', () => {
+      const draft = map([
+        { category: 'Frameworks', skills: ['React', '  ', 'react'] },
+        { category: 'Databases', skills: ['REACT'] },
+        { category: 'Skills', skills: [' Go '] },
+      ]);
+
+      expect(draft.skillCategories.map((c) => [c.name, c.skills])).toEqual([
+        ['Frameworks', ['React']],
+        ['Skills', ['Go']],
+      ]);
+    });
+
+    it('does not truncate: an over-cap result is left for validation to reject', () => {
+      const draft = map(
+        SKILL_CATEGORY_NAMES.slice(0, 13).map((category, index) => ({ category, skills: [`s${index}`] })),
+      );
+
+      expect(draft.skillCategories).toHaveLength(13);
+    });
   });
 
   it('assigns a unique id to every experience and education entry', () => {
@@ -69,15 +139,15 @@ describe('mapOutputToDraft', () => {
     const source = output();
     const draft = mapOutputToDraft(source);
 
-    draft.skills.push('mutated');
-    expect(source.skills).toEqual(['Node.js']);
+    draft.skillCategories[0]?.skills.push('mutated');
+    expect(source.skillCategories[0]?.skills).toEqual(['Node.js']);
   });
 });
 
 describe('normalizeQuestions', () => {
   const base = {
     section: 'CONTACT',
-    itemIndex: null, field: null,
+    itemIndex: null, field: undefined,
     missing: 'Email',
     question: 'What is your email?',
   } as const;
@@ -87,7 +157,7 @@ describe('normalizeQuestions', () => {
       { ...base, missing: '  Email ', question: ' What is your email? ' },
       { ...base },
       { ...base, question: 'what is   your EMAIL?' },
-      { section: 'SUMMARY', itemIndex: null, field: null, missing: 'Focus', question: 'Which focus?' },
+      { section: 'SUMMARY', itemIndex: null, field: undefined, missing: 'Focus', question: 'Which focus?' },
     ]);
 
     expect(result.map((q) => q.section)).toEqual(['CONTACT', 'SUMMARY']);
@@ -96,8 +166,8 @@ describe('normalizeQuestions', () => {
 
   it('keeps the same question when it concerns different entries', () => {
     const result = normalizeQuestions([
-      { section: 'EXPERIENCE', itemIndex: 0, field: null, missing: 'Dates', question: 'When?' },
-      { section: 'EXPERIENCE', itemIndex: 1, field: null, missing: 'Dates', question: 'When?' },
+      { section: 'EXPERIENCE', itemIndex: 0, field: undefined, missing: 'Dates', question: 'When?' },
+      { section: 'EXPERIENCE', itemIndex: 1, field: undefined, missing: 'Dates', question: 'When?' },
     ]);
 
     expect(result).toHaveLength(2);
@@ -110,8 +180,8 @@ describe('mapQuestions', () => {
 
     const rows = mapQuestions(
       [
-        { section: 'EXPERIENCE', itemIndex: 1, field: null, missing: 'Dates', question: 'When at Globex?' },
-        { section: 'EDUCATION', itemIndex: 0, field: null, missing: 'Degree', question: 'Which degree?' },
+        { section: 'EXPERIENCE', itemIndex: 1, field: undefined, missing: 'Dates', question: 'When at Globex?' },
+        { section: 'EDUCATION', itemIndex: 0, field: undefined, missing: 'Degree', question: 'Which degree?' },
       ],
       draft,
     );
@@ -124,7 +194,7 @@ describe('mapQuestions', () => {
     const draft = cvDraftSchema.parse(mapOutputToDraft(output()));
 
     const rows = mapQuestions(
-      [{ section: 'CONTACT', itemIndex: null, field: null, missing: 'Email', question: 'Email?' }],
+      [{ section: 'CONTACT', itemIndex: null, field: undefined, missing: 'Email', question: 'Email?' }],
       draft,
     );
 
@@ -135,7 +205,7 @@ describe('mapQuestions', () => {
     const draft = cvDraftSchema.parse(mapOutputToDraft(output()));
     const questions = (['CONTACT', 'SUMMARY', 'SKILLS'] as const).map((section) => ({
       section,
-      itemIndex: null, field: null,
+      itemIndex: null, field: undefined,
       missing: section,
       question: `${section}?`,
     }));
@@ -148,13 +218,13 @@ describe('mapQuestions', () => {
 });
 
 describe('mapQuestions field', () => {
-  it('carries the field of each question into its stored row', () => {
+  it('carries a field into its stored row and persists an omitted field as null', () => {
     const draft = cvDraftSchema.parse(mapOutputToDraft(output()));
 
     const rows = mapQuestions(
       [
         { section: 'CONTACT', itemIndex: null, field: 'CONTACT_EMAIL', missing: 'Email', question: 'Email?' },
-        { section: 'SUMMARY', itemIndex: null, field: null, missing: 'Focus', question: 'Focus?' },
+        { section: 'SUMMARY', itemIndex: null, missing: 'Focus', question: 'Focus?' },
       ],
       draft,
     );

@@ -26,7 +26,13 @@ export interface SaveState {
   failure: SaveFailure | null;
 }
 
-export type SaveDraft = (revision: number, draft: CvDraft) => Promise<{ revision: number }>;
+/** What one save carries: the draft and the target role, written together under one revision. */
+export interface SavePayload {
+  draft: CvDraft;
+  targetRole: string;
+}
+
+export type SaveDraft = (revision: number, payload: SavePayload) => Promise<{ revision: number }>;
 
 export interface AutosaverOptions {
   initialRevision: number;
@@ -46,7 +52,7 @@ function classify(error: unknown): SaveFailure {
 
 export class DraftAutosaver {
   private state: SaveState;
-  private pending: CvDraft | null = null;
+  private pending: SavePayload | null = null;
   private inFlight: Promise<void> | null = null;
   private timer: ReturnType<typeof setTimeout> | null = null;
   private disposed = false;
@@ -67,12 +73,12 @@ export class DraftAutosaver {
     return () => this.listeners.delete(listener);
   };
 
-  /** The user changed the (valid) draft. Schedules a save unless saving is blocked by a conflict. */
-  change(draft: CvDraft): void {
+  /** The user changed the (valid) draft or role. Schedules a save unless saving is blocked by a conflict. */
+  change(payload: SavePayload): void {
     if (this.disposed) {
       return;
     }
-    this.pending = draft;
+    this.pending = payload;
     if (this.state.status === "conflict") {
       return;
     }
@@ -145,13 +151,13 @@ export class DraftAutosaver {
   }
 
   private start(): void {
-    const draft = this.pending;
-    if (draft === null || this.inFlight !== null || this.disposed) {
+    const payload = this.pending;
+    if (payload === null || this.inFlight !== null || this.disposed) {
       return;
     }
     this.pending = null;
     this.setState({ status: "saving", failure: null });
-    const run = this.save(this.state.revision, draft).then(
+    const run = this.save(this.state.revision, payload).then(
       (result) => {
         this.inFlight = null;
         if (this.disposed) {
@@ -170,7 +176,7 @@ export class DraftAutosaver {
           return;
         }
         // Keep what failed unless the user already typed something newer.
-        this.pending ??= draft;
+        this.pending ??= payload;
         const failure = classify(error);
         this.setState({ status: failure === "other" ? "error" : "conflict", failure });
       },

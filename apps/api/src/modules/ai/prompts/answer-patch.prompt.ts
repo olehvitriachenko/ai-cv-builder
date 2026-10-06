@@ -1,10 +1,11 @@
+import { FALLBACK_SKILL_CATEGORY, SKILL_CATEGORY_NAMES } from '../catalogue/skill-categories.js';
 import type { QuestionSectionName } from '../schemas/llm-cv-output.schema.js';
 
 /**
  * All prompt text for applying a clarification answer lives here. Bump the version when the
  * wording changes in a way that can change output.
  */
-export const ANSWER_PATCH_PROMPT_VERSION = 'answer-patch-v1';
+export const ANSWER_PATCH_PROMPT_VERSION = 'answer-patch-v2';
 
 const ROLE_TAG = 'target_role';
 const QUESTION_TAG = 'question';
@@ -20,18 +21,41 @@ const FEEDBACK_TAG = 'validation_feedback';
 export type ScopeContent =
   | {
       section: 'CONTACT';
-      contact: { fullName: string | null; email: string | null; phone: string | null; location: string | null; links: string[] };
+      contact: {
+        fullName: string | null;
+        email: string | null;
+        phone: string | null;
+        location: string | null;
+        links: string[];
+      };
     }
   | { section: 'SUMMARY' }
   | {
       section: 'EXPERIENCE';
-      entry: { employer: string | null; title: string | null; location: string | null; startDate: string | null; endDate: string | null; bullets: string[] };
+      entry: {
+        employer: string | null;
+        title: string | null;
+        location: string | null;
+        startDate: string | null;
+        endDate: string | null;
+        bullets: string[];
+      };
     }
   | {
       section: 'EDUCATION';
-      entry: { institution: string | null; qualification: string | null; startDate: string | null; endDate: string | null; details: string | null };
+      entry: {
+        institution: string | null;
+        qualification: string | null;
+        startDate: string | null;
+        endDate: string | null;
+        details: string | null;
+      };
     }
-  | { section: 'SKILLS'; skills: string[] };
+  | { section: 'SKILLS'; categories: { name: string; skills: string[] }[] };
+
+const SKILL_CATEGORY_LIST = [...SKILL_CATEGORY_NAMES, FALLBACK_SKILL_CATEGORY]
+  .map((name) => `- ${name}`)
+  .join('\n');
 
 const COMMON_RULES = `You turn ONE answer from a person into additions for ONE part of their CV.
 
@@ -55,7 +79,7 @@ const SECTION_RULES: Record<QuestionSectionName, string> = {
   SUMMARY: `\n\n## This part: professional summary\nWrite "summary": at most three sentences, relevant to the target role, built only from the answer. Do not add anything the answer does not say.`,
   EXPERIENCE: `\n\n## This part: one job\nPut each new responsibility or achievement from the answer in "bullets" as a concise professional bullet point (one sentence each, at most 300 characters), without repeating existing bullets. Fill employer, title, location, startDate or endDate only if the answer states it and it is null in <${CONTENT_TAG}>; copy dates exactly as written.`,
   EDUCATION: `\n\n## This part: one education entry\nFill institution, qualification, startDate, endDate or details only if the answer states it and it is null in <${CONTENT_TAG}>. "details" is one short line (at most 300 characters); copy dates exactly as written.`,
-  SKILLS: `\n\n## This part: skills\nPut each new skill from the answer in "skills" as a short name (at most 60 characters), one skill per item, without repeating existing skills.`,
+  SKILLS: `\n\n## This part: skills\nPut each new skill from the answer in "additions", under the category it belongs to: an object with "category" and "skills" (each skill a short name of at most 60 characters, one per item), without repeating skills already in <${CONTENT_TAG}>. Use the name of an existing category from <${CONTENT_TAG}> when one fits. Otherwise use exactly one of these names (do not invent category names):\n${SKILL_CATEGORY_LIST}\nUse "${FALLBACK_SKILL_CATEGORY}" for a skill that fits none of them. Never add a skill the answer does not state.`,
 };
 
 export function buildAnswerPatchSystemPrompt(section: QuestionSectionName): string {
@@ -79,7 +103,7 @@ function contentOf(scope: ScopeContent): unknown {
     case 'EDUCATION':
       return scope.entry;
     case 'SKILLS':
-      return scope.skills;
+      return scope.categories;
     case 'SUMMARY':
       return null;
   }
@@ -110,7 +134,9 @@ export function buildAnswerPatchUserContent({
 
   const content = contentOf(scope);
   if (content !== null) {
-    blocks.push(`<${CONTENT_TAG}>\n${neutralizeDelimiters(JSON.stringify(content, null, 2))}\n</${CONTENT_TAG}>`);
+    blocks.push(
+      `<${CONTENT_TAG}>\n${neutralizeDelimiters(JSON.stringify(content, null, 2))}\n</${CONTENT_TAG}>`,
+    );
   }
 
   if (feedback && feedback.length > 0) {

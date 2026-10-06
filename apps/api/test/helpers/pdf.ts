@@ -60,3 +60,14 @@ export function buildEmptyTextPdf(): Buffer {
 export function buildCorruptPdf(): Buffer {
   return Buffer.from('%PDF-1.4\nthis is not a real pdf structure at all\n', 'latin1');
 }
+
+/** Controlled drawing-order fixture; unlike buildTextPdf, each span has an independent position. */
+export function buildPositionedTextPdf(
+  items: { text: string; x: number; y: number }[],
+  sidebar = false,
+): Buffer {
+  const decoration = sidebar ? '0.9 g 25 400 190 400 re f 0 g 35 750 4 4 re f\n' : '';
+  return assemble([decoration + items.map(({ text, x, y }) =>
+    `BT /F1 10 Tf 1 0 0 1 ${x} ${y} Tm (${escapePdfText(text)}) Tj ET`,
+  ).join('\n')]);
+}

@@ -1,6 +1,13 @@
+import { randomUUID } from 'node:crypto';
+import { canonicalSkillCategoryName } from '../../ai/catalogue/skill-categories.js';
 import type { AnswerPatch } from '../../ai/schemas/answer-patch.schema.js';
 import type { QuestionSectionName } from '../../ai/schemas/llm-cv-output.schema.js';
-import { cvDraftSchema, type CvDraft } from '../generation/draft.schema.js';
+import {
+  MAX_SKILL_CATEGORIES,
+  MAX_SKILLS,
+  cvDraftSchema,
+  type CvDraft,
+} from '../generation/draft.schema.js';
 import { indexSource } from '../generation/source-matching.js';
 
 /**
@@ -33,7 +40,6 @@ export type PatchResult = { ok: true; draft: CvDraft } | { ok: false; issues: Pa
 
 const MAX_BULLETS = 12;
 const MAX_LINKS = 5;
-const MAX_SKILLS = 60;
 
 const trimmed = (value: string | null): string | null => {
   const result = value?.trim() ?? '';
@@ -80,14 +86,17 @@ export function applyAnswerPatch(
   target: PatchTarget,
   patch: AnswerPatch,
   answerText: string,
+  newId: () => string = randomUUID,
 ): PatchResult {
   switch (target.section) {
     case 'CONTACT':
-      return 'fullName' in patch ? applyContact(draft, patch, answerText) : fail('wrong_scope', 'patch');
+      return 'fullName' in patch
+        ? applyContact(draft, patch, answerText)
+        : fail('wrong_scope', 'patch');
     case 'SUMMARY':
       return 'summary' in patch ? applySummary(draft, patch) : fail('wrong_scope', 'patch');
     case 'SKILLS':
-      return 'skills' in patch ? applySkills(draft, patch) : fail('wrong_scope', 'patch');
+      return 'additions' in patch ? applySkills(draft, patch, newId) : fail('wrong_scope', 'patch');
     case 'EXPERIENCE':
       return 'bullets' in patch && 'employer' in patch
         ? applyExperience(draft, target.itemId, patch, answerText)
@@ -182,20 +191,76 @@ function applySummary(draft: CvDraft, patch: { summary: string | null }): PatchR
   return finish([], summary !== null, { ...draft, summary });
 }
 
-function applySkills(draft: CvDraft, patch: { skills: string[] }): PatchResult {
-  const known = new Set(draft.skills.map((skill) => skill.toLowerCase()));
-  const added: string[] = [];
-  for (const skill of cleanList(patch.skills)) {
-    if (!known.has(skill.toLowerCase())) {
-      known.add(skill.toLowerCase());
-      added.push(skill);
-    }
-  }
+type SkillsPatch = Extract<AnswerPatch, { additions: unknown }>;
+
+/**
+ * Appends skills per category. A name matching an existing category (ignoring case) extends it; a
+ * new category is created at the end only when its name is a predefined one or the fallback
+ * `Skills`. Skills already present anywhere in the CV (ignoring case) are ignored. Nothing is
+ * removed, renamed or reordered.
+ */
+function applySkills(draft: CvDraft, patch: SkillsPatch, newId: () => string): PatchResult {
   const issues: PatchIssue[] = [];
-  if (draft.skills.length + added.length > MAX_SKILLS) {
-    issues.push({ rule: 'too_many_skills', path: 'patch.skills' });
+  const categories = draft.skillCategories.map((category) => ({
+    ...category,
+    skills: [...category.skills],
+  }));
+  const known = new Set(
+    categories.flatMap((category) => category.skills.map((skill) => skill.toLowerCase())),
+  );
+  let added = 0;
+
+  patch.additions.forEach((addition, index) => {
+    const path = `patch.additions.${index}.category`;
+    const name = addition.category.trim();
+    if (name === '') {
+      issues.push({ rule: 'blank_category', path });
+      return;
+    }
+
+    let category = categories.find(
+      (candidate) => candidate.name.toLowerCase() === name.toLowerCase(),
+    );
+    if (!category) {
+      const canonical = canonicalSkillCategoryName(name);
+      if (canonical === undefined) {
+        issues.push({ rule: 'unknown_category', path });
+        return;
+      }
+      category = categories.find(
+        (candidate) => candidate.name.toLowerCase() === canonical.toLowerCase(),
+      );
+    }
+
+    // A category is created lazily, only when it receives at least one new skill.
+    let target = category;
+    for (const skill of cleanList(addition.skills)) {
+      const key = skill.toLowerCase();
+      if (known.has(key)) {
+        continue;
+      }
+      if (!target) {
+        const created = {
+          id: newId(),
+          name: canonicalSkillCategoryName(name) ?? name,
+          skills: [] as string[],
+        };
+        categories.push(created);
+        target = created;
+      }
+      known.add(key);
+      target.skills.push(skill);
+      added += 1;
+    }
+  });
+
+  if (categories.length > MAX_SKILL_CATEGORIES) {
+    issues.push({ rule: 'too_many_categories', path: 'patch.additions' });
   }
-  return finish(issues, added.length > 0, { ...draft, skills: [...draft.skills, ...added] });
+  if (categories.reduce((total, category) => total + category.skills.length, 0) > MAX_SKILLS) {
+    issues.push({ rule: 'too_many_skills', path: 'patch.additions' });
+  }
+  return finish(issues, added > 0, { ...draft, skillCategories: categories });
 }
 
 type ExperiencePatch = Extract<AnswerPatch, { bullets: string[]; employer: string | null }>;
@@ -242,7 +307,9 @@ function applyExperience(
     changed = true;
   }
 
-  const experience = draft.experience.map((existing, position) => (position === index ? entry : existing));
+  const experience = draft.experience.map((existing, position) =>
+    position === index ? entry : existing,
+  );
   return finish(issues, changed, { ...draft, experience });
 }
 
@@ -264,7 +331,9 @@ function applyEducation(
   const issues: PatchIssue[] = [];
   const entry = { ...current };
   let changed = false;
-  const source = indexSource([answerText, current.institution ?? '', current.qualification ?? ''].join('\n'));
+  const source = indexSource(
+    [answerText, current.institution ?? '', current.qualification ?? ''].join('\n'),
+  );
 
   for (const key of EDUCATION_KEYS) {
     const value = trimmed(patch[key]);
@@ -281,6 +350,8 @@ function applyEducation(
     }
   }
 
-  const education = draft.education.map((existing, position) => (position === index ? entry : existing));
+  const education = draft.education.map((existing, position) =>
+    position === index ? entry : existing,
+  );
   return finish(issues, changed, { ...draft, education });
 }

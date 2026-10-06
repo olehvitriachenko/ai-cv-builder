@@ -4,6 +4,7 @@ import { MAX_PDF_PAGES, MAX_SOURCE_CHARS } from '../../../common/source-limits.j
 import type {
   FailureReason,
   GenerationStatus,
+  QuestionField,
   QuestionSection,
   QuestionStatus,
   SourceType,
@@ -82,11 +83,13 @@ export interface CvResultResponse {
   status: 'COMPLETED';
   /** Send back with every draft save and apply (optimistic concurrency). */
   revision: number;
+  targetRole: string;
   draft: CvDraft;
   questions: {
     id: string;
     section: QuestionSection;
     itemId: string | null;
+    field: QuestionField | null;
     missing: string;
     question: string;
     status: QuestionStatus;
@@ -199,15 +202,17 @@ export class CvService {
       where: { id: cvId, userId, generationStatus: 'COMPLETED' },
       select: {
         id: true,
+        targetRole: true,
         draft: true,
         revision: true,
         questions: {
           orderBy: { position: 'asc' },
-          // `field` is internal (how an answer is applied) and is never returned.
+          // The read-only field target lets the editor identify questions already filled manually.
           select: {
             id: true,
             section: true,
             itemId: true,
+            field: true,
             missing: true,
             question: true,
             status: true,
@@ -226,6 +231,7 @@ export class CvService {
       id: cv.id,
       status: 'COMPLETED',
       revision: cv.revision,
+      targetRole: cv.targetRole,
       draft: cvDraftSchema.parse(cv.draft),
       questions: cv.questions,
     };

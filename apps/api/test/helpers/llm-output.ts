@@ -33,7 +33,10 @@ export function validLlmOutput(overrides: Partial<LlmCvOutput> = {}): LlmCvOutpu
         details: null,
       },
     ],
-    skills: ['Node.js', 'PostgreSQL'],
+    skillCategories: [
+      { category: 'Frameworks', skills: ['Node.js'] },
+      { category: 'Databases', skills: ['PostgreSQL'] },
+    ],
     questions: [],
     ...overrides,
   };

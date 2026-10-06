@@ -199,7 +199,7 @@ describe('POST /api/cvs/:id/questions/:questionId/apply', () => {
         headers: { cookie: user.cookie },
         payload: { revision: 0, draft: sparseDraft() },
       });
-      applier.enqueueOutput({ skills: ['Go'] });
+      applier.enqueueOutput({ additions: [{ category: 'Backend', skills: ['Go'] }] });
 
       const response = await apply(user.cookie, id, questionId, { revision: 0 });
 
@@ -288,12 +288,41 @@ describe('POST /api/cvs/:id/questions/:questionId/apply', () => {
     it('applies a skills answer by appending, never replacing', async () => {
       const { user, id } = await setUp();
       const questionId = await seedQuestion(prisma, id, { section: 'SKILLS', status: 'ANSWERED', answer: 'Go and Rust' });
-      applier.enqueueOutput({ skills: ['Go', 'Rust', 'node.js'] });
+      applier.enqueueOutput({ additions: [{ category: 'backend', skills: ['Go', 'Rust', 'node.js'] }] });
 
       const response = await apply(user.cookie, id, questionId, { revision: 0 });
 
-      expect(response.json<ApplyBody>().draft.skills).toEqual(['Node.js', 'Go', 'Rust']);
-      expect(applier.calls[0]?.scope).toEqual({ section: 'SKILLS', skills: ['Node.js'] });
+      expect(response.json<ApplyBody>().draft.skillCategories.map((c) => [c.name, c.skills])).toEqual([['Backend', ['Node.js', 'Go', 'Rust']]]);
+      expect(applier.calls[0]?.scope).toEqual({ section: 'SKILLS', categories: [{ name: 'Backend', skills: ['Node.js'] }] });
+    });
+
+    it('creates a predefined category for a new group of skills, atomically with APPLIED, and never removes skills', async () => {
+      const { user, id } = await setUp();
+      const questionId = await seedQuestion(prisma, id, { section: 'SKILLS', status: 'ANSWERED', answer: 'PostgreSQL and Redis' });
+      applier.enqueueOutput({ additions: [{ category: 'databases', skills: ['PostgreSQL', 'Redis'] }] });
+
+      const response = await apply(user.cookie, id, questionId, { revision: 0 });
+
+      expect(response.statusCode).toBe(200);
+      expect(response.json<ApplyBody>().draft.skillCategories.map((c) => [c.name, c.skills])).toEqual([
+        ['Backend', ['Node.js']],
+        ['Databases', ['PostgreSQL', 'Redis']],
+      ]);
+      expect((await snapshot(id, questionId)).status).toBe('APPLIED');
+    });
+
+    it('answers 422 and changes nothing when the model names a category that is neither known nor already there', async () => {
+      const { user, id } = await setUp();
+      const questionId = await seedQuestion(prisma, id, { section: 'SKILLS', status: 'ANSWERED', answer: 'Go' });
+      applier.enqueueOutput({ additions: [{ category: 'Secret Category', skills: ['Go'] }] }).enqueueOutput({ additions: [{ category: 'Secret Category', skills: ['Go'] }] });
+      const before = await snapshot(id, questionId);
+
+      const response = await apply(user.cookie, id, questionId, { revision: 0 });
+
+      expect(response.statusCode).toBe(422);
+      expect(response.json()).toMatchObject({ code: 'APPLY_OUTPUT_INVALID' });
+      expect(response.body).not.toContain('Secret Category');
+      expect(await snapshot(id, questionId)).toEqual(before);
     });
 
     it('writes a summary only into an empty summary; a present one is TARGET_NOT_APPLICABLE and the AI is not called', async () => {
@@ -319,7 +348,7 @@ describe('POST /api/cvs/:id/questions/:questionId/apply', () => {
       const { user, id } = await setUp();
       const questionId = await seedQuestion(prisma, id, { section: 'SKILLS', status: 'ANSWERED', answer: 'Go' });
       applier.enqueueOutput({ wrong: 'shape' });
-      applier.enqueueOutput({ skills: ['Go'] });
+      applier.enqueueOutput({ additions: [{ category: 'Backend', skills: ['Go'] }] });
 
       const response = await apply(user.cookie, id, questionId, { revision: 0 });
 
@@ -332,9 +361,9 @@ describe('POST /api/cvs/:id/questions/:questionId/apply', () => {
 
     it.each([
       ['malformed output', null],
-      ['wrong types', { skills: 'Go' }],
-      ['an unknown key (a path)', { skills: ['Go'], path: 'draft.contact.email' }],
-      ['an empty patch (nothing would change)', { skills: [] }],
+      ['wrong types', { additions: 'Go' }],
+      ['an unknown key (a path)', { additions: [{ category: 'Backend', skills: ['Go'] }], path: 'draft.contact.email' }],
+      ['an empty patch (nothing would change)', { additions: [] }],
     ])('answers 422 for %s after the retry and changes nothing', async (_label, output) => {
       const { user, id } = await setUp();
       const questionId = await seedQuestion(prisma, id, { section: 'SKILLS', status: 'ANSWERED', answer: 'Go' });
@@ -385,7 +414,7 @@ describe('POST /api/cvs/:id/questions/:questionId/apply', () => {
     it('recovers when the transient error clears on the second attempt', async () => {
       const { user, id } = await setUp();
       const questionId = await seedQuestion(prisma, id, { section: 'SKILLS', status: 'ANSWERED', answer: 'Go' });
-      applier.enqueueError(new ProviderError('TRANSIENT', '503')).enqueueOutput({ skills: ['Go'] });
+      applier.enqueueError(new ProviderError('TRANSIENT', '503')).enqueueOutput({ additions: [{ category: 'Backend', skills: ['Go'] }] });
 
       expect((await apply(user.cookie, id, questionId, { revision: 0 })).statusCode).toBe(200);
     });
@@ -428,7 +457,7 @@ describe('POST /api/cvs/:id/questions/:questionId/apply', () => {
         payload: { revision: 0, draft: { ...sparseDraft(), summary: 'Edited meanwhile' } },
       });
       expect(edit.statusCode).toBe(200);
-      hold.release({ skills: ['Go'] });
+      hold.release({ additions: [{ category: 'Backend', skills: ['Go'] }] });
       const response = await pending;
 
       expect(response.statusCode).toBe(409);
@@ -453,7 +482,7 @@ describe('POST /api/cvs/:id/questions/:questionId/apply', () => {
         headers: { cookie: user.cookie },
         payload: { answer: 'Rust instead' },
       });
-      hold.release({ skills: ['Go'] });
+      hold.release({ additions: [{ category: 'Backend', skills: ['Go'] }] });
       const response = await pending;
 
       expect(response.statusCode).toBe(409);

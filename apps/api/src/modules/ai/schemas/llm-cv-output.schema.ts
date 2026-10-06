@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { FALLBACK_SKILL_CATEGORY, SKILL_CATEGORY_NAMES } from '../catalogue/skill-categories.js';
 
 /**
  * What the model is asked to return. It is deliberately looser than the persisted `CvDraft`:
@@ -66,15 +67,22 @@ export const llmCvOutputSchema = z.object({
       details: z.string().nullable(),
     }),
   ),
-  skills: z.array(z.string()),
+  // Skills grouped under the closed set of predefined categories; `Skills` is the fallback for
+  // anything that fits none. The model never invents category names or ids.
+  skillCategories: z.array(
+    z.strictObject({
+      category: z.enum([...SKILL_CATEGORY_NAMES, FALLBACK_SKILL_CATEGORY]),
+      skills: z.array(z.string()),
+    }),
+  ),
   questions: z.array(
     z.object({
       section: z.enum(QUESTION_SECTIONS),
       // Zero-based position of the entry inside its section; null for section-level questions.
       itemIndex: z.number().int().nullable(),
-      // The one plain value the answer fills (see QUESTION_FIELDS); null when the answer is not a
-      // single value for exactly one field. Always present: structured output returns every key.
-      field: z.enum(QUESTION_FIELDS).nullable(),
+      // Omit when there is no single-value target. Optional rather than nullable keeps the
+      // provider schema within its 16-union limit; persistence still represents absence as null.
+      field: z.enum(QUESTION_FIELDS).optional(),
       missing: z.string(),
       question: z.string(),
     }),

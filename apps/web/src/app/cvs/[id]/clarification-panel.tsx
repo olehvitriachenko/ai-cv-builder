@@ -1,32 +1,44 @@
 "use client";
 
 import { Sparkles } from "lucide-react";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Card } from "@/components/ui/card";
 import type { ClarificationQuestion, CvDraft } from "@/lib/api/cvs";
-import { unresolvedCount } from "@/lib/cv/question-form";
+import { assistantSummary, questionAlreadyFilled, questionView } from "@/lib/cv/question-form";
 import { QuestionCard } from "./question-card";
 
 /**
- * Figma "AI Assistant": the persisted clarification questions, secondary to the document. The
- * server's questions seed the list; each save, dismissal replaces its own question with the
- * server's reply, so what is shown is always what the server stored.
+ * Figma "AI Assistant" (05.1, 07.1 to 07.3): the persisted clarification questions, secondary to
+ * the document. The server's questions seed the list; each save or dismissal replaces its own
+ * question with the server's reply, so what is shown is always what the server stored.
  */
 export function ClarificationPanel({
   cvId,
   initialQuestions,
+  appliedQuestionId,
   draft,
   onApply,
+  onReviewLatest,
   applyDisabled,
 }: {
   cvId: string;
   initialQuestions: ClarificationQuestion[];
+  /** Only this action's applied card gets a fresh TTL after the workspace remounts. */
+  appliedQuestionId: string | null;
   draft: CvDraft;
   onApply: (question: ClarificationQuestion) => Promise<void>;
+  onReviewLatest: () => Promise<void>;
   applyDisabled: boolean;
 }) {
   const [questions, setQuestions] = useState(initialQuestions);
-  const unresolved = unresolvedCount(questions);
+  const relevantQuestions = questions.filter((question) => !questionAlreadyFilled(question, draft));
+  const summary = assistantSummary(relevantQuestions);
+  const [hiddenQuestions, setHiddenQuestions] = useState<string[]>(() =>
+    initialQuestions.filter((question) => questionView(question).resolved && question.id !== appliedQuestionId).map((question) => question.id),
+  );
+  const hideResolved = useCallback((id: string) => {
+    setHiddenQuestions((current) => [...current, id]);
+  }, []);
 
   function replace(next: ClarificationQuestion) {
     setQuestions((current) => current.map((question) => (question.id === next.id ? next : question)));
@@ -35,44 +47,37 @@ export function ClarificationPanel({
   return (
     <Card className="flex flex-col gap-3 p-4">
       <div className="flex items-center justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-2">
-          <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-accent-tint">
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-accent-tint">
             <Sparkles aria-hidden className="size-4 text-accent" strokeWidth={1.75} />
           </span>
-          <div className="flex min-w-0 flex-col gap-0.5">
-            <h3 className="text-sm font-semibold text-ink">AI Assistant</h3>
-            <p className="text-[11px] text-muted">Clarify missing facts and improve writing</p>
-          </div>
+          <h3 className="text-sm leading-[normal] font-semibold text-ink">AI Assistant</h3>
         </div>
-        {questions.length > 0 ? (
-          <span
-            role="status"
-            className="shrink-0 rounded-full bg-accent-tint px-2 py-1 text-[11px] font-semibold text-accent"
-          >
-            {unresolved === 0 ? "All resolved" : `${unresolved} unresolved`}
-          </span>
+        {relevantQuestions.length > 0 ? (
+          <p role="status" className="shrink-0 text-[11px] leading-[normal] font-semibold text-accent">
+            {summary.count}
+          </p>
         ) : null}
       </div>
 
-      {questions.length === 0 ? (
+      {relevantQuestions.length === 0 ? (
         <p className="rounded-lg bg-success-tint p-3 text-[13px] leading-normal text-success">
-          Nothing to clarify. Everything the draft needed was in your information.
+          Nothing to clarify. The requested details are already in your CV.
         </p>
       ) : (
         <>
-          <div className="flex flex-col gap-1 text-[11px] leading-normal text-muted">
-            <p>Review each item below. Answer when you can, or dismiss what no longer applies.</p>
-            <p className="text-[10px]">AI never invents facts. Nothing changes your CV until you apply it, and it only ever adds to what you already wrote.</p>
-          </div>
-          <ul className="flex flex-col gap-2.5">
-            {questions.map((question) => (
+          <p className="text-xs leading-normal text-muted">{summary.line}</p>
+          <ul className="flex flex-col gap-4">
+            {relevantQuestions.filter((question) => !hiddenQuestions.includes(question.id)).map((question) => (
               <QuestionCard
                 key={question.id}
                 cvId={cvId}
                 question={question}
                 draft={draft}
                 onChange={replace}
+                onExpire={hideResolved}
                 onApply={onApply}
+                onReviewLatest={onReviewLatest}
                 applyDisabled={applyDisabled}
               />
             ))}

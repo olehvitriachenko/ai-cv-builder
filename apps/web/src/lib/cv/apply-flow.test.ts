@@ -2,19 +2,20 @@ import { describe, expect, it, vi } from "vitest";
 import type { CvResult } from "@/lib/api/cvs";
 import { ApiError } from "@/lib/api/fetcher";
 import type { SaveState } from "./autosave";
-import { ApplyBlockedError, applyAnswer, applyErrorOutcome } from "./apply-flow";
+import { APPLY_ACTION_LABELS, ApplyBlockedError, applyAnswer, applyErrorOutcome } from "./apply-flow";
 
 const RESULT: CvResult = {
   id: "cv1",
   status: "COMPLETED",
   revision: 4,
+  targetRole: "Backend Engineer",
   draft: {
-    schemaVersion: 1,
+    schemaVersion: 2,
     contact: { fullName: null, email: null, phone: null, location: null, links: [] },
     summary: null,
     experience: [],
     education: [],
-    skills: [],
+    skillCategories: [],
   },
   questions: [],
 };
@@ -66,32 +67,53 @@ describe("applyAnswer", () => {
 });
 
 describe("applyErrorOutcome", () => {
-  const outcome = (status: number, code: string) => applyErrorOutcome(new ApiError(status, code, "server text"));
+  const outcome = (status: number, code: string, target: string | null = null) =>
+    applyErrorOutcome(new ApiError(status, code, "server text"), target);
 
-  it("asks to edit or dismiss when the target can no longer take the answer", () => {
-    const result = outcome(409, "TARGET_NOT_APPLICABLE");
+  it("a stale target names the section and offers Review section and Dismiss", () => {
+    const result = outcome(409, "TARGET_NOT_APPLICABLE", "Kilona");
 
-    expect(result.reload).toBe(false);
-    expect(result.message).toContain("dismiss");
+    expect(result).toMatchObject({ kind: "target_stale", reload: false, actions: ["review_section", "dismiss"] });
+    expect(result.message).toBe(
+      "The Kilona section changed since this question was created. Review the current section before deciding.",
+    );
   });
 
-  it("reloads the latest version when the CV or the question changed elsewhere", () => {
-    expect(outcome(409, "REVISION_CONFLICT")).toMatchObject({ reload: true });
-    expect(outcome(409, "QUESTION_STATE_CONFLICT")).toMatchObject({ reload: true });
-    expect(outcome(409, "REVISION_CONFLICT").message).toContain("latest");
+  it("a revision conflict does not reload on its own: the person reviews the latest version first", () => {
+    const result = outcome(409, "REVISION_CONFLICT");
+
+    expect(result).toMatchObject({ kind: "revision_conflict", reload: false, actions: ["review_latest", "retry_after_review"] });
+    expect(result.message).toContain("newer saved CV revision");
   });
 
-  it("explains a field that cannot hold the answer", () => {
+  it("a question that changed elsewhere reloads the latest version", () => {
+    expect(outcome(409, "QUESTION_STATE_CONFLICT")).toMatchObject({ kind: "question_changed", reload: true });
+  });
+
+  it("an AI outage keeps the answer and offers Retry later and Edit manually", () => {
+    const result = outcome(503, "AI_UNAVAILABLE");
+
+    expect(result).toMatchObject({ kind: "ai_unavailable", actions: ["retry_later", "edit_manually"] });
+    expect(result.message).toBe("The AI service is unavailable. Your answer and CV draft are retained.");
+  });
+
+  it("unusable AI output says nothing unconfirmed was applied and offers Re-answer and Edit manually", () => {
+    const result = outcome(422, "APPLY_OUTPUT_INVALID");
+
+    expect(result).toMatchObject({ kind: "output_invalid", actions: ["re_answer", "edit_manually"] });
+    expect(result.message).toBe("The output could not be validated. No unconfirmed wording was applied.");
+  });
+
+  it("explains a field that cannot hold the answer and offers Re-answer or Dismiss", () => {
     const result = outcome(422, "ANSWER_INVALID_FOR_FIELD");
 
-    expect(result.reload).toBe(false);
+    expect(result).toMatchObject({ kind: "answer_invalid", reload: false, actions: ["re_answer", "dismiss"] });
     expect(result.message).toContain("answer");
   });
 
-  it("says the AI is unavailable or its output unusable, and that nothing changed", () => {
-    expect(outcome(503, "AI_UNAVAILABLE").message).toMatch(/unavailable/i);
-    expect(outcome(422, "APPLY_OUTPUT_INVALID").message).toMatch(/nothing was changed/i);
-    expect(outcome(503, "AI_UNAVAILABLE").message).toMatch(/nothing was changed/i);
+  it("offers a way to retry only for the causes the person can act on", () => {
+    expect(outcome(409, "CV_NOT_EDITABLE").actions).toEqual([]);
+    expect(outcome(404, "QUESTION_NOT_FOUND")).toMatchObject({ kind: "gone", reload: true, actions: [] });
   });
 
   it("keeps the CV and the answer in every other failure, without echoing server text", () => {
@@ -100,5 +122,11 @@ describe("applyErrorOutcome", () => {
     expect(result.message).toMatch(/nothing was changed/i);
     expect(result.message).not.toContain("secret");
     expect(applyErrorOutcome(new ApiError(404, "QUESTION_NOT_FOUND", "x")).message).toMatch(/no longer exists/i);
+  });
+
+  it("labels every action", () => {
+    expect(Object.keys(APPLY_ACTION_LABELS).sort()).toEqual(
+      ["dismiss", "edit_manually", "re_answer", "retry_after_review", "retry_later", "review_latest", "review_section"],
+    );
   });
 });

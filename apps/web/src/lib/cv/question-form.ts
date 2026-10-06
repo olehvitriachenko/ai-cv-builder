@@ -40,6 +40,19 @@ export function unresolvedCount(questions: readonly Pick<ClarificationQuestion, 
   return questions.filter((question) => !questionView(question).resolved).length;
 }
 
+/** A scalar contact question no longer asks for missing information once its target is filled. */
+export function questionAlreadyFilled(question: ClarificationQuestion, draft: CvDraft): boolean {
+  if (questionView(question).resolved || question.section !== "CONTACT" || question.itemId !== null) return false;
+  switch (question.field) {
+    case "CONTACT_FULL_NAME": return Boolean(draft.contact.fullName?.trim());
+    case "CONTACT_EMAIL": return Boolean(draft.contact.email?.trim());
+    case "CONTACT_PHONE": return Boolean(draft.contact.phone?.trim());
+    case "CONTACT_LOCATION": return Boolean(draft.contact.location?.trim());
+    // A link question can ask for an additional link; untyped questions cannot be inferred safely.
+    default: return false;
+  }
+}
+
 const SECTION_LABELS: Record<ClarificationQuestion["section"], string> = {
   CONTACT: "Contact",
   SUMMARY: "Summary",
@@ -48,11 +61,16 @@ const SECTION_LABELS: Record<ClarificationQuestion["section"], string> = {
   SKILLS: "Skills",
 };
 
-/** "Experience · Northstar Labs": which part of the CV a question is about. */
-export function questionContext(question: ClarificationQuestion, draft: CvDraft): string {
-  const section = SECTION_LABELS[question.section];
+export type QuestionSection = ClarificationQuestion["section"];
+
+export function sectionLabel(section: QuestionSection): string {
+  return SECTION_LABELS[section];
+}
+
+/** The name of the entry a question concerns (the employer, the institution), or null. */
+export function questionTargetName(question: ClarificationQuestion, draft: CvDraft): string | null {
   if (question.itemId === null) {
-    return section;
+    return null;
   }
   const entry =
     question.section === "EXPERIENCE"
@@ -60,11 +78,83 @@ export function questionContext(question: ClarificationQuestion, draft: CvDraft)
       : question.section === "EDUCATION"
         ? draft.education.find((item) => item.id === question.itemId)
         : undefined;
-  const name =
-    entry && "employer" in entry
-      ? (entry.employer ?? entry.title)
-      : entry
-        ? (entry.institution ?? entry.qualification)
-        : null;
-  return name ? `${section} · ${name}` : section;
+  return entry && "employer" in entry
+    ? (entry.employer ?? entry.title)
+    : entry
+      ? (entry.institution ?? entry.qualification)
+      : null;
+}
+
+/** "Experience / Kilona": which part of the CV a question is about. */
+export function questionContext(question: ClarificationQuestion, draft: CvDraft): string {
+  const section = SECTION_LABELS[question.section];
+  const name = questionTargetName(question, draft);
+  return name ? `${section} / ${name}` : section;
+}
+
+export interface AssistantSummary {
+  /** "1 unresolved": answered questions not yet applied or dismissed still count. */
+  count: string;
+  /** The supporting line under the title. */
+  line: string;
+}
+
+export function assistantSummary(questions: readonly Pick<ClarificationQuestion, "status">[]): AssistantSummary {
+  const unresolved = unresolvedCount(questions);
+  return {
+    count: `${unresolved} unresolved`,
+    line: questions.length > 0 && unresolved === 0 ? "All resolved" : "Clarify missing facts and improve your CV",
+  };
+}
+
+/** The answer's own save, separate from applying it: what the indicator under the answer says. */
+export type AnswerSave = "idle" | "saving" | "saved" | "error";
+
+export function answerSaveLabel(save: AnswerSave): string | null {
+  switch (save) {
+    case "idle":
+      return null;
+    case "saving":
+      return "Saving…";
+    case "saved":
+      return "Saved";
+    case "error":
+      return "Answer retained in draft";
+  }
+}
+
+/**
+ * Apply to CV is available only for an answered question whose current text is the one the server
+ * holds: nothing waiting to be saved, no save failure and no other apply running. A saved answer is
+ * not an applied one; only this explicit action changes the CV.
+ */
+export function canApplyAnswer(input: {
+  status: ClarificationQuestion["status"];
+  text: string;
+  serverAnswer: string | null;
+  save: AnswerSave;
+  applying: boolean;
+  otherApplyRunning: boolean;
+}): boolean {
+  return (
+    input.status === "ANSWERED" &&
+    input.text.trim() !== "" &&
+    input.text.trim() === (input.serverAnswer ?? "").trim() &&
+    (input.save === "idle" || input.save === "saved") &&
+    !input.applying &&
+    !input.otherApplyRunning
+  );
+}
+
+/** The helper line under a question's actions. */
+export function answerHelper(status: ClarificationQuestion["status"]): string {
+  return status === "ANSWERED"
+    ? "Answer saved separately. Your CV stays unchanged until you apply it."
+    : "Answer autosaves separately. AI never fills in missing facts.";
+}
+
+/** Whether an answer that is not on the server yet should be sent: non-blank and different from what is stored. */
+export function answerNeedsSaving(text: string, serverAnswer: string | null): boolean {
+  const next = text.trim();
+  return next !== "" && next !== (serverAnswer ?? "").trim();
 }

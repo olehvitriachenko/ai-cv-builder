@@ -40,7 +40,13 @@ export const educationPatchSchema = z.strictObject({
   details: text,
 });
 
-export const skillsPatchSchema = z.strictObject({ skills: z.array(z.string()) });
+/**
+ * Skills to add, per category. `category` is free text on purpose: it may name an existing custom
+ * category of the person; whether a new category name is allowed is decided when the patch is applied.
+ */
+export const skillsPatchSchema = z.strictObject({
+  additions: z.array(z.strictObject({ category: z.string(), skills: z.array(z.string()) })),
+});
 
 export const answerPatchSchemas = {
   CONTACT: contactPatchSchema,

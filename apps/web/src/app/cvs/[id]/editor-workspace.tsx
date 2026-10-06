@@ -1,199 +1,125 @@
 "use client";
 
-import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowLeft, Download } from "lucide-react";
-import Link from "next/link";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { FormProvider, useForm, useWatch } from "react-hook-form";
-import { Button } from "@/components/ui/button";
-import { isApiError } from "@/lib/api/fetcher";
-import { applyQuestion, saveDraft, type ClarificationQuestion, type CvResult } from "@/lib/api/cvs";
-import { ApplyBlockedError, applyAnswer, applyErrorOutcome } from "@/lib/cv/apply-flow";
-import { DraftAutosaver } from "@/lib/cv/autosave";
-import { cvFormSchema, toDraft, toFormValues, type DraftFormValues } from "@/lib/cv/draft-form";
+import { FormProvider } from "react-hook-form";
+import type { CvResult } from "@/lib/api/cvs";
+import { ANSWER_APPLIED_NOTICE } from "@/lib/cv/action-feedback";
+import { ActionNotice } from "./action-notice";
+import { prepareDownload } from "@/lib/cv/download-flow";
+import { deleteSubject } from "@/lib/cv/delete-flow";
+import { DownloadPdfButton } from "../download-pdf-button";
 import { ClarificationPanel } from "./clarification-panel";
-import { CvDocument } from "./cv-document";
-import { ContactSection } from "./editor-sections/contact-section";
-import { EducationSection } from "./editor-sections/education-section";
-import { ExperienceSection } from "./editor-sections/experience-section";
-import { SkillsSection } from "./editor-sections/skills-section";
-import { SummarySection } from "./editor-sections/summary-section";
+import { CompletenessCard } from "./completeness-card";
+import { EditorMenu } from "./editor-menu";
+import { EditorNav } from "./editor-nav";
+import { FullscreenPreview } from "./fullscreen-preview";
+import { PreviewPanel } from "./preview-panel";
+import { keyboardOpen, stickyAction, type MobileView } from "@/lib/cv/mobile-view";
+import { saveView } from "@/lib/cv/save-view";
+import { ConflictReview } from "./conflict-review";
 import { SaveIndicator } from "./save-indicator";
-import { ConflictBanner, SaveErrorMessage } from "./save-problems";
-
-type MobileView = "editor" | "preview";
+import { ConflictNotice, SaveErrorNotice } from "./save-problems";
+import { Education } from "./sections/education";
+import { Experience } from "./sections/experience";
+import { PersonalDetails } from "./sections/personal-details";
+import { Skills } from "./sections/skills";
+import { Summary } from "./sections/summary";
+import { useCvEditor } from "./use-cv-editor";
 
 /**
- * The document-first editor. Desktop: editing column on the left, live A4 preview on the right.
- * Mobile: one column with an Editor / Preview switch. The form is the only editable state; the
- * preview is derived from it on every keystroke, while the server's revision stays authoritative.
+ * The structured editor: sticky navigation, then every section always open in the left column
+ * and the live A4 preview sticky beside it (a tab switch on phones). All state lives in
+ * `useCvEditor`; this component only arranges the pieces.
  */
 export function EditorWorkspace({
   cvId,
-  targetRole,
   result,
   notice,
+  appliedQuestionId,
   fetchLatest,
   onReplace,
 }: {
   cvId: string;
-  targetRole: string;
   result: CvResult;
   /** A message from the previous action (for example "Answer applied"), shown once. */
   notice: string | null;
+  appliedQuestionId: string | null;
   fetchLatest: () => Promise<CvResult>;
-  onReplace: (result: CvResult, notice?: string) => void;
+  onReplace: (result: CvResult, notice?: string, appliedQuestionId?: string) => void;
 }) {
-  const [autosaver] = useState(
-    () =>
-      new DraftAutosaver({
-        initialRevision: result.revision,
-        save: (revision, draft) => saveDraft(cvId, { revision, draft }),
-      }),
-  );
-  const saveState = useSyncExternalStore(autosaver.subscribe, autosaver.getState, autosaver.getState);
-
-  const form = useForm<DraftFormValues>({
-    defaultValues: toFormValues(result.draft),
-    resolver: zodResolver(cvFormSchema),
-    mode: "onChange",
-  });
-  // Subscribes this component to every form change, so each keystroke re-renders the preview.
-  const watched = useWatch({ control: form.control });
+  const editor = useCvEditor({ cvId, result, fetchLatest, onReplace });
+  const { form, saveState, draft, targetRole, invalid, autosaver } = editor;
   const [view, setView] = useState<MobileView>("editor");
-  const [conflictBusy, setConflictBusy] = useState(false);
-  const [conflictError, setConflictError] = useState<string | null>(null);
-  const [applying, setApplying] = useState(false);
-  // The last draft handed to the autosaver. Opening the editor (the effect also runs once on mount)
-  // therefore saves nothing, while reverting an edit still saves, because it differs from this.
-  const lastSent = useRef(JSON.stringify(result.draft));
-
-  // The preview and the validity are derived from the form on every render, never stored.
-  const current = form.getValues();
-  const draft = toDraft(current);
-  const valid = cvFormSchema.safeParse(current).success;
-  const invalid = !valid;
-
-  // A valid change goes to the autosaver; an invalid form is never sent, so the server keeps the
-  // last valid version.
-  useEffect(() => {
-    const json = JSON.stringify(draft);
-    if (valid && json !== lastSent.current) {
-      lastSent.current = json;
-      autosaver.change(draft);
-    }
-    // `draft` is a new object on every render; the JSON comparison above is what prevents resends.
-  }, [watched, valid, draft, autosaver]);
-
-  // Leaving the page (in-app navigation) saves what is pending instead of dropping it.
-  useEffect(
-    () => () => {
-      void autosaver.flush();
-    },
-    [autosaver],
-  );
-
-  // Closing the tab with unsaved or failed changes asks for confirmation.
-  const unsaved = invalid || saveState.status !== "idle" && saveState.status !== "saved";
-  useEffect(() => {
-    if (!unsaved) {
-      return;
-    }
-    const warn = (event: BeforeUnloadEvent) => event.preventDefault();
-    window.addEventListener("beforeunload", warn);
-    return () => window.removeEventListener("beforeunload", warn);
-  }, [unsaved]);
-
-  /**
-   * Applies an answered question. Pending edits are saved first so the apply runs on the latest
-   * revision. On success the server's result replaces the form (the server is authoritative); when
-   * the CV or the question changed elsewhere, the latest version is loaded instead.
-   */
-  async function handleApply(question: ClarificationQuestion): Promise<void> {
-    setApplying(true);
-    try {
-      const updated = await applyAnswer({
-        blockedReason: invalid ? "Fix the highlighted fields first, then apply the answer." : null,
-        flush: () => autosaver.flush(),
-        apply: (revision) => applyQuestion(cvId, question.id, revision),
-      });
-      onReplace(updated, "Answer applied. Your CV was updated.");
-    } catch (error) {
-      if (error instanceof ApplyBlockedError) {
-        throw error;
-      }
-      const outcome = applyErrorOutcome(error);
-      if (outcome.reload) {
-        try {
-          onReplace(await fetchLatest(), outcome.message);
-          return;
-        } catch {
-          // Could not reload either: fall through and show the message on the card.
-        }
-      }
-      throw new Error(outcome.message);
-    } finally {
-      setApplying(false);
+  const [downloadMessage, setDownloadMessage] = useState<string | null>(null);
+  const [fullscreen, setFullscreen] = useState(false);
+  const offline = useOffline();
+  const [retrying, setRetrying] = useState(false);
+  // The notice stays while a retry runs, so "Retrying connection…" is visible; any outcome ends it.
+  // (State adjusted while rendering, as React recommends, not in an effect.)
+  const [seenStatus, setSeenStatus] = useState(saveState.status);
+  if (seenStatus !== saveState.status) {
+    setSeenStatus(saveState.status);
+    if (saveState.status !== "saving") {
+      setRetrying(false);
     }
   }
-
-  async function resolveConflict(keepMine: boolean) {
-    setConflictBusy(true);
-    setConflictError(null);
-    try {
-      const latest = await fetchLatest();
-      if (keepMine) {
-        autosaver.resolveConflict(latest.revision, { keepPending: true });
-      } else {
-        onReplace(latest);
-      }
-    } catch (error) {
-      setConflictError(
-        isApiError(error, 404)
-          ? "This CV no longer exists."
-          : "We couldn’t reach the server. Try again in a moment.",
-      );
-    } finally {
-      setConflictBusy(false);
-    }
-  }
+  const retry = () => {
+    setRetrying(true);
+    autosaver.retry();
+  };
+  const expandRef = useRef<HTMLButtonElement>(null);
 
   const name = draft.contact.fullName;
-  const editorPaneClass = view === "editor" ? "flex" : "hidden lg:flex";
-  const previewPaneClass = view === "preview" ? "flex" : "hidden lg:flex";
+  const editorPane = view === "editor" ? "flex" : "hidden lg:flex";
+  const previewPane = view === "preview" ? "flex" : "hidden lg:flex";
 
   return (
     <FormProvider {...form}>
       <div className="flex flex-1 flex-col">
-        <div className="border-b border-line bg-surface">
-          <div className="mx-auto flex w-full max-w-[1280px] flex-wrap items-center gap-x-6 gap-y-3 px-4 py-3 sm:px-8">
-            <Link
-              href="/cvs"
-              className="flex items-center gap-1.5 rounded text-[13px] text-muted hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
-            >
-              <ArrowLeft aria-hidden className="size-4" strokeWidth={1.75} />
-              Back to My CVs
-            </Link>
-            <div className="flex min-w-0 flex-1 basis-48 flex-col gap-0.5 [overflow-wrap:anywhere]">
-              <h1 className="text-base font-semibold text-ink">{targetRole}</h1>
-              <p className="text-[11px] text-muted">{name ?? "Untitled CV"}</p>
-            </div>
-            <SaveIndicator state={saveState} invalid={invalid} />
-            <Button
-              type="button"
-              size="compact"
-              stretch={false}
-              disabled
-              title="PDF export is coming soon"
-            >
-              <Download aria-hidden className="size-4" strokeWidth={1.75} />
-              Download PDF
-            </Button>
-          </div>
-        </div>
+        <EditorNav
+          title={targetRole}
+          owner={`${name ?? "Untitled CV"} · Personal CV`}
+          status={
+            <SaveIndicator
+              state={saveState}
+              invalid={invalid}
+              onRetry={retry}
+              onReview={() => void editor.openReview()}
+            />
+          }
+          actions={
+            <>
+              <DownloadPdfButton
+                cvId={cvId}
+                size="regular"
+                label={
+                  <>
+                    <span className="hidden sm:inline">Download PDF</span>
+                    <span className="sm:hidden">PDF</span>
+                  </>
+                }
+                onMessage={setDownloadMessage}
+                beforeDownload={() =>
+                  prepareDownload({
+                    blockedReason: invalid ? "Fix the highlighted fields first, then download the PDF." : null,
+                    flush: () => autosaver.flush(),
+                  })
+                }
+              />
+              <EditorMenu cvId={cvId} subject={deleteSubject({ candidateName: name, targetRole })} />
+            </>
+          }
+        />
 
-        <div className="mx-auto flex w-full max-w-[1280px] flex-1 flex-col gap-4 px-4 py-5 sm:px-8 lg:flex-row lg:items-start lg:gap-8 lg:py-8">
-          <div role="tablist" aria-label="View" className="flex gap-2 lg:hidden">
+        <main className="mx-auto flex w-full max-w-[1440px] flex-1 flex-col gap-4 px-4 pt-4 pb-28 sm:px-8 lg:flex-row lg:items-start lg:gap-8 lg:py-8">
+          {/* Phone: the intro, then Edit / Preview as a pair of 44 px buttons (Figma 05.2). */}
+            <div className="flex flex-col gap-1.5 lg:hidden">
+              <h2 className="text-2xl leading-[normal] font-semibold text-ink">Make it yours</h2>
+              <p className="text-xs leading-normal text-muted">
+                {saveView(saveState, invalid).intro}
+              </p>
+            </div>
+          <div role="tablist" aria-label="View" className="grid grid-cols-2 gap-2 lg:hidden">
             {(["editor", "preview"] as const).map((tab) => (
               <button
                 key={tab}
@@ -201,73 +127,168 @@ export function EditorWorkspace({
                 role="tab"
                 aria-selected={view === tab}
                 onClick={() => setView(tab)}
-                className={`h-10 rounded-[10px] border px-4 text-[13px] font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
+                className={`h-11 rounded-lg border text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
                   view === tab ? "border-accent bg-accent text-white" : "border-line bg-surface text-accent"
                 }`}
               >
-                {tab === "editor" ? "Editor" : "Preview"}
+                {tab === "editor" ? "Edit" : "Preview"}
               </button>
             ))}
           </div>
 
-          <div className={`${editorPaneClass} min-w-0 flex-col gap-3 lg:w-[488px] lg:shrink-0`}>
-            <div className="flex items-center justify-between gap-3 pb-1">
-              <h2 className="text-[21px] font-semibold text-ink">Make it yours</h2>
-              <p className="flex items-center gap-1.5 text-[11px] text-muted">
-                <span aria-hidden className="size-[5px] rounded-full bg-success" />
-                Edits update the preview
+          <div className={`${editorPane} min-w-0 flex-col gap-4 lg:w-[584px] lg:shrink-0`}>
+            <div className="hidden flex-col gap-1.5 lg:flex">
+              <h2 className="text-[22px] leading-[normal] font-semibold text-ink">Make it yours</h2>
+              <p className="text-xs leading-normal text-muted">
+                {saveView(saveState, invalid).intro}
               </p>
             </div>
 
-            {saveState.status === "error" ? <SaveErrorMessage onRetry={() => autosaver.retry()} /> : null}
-            {saveState.status === "conflict" && saveState.failure ? (
-              <ConflictBanner
-                failure={saveState.failure}
-                busy={conflictBusy}
-                error={conflictError}
-                onLoadLatest={() => void resolveConflict(false)}
-                onKeepMine={() => void resolveConflict(true)}
-              />
-            ) : null}
-
-            {notice ? (
-              <p role="status" className="rounded-lg bg-canvas p-3 text-[13px] leading-normal text-ink">
-                {notice}
+            {downloadMessage ? (
+              <p role="alert" className="rounded-lg bg-danger-tint p-3 text-[13px] text-danger">
+                <span className="font-medium">Error: </span>
+                {downloadMessage}
               </p>
             ) : null}
+            {saveState.status === "error" || (retrying && saveState.status === "saving") ? (
+              <SaveErrorNotice
+                offline={offline}
+                retrying={retrying && saveState.status === "saving"}
+                onRetry={retry}
+              />
+            ) : null}
+            {saveState.status === "conflict" && saveState.failure ? (
+              <ConflictNotice
+                failure={saveState.failure}
+                busy={editor.conflictBusy}
+                error={editor.conflictError}
+                onReview={() => void editor.openReview()}
+              />
+            ) : null}
+            {notice ? (
+              <ActionNotice key={notice} message={notice} transient={notice === ANSWER_APPLIED_NOTICE} />
+            ) : null}
 
+            <CompletenessCard values={editor.values} />
             <ClarificationPanel
               cvId={cvId}
               initialQuestions={result.questions}
+              appliedQuestionId={appliedQuestionId}
               draft={draft}
-              onApply={handleApply}
-              applyDisabled={applying}
+              onApply={editor.handleApply}
+              onReviewLatest={editor.reviewLatest}
+              applyDisabled={editor.applying}
             />
             {/* While an apply runs the form is read-only, so nothing is typed over the server's result. */}
-            <fieldset disabled={applying} className="m-0 flex min-w-0 flex-col gap-3 border-0 p-0">
-              <ContactSection />
-              <SummarySection />
-              <ExperienceSection />
-              <EducationSection />
-              <SkillsSection />
+            <fieldset disabled={editor.applying} className="m-0 flex min-w-0 flex-col gap-4 border-0 p-0">
+              <PersonalDetails />
+              <Summary />
+              <Experience />
+              <Skills />
+              <Education />
             </fieldset>
-            <p className="text-[10px] leading-normal text-muted">
-              You’re in control. Review AI wording, dates and claims before downloading.
+            <p className="text-xs leading-normal text-muted">
+              You’re in control. Review wording, dates and claims before downloading.
             </p>
           </div>
 
-          <section aria-label="Live preview" className={`${previewPaneClass} min-w-0 flex-1 flex-col gap-3`}>
-            <div className="flex items-center gap-3">
-              <h2 className="text-sm font-semibold text-ink">Preview</h2>
-              <p className="text-[11px] text-muted">Classic · A4</p>
-            </div>
-            <div className="flex flex-col items-center rounded-xl bg-stage p-4 sm:p-6">
-              <CvDocument draft={draft} targetRole={targetRole} />
-            </div>
-          </section>
-        </div>
+          {/* One vertical scroll container for the sticky preview, including tall documents. */}
+          <div className={`${previewPane} min-w-0 flex-1 flex-col lg:sticky lg:top-28 lg:max-h-[calc(100dvh-8rem)] lg:overflow-y-auto`}>
+            <PreviewPanel
+              draft={draft}
+              targetRole={targetRole}
+              saveStatus={saveState.status}
+              invalid={invalid}
+              onOpenFullscreen={() => setFullscreen(true)}
+              expandRef={expandRef}
+            />
+          </div>
+        </main>
       </div>
+      <PreviewBar view={view} onSwitch={setView} />
+      {editor.review ? (
+        <ConflictReview
+          local={{ targetRole, draft }}
+          saved={{ targetRole: editor.review.targetRole, draft: editor.review.draft }}
+          onKeepMine={editor.keepMine}
+          onUseSaved={editor.useSaved}
+          onClose={editor.closeReview}
+        />
+      ) : null}
+      {fullscreen ? (
+        <FullscreenPreview
+          cvId={cvId}
+          draft={draft}
+          targetRole={targetRole}
+          saveStatus={saveState.status}
+          invalid={invalid}
+          beforeDownload={() =>
+            prepareDownload({
+              blockedReason: invalid ? "Fix the highlighted fields first, then download the PDF." : null,
+              flush: () => autosaver.flush(),
+            })
+          }
+          onClose={() => {
+            setFullscreen(false);
+            // The dialog is removed with its state; hand focus back to what opened it.
+            requestAnimationFrame(() => expandRef.current?.focus());
+          }}
+        />
+      ) : null}
     </FormProvider>
   );
 }
 
+/**
+ * The phone's sticky action (Figma 05.2, 11.2): "Preview CV" while editing, "Edit CV" while
+ * previewing. Its bottom padding is 16 px plus the safe-area inset, and it hides while the on-screen
+ * keyboard is open so the field being typed in stays above the keyboard.
+ */
+function PreviewBar({ view, onSwitch }: { view: MobileView; onSwitch: (view: MobileView) => void }) {
+  const [typing, setTyping] = useState(false);
+  const action = stickyAction(view);
+
+  useEffect(() => {
+    const viewport = window.visualViewport;
+    if (viewport === null) {
+      return;
+    }
+    const update = () => setTyping(keyboardOpen(window.innerHeight, viewport.height));
+    viewport.addEventListener("resize", update);
+    return () => viewport.removeEventListener("resize", update);
+  }, []);
+
+  if (typing) {
+    return null;
+  }
+  return (
+    <div className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-surface p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] lg:hidden">
+      <button
+        type="button"
+        onClick={() => {
+          onSwitch(action.next);
+          window.scrollTo({ top: 0 });
+        }}
+        className="h-11 w-full rounded-lg border border-accent bg-accent text-sm font-semibold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+      >
+        {action.label}
+      </button>
+    </div>
+  );
+}
+
+/** Whether the browser reports no connection (the notice then says "Offline"). */
+function useOffline(): boolean {
+  return useSyncExternalStore(
+    (notify) => {
+      window.addEventListener("online", notify);
+      window.addEventListener("offline", notify);
+      return () => {
+        window.removeEventListener("online", notify);
+        window.removeEventListener("offline", notify);
+      };
+    },
+    () => !navigator.onLine,
+    () => false,
+  );
+}

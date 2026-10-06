@@ -1,31 +1,35 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "@/lib/api/fetcher";
 import type { CvDraft } from "@/lib/api/cvs";
-import { DraftAutosaver, type SaveState } from "./autosave";
+import { DraftAutosaver, type SaveState, type SavePayload } from "./autosave";
 
-function draftWith(summary: string): CvDraft {
+function draftOf(summary: string): CvDraft {
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     contact: { fullName: "Ada", email: null, phone: null, location: null, links: [] },
     summary,
     experience: [],
     education: [],
-    skills: [],
+    skillCategories: [],
   };
+}
+
+function draftWith(summary: string, targetRole = "Backend Engineer"): SavePayload {
+  return { draft: draftOf(summary), targetRole };
 }
 
 interface Pending {
   revision: number;
-  draft: CvDraft;
+  payload: SavePayload;
   resolve: (revision: number) => void;
   reject: (error: unknown) => void;
 }
 
 function setup(initialRevision = 0) {
   const calls: Pending[] = [];
-  const save = (revision: number, draft: CvDraft) =>
+  const save = (revision: number, payload: SavePayload) =>
     new Promise<{ revision: number }>((resolve, reject) => {
-      calls.push({ revision, draft, resolve: (next) => resolve({ revision: next }), reject });
+      calls.push({ revision, payload, resolve: (next) => resolve({ revision: next }), reject });
     });
   const autosaver = new DraftAutosaver({ initialRevision, save, debounceMs: 1000 });
   const states: SaveState["status"][] = [];
@@ -68,6 +72,25 @@ describe("DraftAutosaver", () => {
     expect(autosaver.getState()).toMatchObject({ status: "saved", revision: 5 });
   });
 
+  it("sends the target role with the draft in the same save", async () => {
+    const { autosaver, calls } = setup();
+    autosaver.change(draftWith("a", "Platform Engineer"));
+    await vi.advanceTimersByTimeAsync(1000);
+
+    expect(calls[0]?.payload.targetRole).toBe("Platform Engineer");
+  });
+
+  it("saves a target role change on its own, and the newest role wins when edits coalesce", async () => {
+    const { autosaver, calls } = setup();
+    autosaver.change(draftWith("same", "Engineer"));
+    await vi.advanceTimersByTimeAsync(500);
+    autosaver.change(draftWith("same", "Staff Engineer"));
+    await vi.advanceTimersByTimeAsync(1000);
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0]?.payload.targetRole).toBe("Staff Engineer");
+  });
+
   it("coalesces rapid changes into one save of the latest draft", async () => {
     const { autosaver, calls } = setup();
     autosaver.change(draftWith("a"));
@@ -78,7 +101,7 @@ describe("DraftAutosaver", () => {
     await vi.advanceTimersByTimeAsync(1000);
 
     expect(calls).toHaveLength(1);
-    expect(calls[0]?.draft.summary).toBe("abc");
+    expect(calls[0]?.payload.draft.summary).toBe("abc");
   });
 
   it("never runs two saves at once; a change during a save is sent after it with the new revision", async () => {
@@ -97,7 +120,7 @@ describe("DraftAutosaver", () => {
 
     expect(calls).toHaveLength(2);
     expect(calls[1]).toMatchObject({ revision: 1 });
-    expect(calls[1]?.draft.summary).toBe("two");
+    expect(calls[1]?.payload.draft.summary).toBe("two");
     calls[1]?.resolve(2);
     await settle();
     expect(autosaver.getState()).toMatchObject({ status: "saved", revision: 2 });
@@ -117,7 +140,7 @@ describe("DraftAutosaver", () => {
     autosaver.retry();
     await settle();
     expect(calls).toHaveLength(2);
-    expect(calls[1]?.draft.summary).toBe("a");
+    expect(calls[1]?.payload.draft.summary).toBe("a");
     calls[1]?.resolve(1);
     await settle();
     expect(autosaver.getState().status).toBe("saved");
@@ -161,7 +184,7 @@ describe("DraftAutosaver", () => {
 
     expect(calls).toHaveLength(2);
     expect(calls[1]).toMatchObject({ revision: 7 });
-    expect(calls[1]?.draft.summary).toBe("mine");
+    expect(calls[1]?.payload.draft.summary).toBe("mine");
     calls[1]?.resolve(8);
     await settle();
     expect(autosaver.getState()).toMatchObject({ status: "saved", revision: 8 });

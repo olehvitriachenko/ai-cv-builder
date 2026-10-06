@@ -9,8 +9,11 @@ import { DisplayStatusBadge } from "@/components/ui/status-badge";
 import { retryCv, type CvListItem } from "@/lib/api/cvs";
 import { isApiError } from "@/lib/api/fetcher";
 import { cardActions, cardMessage, cardName, formatUpdated } from "@/lib/cv/card-copy";
+import { deleteSubject } from "@/lib/cv/delete-flow";
+import { downloadDisabledReason } from "@/lib/cv/download-flow";
 import { CVS_QUERY_KEY } from "@/lib/cv/query-keys";
 import { DeleteCvDialog } from "./delete-cv-dialog";
+import { DownloadPdfButton } from "./download-pdf-button";
 
 const MESSAGE_TONE: Record<CvListItem["displayStatus"], string> = {
   DRAFT: "text-accent",
@@ -95,16 +98,11 @@ export function CvCard({ item }: { item: CvListItem }) {
               {retry.isPending ? "Restarting…" : "Try again"}
             </Button>
           ) : null}
-          <Button
-            type="button"
+          <DownloadPdfButton
+            cvId={item.id}
             variant="secondary"
-            size="compact"
-            stretch={false}
-            disabled
-            title="PDF export is coming soon"
-          >
-            Download PDF
-          </Button>
+            disabledReason={downloadDisabledReason(item)}
+          />
           <button
             type="button"
             aria-label={`Delete CV: ${cardName(item)} · ${item.targetRole}`}
@@ -119,7 +117,7 @@ export function CvCard({ item }: { item: CvListItem }) {
       </div>
 
       {confirmingDelete ? (
-        <DeleteCvDialog item={item} onClose={() => setConfirmingDelete(false)} />
+        <DeleteCvDialog cvId={item.id} subject={deleteSubject(item)} onClose={() => setConfirmingDelete(false)} />
       ) : null}
     </Card>
   );

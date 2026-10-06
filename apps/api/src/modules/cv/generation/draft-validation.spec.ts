@@ -37,7 +37,7 @@ function output(overrides: Partial<LlmCvOutput> = {}): LlmCvOutput {
         details: null,
       },
     ],
-    skills: ['Node.js'],
+    skillCategories: [{ category: 'Frameworks', skills: ['Node.js'] }],
     questions: [],
     ...overrides,
   };
@@ -54,7 +54,7 @@ describe('validateGeneration', () => {
         questions: [
           {
             section: 'EXPERIENCE',
-            itemIndex: 0, field: null,
+            itemIndex: 0, field: undefined,
             missing: 'Team size',
             question: 'How big was the team?',
           },
@@ -87,8 +87,8 @@ describe('validateGeneration', () => {
         summary: null,
         experience: [],
         education: [],
-        skills: [],
-        questions: [{ section: 'CONTACT', itemIndex: null, field: null, missing: 'Email', question: 'Email?' }],
+        skillCategories: [],
+        questions: [{ section: 'CONTACT', itemIndex: null, field: undefined, missing: 'Email', question: 'Email?' }],
       }),
       SOURCE,
     );
@@ -109,7 +109,7 @@ describe('validateGeneration', () => {
         summary: null,
         experience: [],
         education: [],
-        skills: [],
+        skillCategories: [],
         questions: [],
       }),
       SOURCE,
@@ -130,7 +130,7 @@ describe('validateGeneration', () => {
         summary: null,
         experience: [],
         education: [],
-        skills: [],
+        skillCategories: [],
         questions: [],
       }),
       SOURCE,
@@ -145,11 +145,11 @@ describe('validateGeneration', () => {
         summary: null,
         experience: [],
         education: [],
-        skills: [],
+        skillCategories: [],
         questions: [
           {
             section: 'EXPERIENCE',
-            itemIndex: null, field: null,
+            itemIndex: null, field: undefined,
             missing: 'No roles given',
             question: 'Where have you worked?',
           },
@@ -167,7 +167,7 @@ describe('validateGeneration', () => {
         summary: null,
         experience: [],
         education: [],
-        skills: ['Node.js'],
+        skillCategories: [{ category: 'Frameworks', skills: ['Node.js'] }],
         questions: [],
       }),
       SOURCE,
@@ -205,7 +205,7 @@ describe('validateGeneration', () => {
     it('rejects values over the caps and blank bullets', () => {
       const result = validateGeneration(
         output({
-          skills: Array.from({ length: 61 }, (_, i) => `skill${i}`),
+          skillCategories: [{ category: 'Skills', skills: Array.from({ length: 61 }, (_, i) => `skill${i}`) }],
           experience: [
             {
               employer: 'Acme Corp',
@@ -222,7 +222,7 @@ describe('validateGeneration', () => {
 
       expect(issuesOf(result)).toEqual(
         expect.arrayContaining([
-          'skills: draft_too_big',
+          'skillCategories.0.skills: draft_too_big',
           'experience.0.bullets.0: draft_too_big',
           'experience.0.bullets.1: draft_too_small',
         ]),
@@ -234,7 +234,7 @@ describe('validateGeneration', () => {
     const fq = (overrides: Partial<LlmCvOutput['questions'][number]> = {}) => ({
       section: 'CONTACT' as const,
       itemIndex: null,
-      field: null,
+      field: undefined,
       missing: 'Phone is missing',
       question: 'What is your phone number?',
       ...overrides,
@@ -246,7 +246,7 @@ describe('validateGeneration', () => {
         fq({ field: 'CONTACT_PHONE' }),
         fq({ section: 'EXPERIENCE', itemIndex: 0, field: 'EXPERIENCE_END_DATE', question: 'End date?' }),
         fq({ section: 'EDUCATION', itemIndex: 0, field: 'EDUCATION_QUALIFICATION', question: 'Degree?' }),
-        fq({ section: 'SKILLS', field: null, question: 'Any other skills?' }),
+        fq({ section: 'SKILLS', field: undefined, question: 'Any other skills?' }),
       ]);
 
       expect(result.ok).toBe(true);
@@ -298,7 +298,7 @@ describe('validateGeneration', () => {
   describe('clarification questions', () => {
     const q = (overrides: Partial<LlmCvOutput['questions'][number]> = {}) => ({
       section: 'CONTACT' as const,
-      itemIndex: null, field: null,
+      itemIndex: null, field: undefined,
       missing: 'Email',
       question: 'What is your email?',
       ...overrides,
@@ -326,9 +326,9 @@ describe('validateGeneration', () => {
         output({
           questions: [
             q({ section: 'EXPERIENCE', itemIndex: 1 }),
-            q({ section: 'EDUCATION', itemIndex: -1, field: null, question: 'b?' }),
-            q({ section: 'CONTACT', itemIndex: 0, field: null, question: 'c?' }),
-            q({ section: 'EXPERIENCE', itemIndex: 0, field: null, question: 'd?' }),
+            q({ section: 'EDUCATION', itemIndex: -1, field: undefined, question: 'b?' }),
+            q({ section: 'CONTACT', itemIndex: 0, field: undefined, question: 'c?' }),
+            q({ section: 'EXPERIENCE', itemIndex: 0, field: undefined, question: 'd?' }),
           ],
         }),
         SOURCE,
@@ -481,7 +481,7 @@ describe('validateGeneration', () => {
     it('does not check unsupported facts that are not mechanically checkable (bullets, dates, titles, skills)', () => {
       const result = validateGeneration(
         output({
-          skills: ['Kubernetes'],
+          skillCategories: [{ category: 'Cloud & Infrastructure', skills: ['Kubernetes'] }],
           experience: [
             {
               employer: 'Acme Corp',

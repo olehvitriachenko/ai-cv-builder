@@ -5,7 +5,7 @@ import type { CvDraft } from '../../src/modules/cv/generation/draft.schema.js';
 /** A valid persisted draft with one experience and one education entry. */
 export function sampleDraft(): CvDraft {
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     contact: {
       fullName: 'Ada Lovelace',
       email: 'ada@example.com',
@@ -35,7 +35,7 @@ export function sampleDraft(): CvDraft {
         details: null,
       },
     ],
-    skills: ['Node.js'],
+    skillCategories: [{ id: 'cat-1', name: 'Backend', skills: ['Node.js'] }],
   };
 }
 

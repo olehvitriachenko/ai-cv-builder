@@ -25,6 +25,8 @@ export async function configureApp(app: NestFastifyApplication): Promise<void> {
     origin: config.getOrThrow<string>('WEB_ORIGIN'),
     credentials: true,
     methods: ['GET', 'HEAD', 'POST', 'PUT', 'DELETE'],
+    // Lets the browser app read the file name of a PDF download (cross-origin responses hide it).
+    exposedHeaders: ['Content-Disposition'],
   });
   app.useGlobalFilters(new ApiExceptionFilter());
 }

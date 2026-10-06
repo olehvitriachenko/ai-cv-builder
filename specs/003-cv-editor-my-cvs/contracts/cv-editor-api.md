@@ -1,5 +1,7 @@
 # API Contract: CV List, Editing, Clarifications and Delete
 
+> **Superseded in part by [feature 005](../../005-structured-cv-editor/contracts/structured-editor-api.md)**: the draft is `schemaVersion: 2` with `skillCategories` (no flat `skills`), the target role is stored with the CV and saved in the same `PUT /api/cvs/:id/draft` request, and answering and applying a `SKILLS` question works on categories. Everything not named there is unchanged.
+
 REST over JSON under the global `/api` prefix. Everything from 001 and 002 applies unchanged: session cookie authentication (401 `UNAUTHENTICATED`), the error body `{ statusCode, code, message, fieldErrors? }`, identity only from the session (a client `userId` in the body, query, header or path is ignored), and a foreign CV answered exactly like a missing one (`404 CV_NOT_FOUND`).
 
 Browser calls are cross-origin with credentials, so the CORS configuration allows `GET, HEAD, POST, PUT, DELETE`.

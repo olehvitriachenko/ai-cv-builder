@@ -36,21 +36,44 @@ export const educationEntrySchema = z
     message: 'An education entry needs an institution or a qualification',
   });
 
-export const cvDraftSchema = z.object({
-  schemaVersion: z.literal(1),
-  contact: z.object({
-    fullName: nullableText(120),
-    email: nullableText(254),
-    phone: nullableText(40),
-    location: nullableText(120),
-    links: z.array(text(200)).max(5),
-  }),
-  summary: nullableText(1200),
-  experience: z.array(experienceEntrySchema).max(30),
-  education: z.array(educationEntrySchema).max(10),
-  skills: z.array(text(60)).max(60),
+/** Caps for skills: at most this many categories and this many skills across all of them. */
+export const MAX_SKILL_CATEGORIES = 12;
+export const MAX_SKILLS = 60;
+
+/**
+ * An ordered group of skills under a name. A stored category can be empty (the editor drops empty
+ * ones before saving); uniqueness of names and skills is a rule of the write path (the edit body
+ * schema), so reading never fails on data the migration or the model produced.
+ */
+export const skillCategorySchema = z.object({
+  id: z.string().min(1),
+  name: text(60),
+  skills: z.array(text(60)).max(MAX_SKILLS),
 });
 
+export const cvDraftSchema = z
+  .object({
+    schemaVersion: z.literal(2),
+    contact: z.object({
+      fullName: nullableText(120),
+      email: nullableText(254),
+      phone: nullableText(40),
+      location: nullableText(120),
+      links: z.array(text(200)).max(5),
+    }),
+    summary: nullableText(1200),
+    experience: z.array(experienceEntrySchema).max(30),
+    education: z.array(educationEntrySchema).max(10),
+    skillCategories: z.array(skillCategorySchema).max(MAX_SKILL_CATEGORIES),
+  })
+  .refine(
+    (draft) =>
+      draft.skillCategories.reduce((total, category) => total + category.skills.length, 0) <=
+      MAX_SKILLS,
+    { message: 'Too many skills in total', path: ['skillCategories'] },
+  );
+
+export type SkillCategory = z.output<typeof skillCategorySchema>;
 export type ExperienceEntry = z.output<typeof experienceEntrySchema>;
 export type EducationEntry = z.output<typeof educationEntrySchema>;
 export type CvDraft = z.output<typeof cvDraftSchema>;

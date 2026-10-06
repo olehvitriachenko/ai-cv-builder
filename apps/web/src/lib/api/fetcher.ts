@@ -101,6 +101,34 @@ export async function apiFetch<TResponse, TBody = undefined>(
   return parsed.data;
 }
 
+/** A non-JSON response body (for example a PDF download) and the server's suggested file name. */
+export interface BlobResponse {
+  blob: Blob;
+  contentDisposition: string | null;
+}
+
+/**
+ * GET for a binary response. Same transport rules as `apiFetch` (cookie, error normalisation); the
+ * caller decides what the bytes are. Needs the server to expose `Content-Disposition` through CORS.
+ */
+export async function apiFetchBlob(path: string, accept: string): Promise<BlobResponse> {
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}${path}`, {
+      method: 'GET',
+      headers: { Accept: accept },
+      credentials: 'include',
+      cache: 'no-store',
+    });
+  } catch {
+    throw new ApiError(0, 'NETWORK_ERROR', 'Could not reach the server');
+  }
+  if (!response.ok) {
+    throw await toApiError(response);
+  }
+  return { blob: await response.blob(), contentDisposition: response.headers.get('Content-Disposition') };
+}
+
 async function toApiError(response: Response): Promise<ApiError> {
   let payload: unknown;
   try {

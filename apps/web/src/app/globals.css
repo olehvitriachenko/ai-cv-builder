@@ -20,10 +20,15 @@
   --color-success-tint: #edf7f1;
   --color-danger: #b42318;
   --color-danger-tint: #fef3f2;
+  /* The completeness card's "Needs details" badge (05.1). */
+  --color-warning: #b54708;
+  --color-warning-tint: #fff7ed;
+  --color-warning-line: #f5dcc0;
   /* The rejected-file row (03.4): a softer wash and rule than the danger tint. */
   --color-danger-wash: #fcf5f3;
   --color-danger-wash-line: #ebd7d2;
-  --color-placeholder: #98a2b3;
+  /* Muted #667085: 4.97:1 on white; the lighter #98a2b3 fails 4.5:1 (11.2 contrast note). */
+  --color-placeholder: #667085;
   --color-skeleton: #eaecf0;
   --color-stage: #eef0f3;
   /* The A4 document surface (05.1 "A4 CV page"). */
@@ -53,4 +58,11 @@ body {
   background: var(--color-canvas);
   color: var(--color-ink);
   font-family: var(--font-sans);
+}
+
+/* A focused field scrolls into view above the phone's sticky "Preview CV" bar (about 76 px). */
+@media (max-width: 1023px) {
+  html {
+    scroll-padding-bottom: 7rem;
+  }
 }
