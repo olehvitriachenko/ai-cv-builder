@@ -128,24 +128,34 @@ function chunks(word: string, limit: number): string[] {
 function Prose({ text, style, href }: { text: string; style: Style; href?: string }) {
   const limit = maxTokenLength(style);
   if (!hasLongToken(text, limit)) {
-    return href ? <Link src={href} style={{ ...style, textDecoration: 'underline' }}>{text}</Link> : <Text style={style}>{text}</Text>;
+    return href ? (
+      <Link src={href} style={{ ...style, textDecoration: 'underline' }}>
+        {text}
+      </Link>
+    ) : (
+      <Text style={style}>{text}</Text>
+    );
   }
   const words = text.split(/\s+/u).filter((word) => word.length > 0);
   return (
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', width: '100%' }}>
       {words.flatMap((word, wordIndex) => {
         const parts = chunks(word, limit);
-        return parts.map((part, partIndex) => (
+        return parts.map((part, partIndex) =>
           href ? (
-            <Link key={`${wordIndex}-${partIndex}`} src={href} style={{ ...style, flexShrink: 0, textDecoration: 'underline' }}>
+            <Link
+              key={`${wordIndex}-${partIndex}`}
+              src={href}
+              style={{ ...style, flexShrink: 0, textDecoration: 'underline' }}
+            >
               {partIndex === parts.length - 1 ? `${part} ` : part}
             </Link>
           ) : (
             <Text key={`${wordIndex}-${partIndex}`} style={{ ...style, flexShrink: 0 }}>
               {partIndex === parts.length - 1 ? `${part} ` : part}
             </Text>
-          )
-        ));
+          ),
+        );
       })}
     </View>
   );
@@ -156,7 +166,9 @@ function webHref(value: string): string | undefined {
   const trimmed = value.trim();
   const candidate = /^https?:\/\//iu.test(trimmed)
     ? trimmed
-    : /^[\w.-]+\.[a-z]{2,}(?:[/?#]|$)/iu.test(trimmed) ? `https://${trimmed}` : undefined;
+    : /^[\w.-]+\.[a-z]{2,}(?:[/?#]|$)/iu.test(trimmed)
+      ? `https://${trimmed}`
+      : undefined;
   if (!candidate) return undefined;
   try {
     const url = new URL(candidate);
@@ -323,7 +335,10 @@ function TitledEntry({
   last: boolean;
 }) {
   return (
-    <View style={last ? [styles.educationEntry, styles.lastEntry] : styles.educationEntry} wrap={false}>
+    <View
+      style={last ? [styles.educationEntry, styles.lastEntry] : styles.educationEntry}
+      wrap={false}
+    >
       <Prose text={title} style={styles.educationTitle} />
       {line ? <Prose text={line} style={styles.subline} /> : null}
       {link ? <Prose text={link} style={styles.subline} href={webHref(link)} /> : null}
@@ -343,7 +358,14 @@ function CertificationsSection({ entries }: { entries: CertificationEntry[] }) {
   return (
     <Section
       title="Certifications"
-      lead={<TitledEntry title={first.name} line={certificationLine(first)} link={first.link} last={others.length === 0} />}
+      lead={
+        <TitledEntry
+          title={first.name}
+          line={certificationLine(first)}
+          link={first.link}
+          last={others.length === 0}
+        />
+      }
     >
       {others.map((entry, index) => (
         <TitledEntry
@@ -364,7 +386,14 @@ function PortfolioSection({ entries }: { entries: PortfolioEntry[] }) {
   return (
     <Section
       title="Portfolio"
-      lead={<TitledEntry title={first.name} link={first.link} description={first.description} last={others.length === 0} />}
+      lead={
+        <TitledEntry
+          title={first.name}
+          link={first.link}
+          description={first.description}
+          last={others.length === 0}
+        />
+      }
     >
       {others.map((entry, index) => (
         <TitledEntry
@@ -380,7 +409,9 @@ function PortfolioSection({ entries }: { entries: PortfolioEntry[] }) {
 }
 
 function CustomSectionBlock({ section }: { section: CustomSection }) {
-  const [first, ...others] = section.content.split(/\r?\n/u).filter((line) => line.trim().length > 0);
+  const [first, ...others] = section.content
+    .split(/\r?\n/u)
+    .filter((line) => line.trim().length > 0);
   if (first === undefined) return null;
   return (
     <Section title={section.title} lead={<Prose text={first} style={styles.body} />}>
@@ -417,8 +448,20 @@ export function CvPdfDocument({ draft, targetRole }: CvPdfDocumentProps) {
               {contactLine ? (
                 <View>
                   {contact.location ? <Prose text={contact.location} style={styles.meta} /> : null}
-                  {contact.email ? <Prose text={contact.email} style={styles.meta} href={`mailto:${contact.email}`} /> : null}
-                  {contact.phone ? <Prose text={contact.phone} style={styles.meta} href={`tel:${contact.phone.replace(/[^+\d]/gu, '')}`} /> : null}
+                  {contact.email ? (
+                    <Prose
+                      text={contact.email}
+                      style={styles.meta}
+                      href={`mailto:${contact.email}`}
+                    />
+                  ) : null}
+                  {contact.phone ? (
+                    <Prose
+                      text={contact.phone}
+                      style={styles.meta}
+                      href={`tel:${contact.phone.replace(/[^+\d]/gu, '')}`}
+                    />
+                  ) : null}
                 </View>
               ) : null}
               {linksLine ? (
@@ -478,15 +521,22 @@ export function CvPdfDocument({ draft, targetRole }: CvPdfDocumentProps) {
         {draft.languages.length > 0 ? (
           <Section
             title="Languages"
-            lead={<Prose text={draft.languages.map(languageText).join(' · ')} style={styles.body} />}
-            keepTogether={draft.languages.map(languageText).join(' · ').length <= MAX_GROUPED_SKILLS_LENGTH}
+            lead={
+              <Prose text={draft.languages.map(languageText).join(' · ')} style={styles.body} />
+            }
+            keepTogether={
+              draft.languages.map(languageText).join(' · ').length <= MAX_GROUPED_SKILLS_LENGTH
+            }
           />
         ) : null}
 
         <PortfolioSection entries={draft.portfolio} />
 
         {draft.hobbies.length > 0 ? (
-          <Section title="Hobbies" lead={<Prose text={draft.hobbies.join(' · ')} style={styles.body} />} />
+          <Section
+            title="Hobbies"
+            lead={<Prose text={draft.hobbies.join(' · ')} style={styles.body} />}
+          />
         ) : null}
 
         {draft.customSections.map((section) => (
