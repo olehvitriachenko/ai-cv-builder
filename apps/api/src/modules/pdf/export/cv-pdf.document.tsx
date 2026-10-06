@@ -1,4 +1,4 @@
-import { Document, Page, StyleSheet, Text, View, type Styles } from '@react-pdf/renderer';
+import { Document, Link, Page, StyleSheet, Text, View, type Styles } from '@react-pdf/renderer';
 import type {
   CvDraft,
   EducationEntry,
@@ -120,10 +120,10 @@ function chunks(word: string, limit: number): string[] {
 }
 
 /** Plain text, or the chunked layout when the text holds a token that cannot fit a line. */
-function Prose({ text, style }: { text: string; style: Style }) {
+function Prose({ text, style, href }: { text: string; style: Style; href?: string }) {
   const limit = maxTokenLength(style);
   if (!hasLongToken(text, limit)) {
-    return <Text style={style}>{text}</Text>;
+    return href ? <Link src={href} style={{ ...style, textDecoration: 'underline' }}>{text}</Link> : <Text style={style}>{text}</Text>;
   }
   const words = text.split(/\s+/u).filter((word) => word.length > 0);
   return (
@@ -131,13 +131,34 @@ function Prose({ text, style }: { text: string; style: Style }) {
       {words.flatMap((word, wordIndex) => {
         const parts = chunks(word, limit);
         return parts.map((part, partIndex) => (
-          <Text key={`${wordIndex}-${partIndex}`} style={{ ...style, flexShrink: 0 }}>
-            {partIndex === parts.length - 1 ? `${part} ` : part}
-          </Text>
+          href ? (
+            <Link key={`${wordIndex}-${partIndex}`} src={href} style={{ ...style, flexShrink: 0, textDecoration: 'underline' }}>
+              {partIndex === parts.length - 1 ? `${part} ` : part}
+            </Link>
+          ) : (
+            <Text key={`${wordIndex}-${partIndex}`} style={{ ...style, flexShrink: 0 }}>
+              {partIndex === parts.length - 1 ? `${part} ` : part}
+            </Text>
+          )
         ));
       })}
     </View>
   );
+}
+
+/** Retain the displayed source value; only safe web addresses receive a PDF link annotation. */
+function webHref(value: string): string | undefined {
+  const trimmed = value.trim();
+  const candidate = /^https?:\/\//iu.test(trimmed)
+    ? trimmed
+    : /^[\w.-]+\.[a-z]{2,}(?:[/?#]|$)/iu.test(trimmed) ? `https://${trimmed}` : undefined;
+  if (!candidate) return undefined;
+  try {
+    const url = new URL(candidate);
+    return ['https:', 'http:'].includes(url.protocol) ? url.href : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 /**
@@ -295,8 +316,22 @@ export function CvPdfDocument({ draft, targetRole }: CvPdfDocumentProps) {
           <Prose text={targetRole} style={styles.role} />
           {contactLine || linksLine ? (
             <View style={styles.metaBlock}>
-              {contactLine ? <Prose text={contactLine} style={styles.meta} /> : null}
-              {linksLine ? <Prose text={linksLine} style={styles.meta} /> : null}
+              {contactLine ? (
+                <Text style={styles.meta}>
+                  {contact.location}
+                  {contact.location && (contact.email || contact.phone) ? '  ·  ' : ''}
+                  {contact.email ? <Link src={`mailto:${contact.email}`} style={{ color: MUTED, textDecoration: 'underline' }}>{contact.email}</Link> : null}
+                  {contact.email && contact.phone ? '  ·  ' : ''}
+                  {contact.phone ? <Link src={`tel:${contact.phone.replace(/[^+\d]/gu, '')}`} style={{ color: MUTED, textDecoration: 'underline' }}>{contact.phone}</Link> : null}
+                </Text>
+              ) : null}
+              {linksLine ? (
+                <View>
+                  {contact.links.map((link, index) => (
+                    <Prose key={index} text={link} style={styles.meta} href={webHref(link)} />
+                  ))}
+                </View>
+              ) : null}
             </View>
           ) : null}
         </View>
