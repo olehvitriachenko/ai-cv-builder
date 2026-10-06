@@ -59,11 +59,11 @@ description: "Task list for Submission Readiness (feature 006)"
 
 **Independent Test**: quickstart scenario 4.
 
-- [ ] T014 [US2] Make sure `README.md` has these sections, each short and in this order (research R5): Run with Docker; Local development; Verification (every kind of test, which need the database, which need the key, that none of the automated tests call the real AI); Architecture and lifecycle; Ownership and security; AI output and grounding limits; PDF constraints; Trade-offs and next steps with how AI coding tools were used (FR-006, FR-007).
-- [ ] T015 [US2] Add to the Trade-offs section the choices of features 002 to 005 a reviewer could mistake for defects, in one list (FR-008): skills are prompt-grounded, not mechanically verified; the preview's page count is an estimate; a save conflict is resolved by choosing a whole version, nothing is merged; the migration of drafts is one-way; removing an experience or a category that holds something asks first, everything else is immediate; the answer to a clarification question saves by itself after a pause (800 ms default); one API instance, no queue; no OCR. Source: `specs/002-cv-ai-generation/plan.md` "Project-level follow-ups".
-- [ ] T016 [US2] Run every command in `README.md` once, exactly as written, on the clean checkout of T010 (run, local development, each verification command, the smoke command described only). Fix every command or sentence that does not work or is out of date (SC-001, SC-004).
-- [ ] T017 [US2] Read the README once as a stranger and tick the eight questions of constitution XVI by heading (how to run, how to test, architecture, decisions, hallucination prevention and its limits, simplifications, next steps, AI tool use); add what is missing (SC-004).
-- [ ] T018 [US2] Commit `README.md` (`docs: README for reviewers`).
+- [x] T014 [US2] Make sure `README.md` has these sections, each short and in this order (research R5): Run with Docker; Local development; Verification (every kind of test, which need the database, which need the key, that none of the automated tests call the real AI); Architecture and lifecycle; Ownership and security; AI output and grounding limits; PDF constraints; Trade-offs and next steps with how AI coding tools were used (FR-006, FR-007).
+- [x] T015 [US2] Add to the Trade-offs section the choices of features 002 to 005 a reviewer could mistake for defects, in one list (FR-008): skills are prompt-grounded, not mechanically verified; the preview's page count is an estimate; a save conflict is resolved by choosing a whole version, nothing is merged; the migration of drafts is one-way; removing an experience or a category that holds something asks first, everything else is immediate; the answer to a clarification question saves by itself after a pause (800 ms default); one API instance, no queue; no OCR. Source: `specs/002-cv-ai-generation/plan.md` "Project-level follow-ups".
+- [x] T016 [US2] Run every command in `README.md` once, exactly as written, on the clean checkout of T010 (run, local development, each verification command, the smoke command described only). Fix every command or sentence that does not work or is out of date (SC-001, SC-004).
+- [x] T017 [US2] Read the README once as a stranger and tick the eight questions of constitution XVI by heading (how to run, how to test, architecture, decisions, hallucination prevention and its limits, simplifications, next steps, AI tool use); add what is missing (SC-004).
+- [x] T018 [US2] Commit `README.md` (`docs: README for reviewers`).
 
 **Checkpoint**: the README stands alone; US2 is complete.
 
@@ -92,16 +92,16 @@ description: "Task list for Submission Readiness (feature 006)"
 
 **Independent Test**: quickstart scenario 6, locate one area in one place.
 
-- [ ] T024 [US4] Confirm `WEB/features/{auth,cv-list,cv-generation,cv-editor,pdf-download,cv-delete}` each hold their components, model and API calls, shared parts are in `WEB/shared` and `WEB/entities`, and nothing imports across features except through the documented paths in `.claude/rules/file-structure.md` (FR-013). Note any exception; do not move code in this feature.
-- [ ] T025 [US4] Commit the rule file `.claude/rules/file-structure.md` if it is still staged and unreviewed, as its own commit, or leave it to its author and record that here.
+- [x] T024 [US4] Confirm `WEB/features/{auth,cv-list,cv-generation,cv-editor,pdf-download,cv-delete}` each hold their components, model and API calls, shared parts are in `WEB/shared` and `WEB/entities`, and nothing imports across features except through the documented paths in `.claude/rules/file-structure.md` (FR-013). Note any exception; do not move code in this feature.
+- [x] T025 [US4] Commit the rule file `.claude/rules/file-structure.md` if it is still staged and unreviewed, as its own commit, or leave it to its author and record that here.
 
 ---
 
 ## Phase 7: Polish & Cross-Cutting
 
-- [ ] T026 Run all gates on the final tree: `pnpm typecheck`, `pnpm lint`, `pnpm test`, `pnpm test:e2e` (the API suite uses its own `_test` database; recreate it if a failed-migration record blocks it), `pnpm build`; none may call the real AI (FR-014, SC-007). Record counts.
-- [ ] T027 [P] Update `specs/006-submission-readiness/checklists/requirements.md` notes with the final state and record the date of the clean-checkout run.
-- [ ] T028 Fill the "Verification record" below and tick the finished tasks; commit `specs/006-submission-readiness` (`docs(006): verification record`).
+- [x] T026 Run all gates on the final tree: `pnpm typecheck`, `pnpm lint`, `pnpm test`, `pnpm test:e2e` (the API suite uses its own `_test` database; recreate it if a failed-migration record blocks it), `pnpm build`; none may call the real AI (FR-014, SC-007). Record counts.
+- [x] T027 [P] Update `specs/006-submission-readiness/checklists/requirements.md` notes with the final state and record the date of the clean-checkout run.
+- [x] T028 Fill the "Verification record" below and tick the finished tasks; commit `specs/006-submission-readiness` (`docs(006): verification record`).
 - [ ] T029 Push the branch only when its owner agrees: it holds unpushed refactor commits of another author (`git log --oneline origin/005-structured-cv-editor..HEAD`).
 
 ---
@@ -133,6 +133,11 @@ description: "Task list for Submission Readiness (feature 006)"
 | Clean-checkout run, elapsed time | 2026-10-06 | pass: two clean temp copies (no `.env`, `node_modules` or volume) built and started; register → create CV → `COMPLETED` with the real model on the keyed copy; images built in a few minutes. Not timed end to end by the owner |
 | No key | 2026-10-06 | found `UNKNOWN` instead of `PROVIDER_NOT_CONFIGURED` (empty key from Compose), fixed in `ada9dde`; then the CV ends `FAILED PROVIDER_NOT_CONFIGURED` within a second, retry gives the same, sign-in and the list work |
 | Ports and secrets | 2026-10-06 | web 3300, API 3301, database 55440 worked and kept the session; both CVs and the account survived `down` and `up`; no key-like string in `git ls-files`; `.env` ignored |
-| README commands | | |
+| README commands | 2026-10-06 | pass: Compose commands exercised on clean copies; `typecheck`, `lint`, `test`, `test:e2e`, `build` run as written; limits quoted in the README (50 pages, 5 min, 800 ms) checked in code; the smoke command is described only (it spends tokens); local development `pnpm dev` verified at T003/T004 |
 | Preparing message (desktop, 390, 320, fast, failure, close, repeated clicks) | 2026-10-06 | pass (Playwright against the dev servers: shown after 300 ms with the three texts and the file name, the button reads "Preparing…", no message in the first 150 ms, one request for three clicks, closing mid-way still downloads, a failure removes the message and shows the usual error, 358 px surface with the disabled "Preparing…" button at 390 and 288 px at 320, no horizontal overflow) |
-| Gates (typecheck, lint, unit, e2e, build) | | |
+| Gates (typecheck, lint, unit, e2e, build) | 2026-10-06 | pass: typecheck and lint clean; unit API 443, web 296; API e2e 292; production build of both apps |
+
+## Notes
+
+- T025: `.claude/rules/file-structure.md` has uncommitted changes by its author; left to them, not committed here.
+- T029: not pushed. `006-submission-readiness` has no remote branch and holds another author's unpushed commits; pushing waits for the owner.
