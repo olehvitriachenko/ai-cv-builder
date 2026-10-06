@@ -8,6 +8,7 @@ import {
   assistantSummary,
   canApplyAnswer,
   questionContext,
+  questionTargetRemoved,
   questionView,
   unresolvedCount,
 } from "./question-form";
@@ -77,6 +78,15 @@ describe("questionContext", () => {
 
   it("falls back to the section when the entry was removed", () => {
     expect(questionContext(question({ itemId: "gone" }), draft)).toBe("Experience");
+  });
+});
+
+describe("questionTargetRemoved", () => {
+  it("is true only when the experience or education entry is gone from the draft", () => {
+    expect(questionTargetRemoved(question({}), draft)).toBe(false);
+    expect(questionTargetRemoved(question({ section: "EDUCATION", itemId: "edu-1" }), draft)).toBe(false);
+    expect(questionTargetRemoved(question({ itemId: "gone" }), draft)).toBe(true);
+    expect(questionTargetRemoved(question({ section: "CONTACT", itemId: null }), draft)).toBe(false);
   });
 });
 

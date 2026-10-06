@@ -66,6 +66,7 @@ export type ApplyFailureKind =
   | "ai_unavailable"
   | "output_invalid"
   | "target_stale"
+  | "target_filled"
   | "revision_conflict"
   | "answer_invalid"
   | "question_changed"
@@ -91,13 +92,25 @@ export class ApplyFailureError extends Error {
   }
 }
 
-/** Maps an apply error to its message and recovery actions; `target` names the section for a stale target. */
-export function applyErrorOutcome(error: unknown, target: string | null = null): ApplyFailure {
+/**
+ * Maps an apply error to its message and recovery actions. `target` names the section or entry;
+ * `targetRemoved` says whether the entry the question concerns is gone from the draft, which is the
+ * only way a target can be stale. Otherwise a refused target is one the person already filled.
+ */
+export function applyErrorOutcome(error: unknown, target: string | null = null, targetRemoved = false): ApplyFailure {
   if (isApiError(error, 409)) {
-    if (error.code === "TARGET_NOT_APPLICABLE") {
+    if (error.code === "TARGET_NOT_APPLICABLE" && targetRemoved) {
       return {
         kind: "target_stale",
         message: `The ${target ?? "target"} section changed since this question was created. Review the current section before deciding.`,
+        reload: false,
+        actions: ["review_section", "dismiss"],
+      };
+    }
+    if (error.code === "TARGET_NOT_APPLICABLE") {
+      return {
+        kind: "target_filled",
+        message: `${target ?? "This part of the CV"} already has this value filled in, so the answer wasn’t applied. Edit it in the CV yourself, or dismiss the question.`,
         reload: false,
         actions: ["review_section", "dismiss"],
       };

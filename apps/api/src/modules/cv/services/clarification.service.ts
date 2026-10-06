@@ -53,6 +53,8 @@ interface ApplyContext {
     section: QuestionSection;
     itemId: string | null;
     field: QuestionField | null;
+    /** The uncertain generated value the answer may replace while the field still holds it. */
+    targetValue: string | null;
     text: string;
     answer: string;
   };
@@ -197,6 +199,7 @@ export class ClarificationService {
         section: true,
         itemId: true,
         field: true,
+        targetValue: true,
         question: true,
         status: true,
         answer: true,
@@ -238,6 +241,7 @@ export class ClarificationService {
         section: question.section,
         itemId: question.itemId,
         field: question.field,
+        targetValue: question.targetValue,
         text: question.question,
         answer: question.answer,
       },
@@ -249,7 +253,7 @@ export class ClarificationService {
     if (question.field === null) {
       throw new Error('computeDeterministicDraft needs a question with a field');
     }
-    const result = applyFieldAnswer(draft, question.field, question.itemId, question.answer);
+    const result = applyFieldAnswer(draft, question.field, question.itemId, question.answer, question.targetValue);
     if (!result.ok) {
       if (result.reason === 'INVALID_VALUE') {
         throw new ApiError(

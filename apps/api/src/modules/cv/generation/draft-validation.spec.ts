@@ -75,8 +75,28 @@ describe('validateGeneration', () => {
           question: 'How big was the team?',
           position: 0,
           status: 'UNANSWERED',
+          targetValue: null,
         },
       ]);
+    }
+  });
+
+  it('remembers the value a field question targets when the model filled it and still asked', () => {
+    const result = validateGeneration(
+      output({
+        questions: [
+          { section: 'EXPERIENCE', itemIndex: 0, field: 'EXPERIENCE_TITLE', missing: 'Exact title', question: 'What was your exact job title at Acme Corp?' },
+          { section: 'EXPERIENCE', itemIndex: 0, field: 'EXPERIENCE_START_DATE', missing: 'Start', question: 'When did you start at Acme Corp?' },
+          { section: 'EXPERIENCE', itemIndex: 0, field: 'EXPERIENCE_LOCATION', missing: 'Where', question: 'Where was the job based?' },
+        ],
+        experience: [{ ...output().experience[0]!, location: null }],
+      }),
+      SOURCE,
+    );
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.questions.map((question) => question.targetValue)).toEqual(['Backend engineer', '2016', null]);
     }
   });
 

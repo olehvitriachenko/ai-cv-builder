@@ -85,6 +85,16 @@ export function questionTargetName(question: ClarificationQuestion, draft: CvDra
       : null;
 }
 
+/** Whether the experience or education entry a question concerns is no longer in the draft. */
+export function questionTargetRemoved(question: ClarificationQuestion, draft: CvDraft): boolean {
+  if (question.itemId === null) {
+    return false;
+  }
+  const entries: readonly { id: string }[] =
+    question.section === "EXPERIENCE" ? draft.experience : question.section === "EDUCATION" ? draft.education : [];
+  return !entries.some((entry) => entry.id === question.itemId);
+}
+
 /** "Experience / Kilona": which part of the CV a question is about. */
 export function questionContext(question: ClarificationQuestion, draft: CvDraft): string {
   const section = SECTION_LABELS[question.section];

@@ -143,6 +143,54 @@ describe('POST /api/cvs/:id/questions/:questionId/apply', () => {
       expect((await snapshot(id, questionId)).status).toBe('DISMISSED');
     });
 
+    it('replaces the uncertain generated value the question asked about (the model filled it and asked)', async () => {
+      const { user, id } = await setUp();
+      const questionId = await seedQuestion(prisma, id, {
+        section: 'EXPERIENCE',
+        itemId: 'exp-2',
+        field: 'EXPERIENCE_TITLE',
+        targetValue: 'Analyst',
+        status: 'ANSWERED',
+        answer: 'Data Analyst',
+      });
+
+      const response = await apply(user.cookie, id, questionId, { revision: 0 });
+
+      expect(response.statusCode).toBe(200);
+      const body = response.json<ApplyBody>();
+      expect(body.draft.experience[1]?.title).toBe('Data Analyst');
+      expect(body.draft.experience[0]).toEqual(sparseDraft().experience[0]);
+      expect(await snapshot(id, questionId)).toMatchObject({ status: 'APPLIED', revision: 1 });
+    });
+
+    it('keeps a manual edit made after the question was generated: the answer cannot replace it', async () => {
+      const { user, id } = await setUp();
+      const questionId = await seedQuestion(prisma, id, {
+        section: 'EXPERIENCE',
+        itemId: 'exp-2',
+        field: 'EXPERIENCE_TITLE',
+        targetValue: 'Analyst',
+        status: 'ANSWERED',
+        answer: 'Data Analyst',
+      });
+      const edited = sparseDraft();
+      edited.experience[1]!.title = 'Lead Analyst';
+      const save = await app.inject({
+        method: 'PUT',
+        url: `/api/cvs/${id}/draft`,
+        headers: { cookie: user.cookie },
+        payload: { revision: 0, draft: edited },
+      });
+      expect(save.statusCode).toBe(200);
+      const before = await snapshot(id, questionId);
+
+      const response = await apply(user.cookie, id, questionId, { revision: 1 });
+
+      expect(response.statusCode).toBe(409);
+      expect(response.json()).toMatchObject({ code: 'TARGET_NOT_APPLICABLE' });
+      expect(await snapshot(id, questionId)).toEqual(before);
+    });
+
     it('refuses with TARGET_NOT_APPLICABLE when the entry was removed', async () => {
       const { user, id } = await setUp();
       const questionId = await seedQuestion(prisma, id, { section: 'EXPERIENCE', itemId: 'removed-entry', field: 'EXPERIENCE_END_DATE', status: 'ANSWERED' });

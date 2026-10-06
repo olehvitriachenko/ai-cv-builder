@@ -109,6 +109,8 @@ export interface SeedQuestion {
     | 'EDUCATION_START_DATE'
     | 'EDUCATION_END_DATE'
     | null;
+  /** The uncertain value the field held when the question was generated. */
+  targetValue?: string | null;
   status?: 'UNANSWERED' | 'ANSWERED' | 'APPLIED' | 'DISMISSED';
   answer?: string | null;
   missing?: string;
@@ -136,6 +138,7 @@ export async function seedQuestion(
       section: overrides.section ?? 'SUMMARY',
       itemId: overrides.itemId ?? null,
       field: overrides.field ?? null,
+      targetValue: overrides.targetValue ?? null,
       status,
       answer,
       missing: overrides.missing ?? 'Something is missing',

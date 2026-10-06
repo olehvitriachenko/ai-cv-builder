@@ -96,6 +96,30 @@ describe('applyFieldAnswer', () => {
     expect(applyFieldAnswer(draft, field, itemId, 'new value')).toEqual({ ok: false, reason: 'TARGET_FILLED' });
   });
 
+  it('replaces the uncertain generated value the question was asked about while it is unchanged', () => {
+    // exp-2 was generated with the title "Engineer" and a question asking for the exact title.
+    const result = applyFieldAnswer(emptyDraft(), 'EXPERIENCE_TITLE', 'exp-2', 'Test Automation Engineer', 'Engineer');
+    expect(result.ok && result.draft.experience[1]?.title).toBe('Test Automation Engineer');
+
+    const draft = emptyDraft();
+    draft.contact.location = 'Kyiv';
+    const location = applyFieldAnswer(draft, 'CONTACT_LOCATION', null, 'Lviv', 'Kyiv');
+    expect(location.ok && location.draft.contact.location).toBe('Lviv');
+  });
+
+  it('keeps a value the person changed after the question was generated', () => {
+    const draft = emptyDraft();
+    const edited = draft.experience[1];
+    if (edited) {
+      edited.title = 'QA Lead';
+    }
+
+    expect(applyFieldAnswer(draft, 'EXPERIENCE_TITLE', 'exp-2', 'Test Automation Engineer', 'Engineer')).toEqual({
+      ok: false,
+      reason: 'TARGET_FILLED',
+    });
+  });
+
   it('reports a removed entry as TARGET_MISSING', () => {
     expect(applyFieldAnswer(emptyDraft(), 'EXPERIENCE_END_DATE', 'gone', '2020')).toEqual({ ok: false, reason: 'TARGET_MISSING' });
     expect(applyFieldAnswer(emptyDraft(), 'EDUCATION_END_DATE', 'exp-1', '2020')).toEqual({ ok: false, reason: 'TARGET_MISSING' });

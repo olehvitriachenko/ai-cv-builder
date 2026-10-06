@@ -68,16 +68,26 @@ describe("applyAnswer", () => {
 });
 
 describe("applyErrorOutcome", () => {
-  const outcome = (status: number, code: string, target: string | null = null) =>
-    applyErrorOutcome(new ApiError(status, code, "server text"), target);
+  const outcome = (status: number, code: string, target: string | null = null, targetRemoved = false) =>
+    applyErrorOutcome(new ApiError(status, code, "server text"), target, targetRemoved);
 
-  it("a stale target names the section and offers Review section and Dismiss", () => {
-    const result = outcome(409, "TARGET_NOT_APPLICABLE", "Kilona");
+  it("a removed target names the section and offers Review section and Dismiss", () => {
+    const result = outcome(409, "TARGET_NOT_APPLICABLE", "Kilona", true);
 
     expect(result).toMatchObject({ kind: "target_stale", reload: false, actions: ["review_section", "dismiss"] });
     expect(result.message).toBe(
       "The Kilona section changed since this question was created. Review the current section before deciding.",
     );
+  });
+
+  it("a target that is still there was filled by the person: it is not reported as a change or a conflict", () => {
+    const result = outcome(409, "TARGET_NOT_APPLICABLE", "EPAM");
+
+    expect(result).toMatchObject({ kind: "target_filled", reload: false, actions: ["review_section", "dismiss"] });
+    expect(result.message).toBe(
+      "EPAM already has this value filled in, so the answer wasn’t applied. Edit it in the CV yourself, or dismiss the question.",
+    );
+    expect(result.message).not.toMatch(/changed|revision|conflict/i);
   });
 
   it("a revision conflict does not reload on its own: the person reviews the latest version first", () => {

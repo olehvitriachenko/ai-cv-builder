@@ -135,6 +135,10 @@ model ClarificationQuestion {
   missing   String
   question  String
   field     QuestionField?
+  /// The value `field` held when the question was generated: an uncertain value the model filled
+  /// and asked about. An applied answer may replace it while the field still holds it; null when the
+  /// field was empty (the answer then only fills an empty field).
+  targetValue String?
   /// The user's answer; set exactly when status is ANSWERED (a dismissed question keeps one).
   answer    String?
   status    QuestionStatus  @default(UNANSWERED)

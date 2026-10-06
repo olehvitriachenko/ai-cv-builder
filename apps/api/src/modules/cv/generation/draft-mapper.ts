@@ -7,6 +7,7 @@ import {
   QuestionFieldName,
   QuestionSectionName,
 } from '../../ai/schemas/llm-cv-output.schema.js';
+import { fieldValue } from '../clarification/question-target.js';
 import { LANGUAGE_LEVELS, type CvDraft, type cvDraftSchema } from './draft.schema.js';
 
 /** The draft shape before schema validation (strings not yet trimmed or checked). */
@@ -21,6 +22,8 @@ export interface QuestionRow {
   itemId: string | null;
   /** The single plain value the answer fills, or null (the answer then goes through the AI path). */
   field: QuestionFieldName | null;
+  /** The value `field` already holds in the generated draft (the model filled it and still asked). */
+  targetValue: string | null;
   missing: string;
   question: string;
   position: number;
@@ -181,10 +184,13 @@ export function mapQuestions(questions: LlmQuestion[], draft: CvDraft): Question
           : [];
     const entry = question.itemIndex === null ? undefined : entries[question.itemIndex];
 
+    const itemId = entry ? entry.id : null;
+    const field = question.field ?? null;
     return {
       section: question.section,
-      itemId: entry ? entry.id : null,
-      field: question.field ?? null,
+      itemId,
+      field,
+      targetValue: field === null ? null : fieldValue(draft, field, itemId),
       missing: question.missing,
       question: question.question,
       position,

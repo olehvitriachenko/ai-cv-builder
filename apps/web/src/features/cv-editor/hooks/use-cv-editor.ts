@@ -9,7 +9,7 @@ import { saveDraft } from "@/features/cv-editor/api/draft";
 import { type ClarificationQuestion, type CvResult } from "@/entities/cv/schemas";
 import { isApiError } from "@/shared/api/fetcher";
 import { ApplyBlockedError, ApplyFailureError, applyAnswer, applyErrorOutcome } from "@/features/cv-editor/model/apply-flow";
-import { questionTargetName, sectionLabel } from "@/features/cv-editor/model/question-form";
+import { questionTargetName, questionTargetRemoved, sectionLabel } from "@/features/cv-editor/model/question-form";
 import { DraftAutosaver, type SavePayload } from "@/features/cv-editor/model/autosave";
 import {
   createCvFormSchema,
@@ -124,7 +124,11 @@ export function useCvEditor({
       if (error instanceof ApplyBlockedError) {
         throw error;
       }
-      const outcome = applyErrorOutcome(error, questionTargetName(question, payload.draft) ?? sectionLabel(question.section));
+      const outcome = applyErrorOutcome(
+        error,
+        questionTargetName(question, payload.draft) ?? sectionLabel(question.section),
+        questionTargetRemoved(question, payload.draft),
+      );
       if (outcome.reload) {
         try {
           onReplace(await fetchLatest(), outcome.message);

@@ -7,8 +7,9 @@ import type { CvDraft } from '../generation/draft.schema.js';
  * `itemId` and `field`; the client never names a path or an operation. These functions are pure:
  * they return a new draft (the input is never mutated) or the reason nothing can be applied.
  *
- * Nothing already filled is overwritten: a scalar is written only when it is null, a list is only
- * appended to. That is what keeps the person's manual edits authoritative.
+ * Nothing the person filled is overwritten: a scalar is written only when it is null (or still holds
+ * the uncertain value the question was generated about), a list is only appended to. That is what
+ * keeps the person's manual edits authoritative.
  */
 export type TargetProblem =
   /** The entry the question was about no longer exists. */
@@ -67,12 +68,42 @@ function fits(value: string, rule: FieldRule): boolean {
   return value.length > 0 && value.length <= rule.max && (rule.valid?.(value) ?? true);
 }
 
-/** Fills one plain value (or appends one link) for the question's `field`. Pure. */
+/**
+ * The value a field question targets in a draft, or null when it is empty, its entry is gone or it
+ * is a link question (a link answer is appended, never replaces). Stored with a generated question
+ * as `targetValue`.
+ */
+export function fieldValue(draft: CvDraft, field: QuestionField, itemId: string | null): string | null {
+  if (isKeyOf(CONTACT_RULES, field)) {
+    return draft.contact[CONTACT_RULES[field].key];
+  }
+  if (isKeyOf(EXPERIENCE_RULES, field)) {
+    return draft.experience.find((entry) => entry.id === itemId)?.[EXPERIENCE_RULES[field].key] ?? null;
+  }
+  if (isKeyOf(EDUCATION_RULES, field)) {
+    return draft.education.find((entry) => entry.id === itemId)?.[EDUCATION_RULES[field].key] ?? null;
+  }
+  return null;
+}
+
+/**
+ * A filled field accepts the answer only when it still holds `replaceable`: the uncertain value the
+ * model filled and asked about. Any other value was typed or applied since, so it is kept.
+ */
+function isFilled(current: string | null, replaceable: string | null): boolean {
+  return current !== null && current !== replaceable;
+}
+
+/**
+ * Fills one plain value (or appends one link) for the question's `field`. A filled value is
+ * replaced only while it is still `replaceable` (the question's `targetValue`). Pure.
+ */
 export function applyFieldAnswer(
   draft: CvDraft,
   field: QuestionField,
   itemId: string | null,
   answer: string,
+  replaceable: string | null = null,
 ): ApplyResult {
   const value = answer.trim();
 
@@ -89,7 +120,7 @@ export function applyFieldAnswer(
   if (isKeyOf(CONTACT_RULES, field)) {
     const { key, rule } = CONTACT_RULES[field];
     // Filled first: when the value is already there the useful answer is "dismiss it".
-    if (draft.contact[key] !== null) {
+    if (isFilled(draft.contact[key], replaceable)) {
       return { ok: false, reason: 'TARGET_FILLED' };
     }
     if (!fits(value, rule)) {
@@ -105,7 +136,7 @@ export function applyFieldAnswer(
     if (!entry) {
       return { ok: false, reason: 'TARGET_MISSING' };
     }
-    if (entry[key] !== null) {
+    if (isFilled(entry[key], replaceable)) {
       return { ok: false, reason: 'TARGET_FILLED' };
     }
     if (!fits(value, rule)) {
@@ -124,7 +155,7 @@ export function applyFieldAnswer(
     if (!entry) {
       return { ok: false, reason: 'TARGET_MISSING' };
     }
-    if (entry[key] !== null) {
+    if (isFilled(entry[key], replaceable)) {
       return { ok: false, reason: 'TARGET_FILLED' };
     }
     if (!fits(value, rule)) {
