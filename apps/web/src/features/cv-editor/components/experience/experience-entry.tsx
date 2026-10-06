@@ -64,7 +64,7 @@ export function ExperienceEntry({
             <DatePicker
               label="End date"
               value={present ? "" : entry.endDate}
-              lockedText={present ? PRESENT : undefined}
+              lockedText={present ? entry.endDate : undefined}
               onChange={(value) => setDate("endDate", value)}
               bounds={endBounds}
               error={errors?.endDate?.message}

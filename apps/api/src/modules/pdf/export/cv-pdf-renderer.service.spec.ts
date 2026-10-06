@@ -144,6 +144,14 @@ describe('CvPdfRenderer', () => {
     expect(pdf.flat.includes('(expected)')).toBe(expected);
   });
 
+  it('retains source-derived now in exported experience', async () => {
+    const draft = typicalDraft();
+    draft.experience[0]!.startDate = 'Sept 2019';
+    draft.experience[0]!.endDate = 'now';
+    const pdf = await readPdf(await renderer.render({ draft, targetRole: 'Engineer' }));
+    expect(pdf.flat).toContain('Sept 2019 — now');
+  });
+
   it('produces a PDF whose every page is A4 portrait', async () => {
     const bytes = await renderer.render({ draft: typicalDraft(), targetRole: 'Backend Engineer' });
 

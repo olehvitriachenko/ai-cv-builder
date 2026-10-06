@@ -1,8 +1,8 @@
 /** Matches the editor's year/month precision without inventing an end date. */
 export function educationStatus(end: string | null, today = new Date(), ongoing?: boolean): { studying: boolean; expected: boolean } {
   const value = end?.trim().toLowerCase() ?? '';
-  if (ongoing !== undefined) return { studying: ongoing, expected: ongoing && value !== '' && value !== 'present' };
-  if (value === 'present') return { studying: true, expected: false };
+  if (ongoing !== undefined) return { studying: ongoing, expected: ongoing && value !== '' && !['present', 'now'].includes(value) };
+  if (value === 'present' || value === 'now') return { studying: true, expected: false };
   let year: number | undefined;
   let month: number | undefined;
   if (/^\d{4}$/u.test(value)) year = Number(value);

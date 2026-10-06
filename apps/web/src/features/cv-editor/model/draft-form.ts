@@ -165,7 +165,7 @@ export function toTargetRole(values: DraftFormValues): string {
 export const PRESENT = "Present";
 
 export function isPresent(value: string): boolean {
-  return value.trim().toLowerCase() === PRESENT.toLowerCase();
+  return [PRESENT.toLowerCase(), "now"].includes(value.trim().toLowerCase());
 }
 
 /** Explicit ongoing wins; old drafts retain their existing future-date/Present interpretation. */

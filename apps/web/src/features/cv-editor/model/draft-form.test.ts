@@ -581,4 +581,16 @@ describe("persisted ongoing choices", () => {
     expect(toFormValues(saved, ROLE).education[0]!.ongoing).toBe(ongoing);
   });
 
+  it.each(["now", "Present"])("recognizes %s as ongoing and preserves it on unrelated saves", (endDate) => {
+    const stored = draft();
+    stored.experience[0]!.endDate = endDate;
+    const values = toFormValues(stored, ROLE);
+    expect(isPresent(values.experience[0]!.endDate)).toBe(true);
+    values.summary = "Unrelated manual edit";
+    expect(createCvFormSchema(savedDatesOf(stored)).safeParse(values).success).toBe(true);
+    expect(toDraft(values).experience[0]!.endDate).toBe(endDate);
+  });
+  it("does not mark a completed experience date ongoing", () => {
+    expect(isPresent("2023")).toBe(false);
+  });
 });
