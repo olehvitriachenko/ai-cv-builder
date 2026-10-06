@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { CvDraft } from "@/lib/api/cvs";
+import type { CvDraft } from "@/entities/cv/schemas";
 import { diffSections, reviewSummary, versionHeading, type VersionContent } from "./conflict-review";
 
 function version(): VersionContent {

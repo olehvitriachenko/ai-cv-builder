@@ -1,4 +1,4 @@
-import type { CvListItem } from "@/lib/api/cvs";
+import type { CvListItem } from "@/entities/cv/schemas";
 
 /** Candidate name from the list, or the placeholder; the client never reads the draft itself. */
 export function cardName(item: Pick<CvListItem, "candidateName">): string {

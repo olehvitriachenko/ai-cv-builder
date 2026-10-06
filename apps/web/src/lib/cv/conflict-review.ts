@@ -1,4 +1,4 @@
-import type { CvDraft, EducationEntry, ExperienceEntry } from "@/lib/api/cvs";
+import type { CvDraft, EducationEntry, ExperienceEntry } from "@/entities/cv/schemas";
 import { isCurrentlyStudying, isPresent } from "./draft-form";
 
 // "Review conflicting versions" (Figma 09.3 to 09.5): the document the person is editing and the

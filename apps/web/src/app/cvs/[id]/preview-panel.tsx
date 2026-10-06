@@ -2,7 +2,7 @@
 
 import { Maximize2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
-import type { CvDraft } from "@/lib/api/cvs";
+import type { CvDraft } from "@/entities/cv/schemas";
 import type { SaveStatus } from "@/lib/cv/autosave";
 import {
   A4_WIDTH_PX,

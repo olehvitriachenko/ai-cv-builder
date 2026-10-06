@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
-import type { CvResult } from "@/lib/api/cvs";
+import type { CvResult } from "@/entities/cv/schemas";
 import { isApiError } from "@/shared/api/fetcher";
 import { getCvResultServer, getCvStatusServer } from "@/lib/cv/server";
 import { AppShell } from "../../_components/app-shell";

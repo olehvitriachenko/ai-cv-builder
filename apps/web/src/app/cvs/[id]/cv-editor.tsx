@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { getCvResult, type CvResult } from "@/lib/api/cvs";
+import { getCvResult } from "@/features/cv-editor/api/draft";
+import { type CvResult } from "@/entities/cv/schemas";
 import { EditorWorkspace } from "./editor-workspace";
 
 /**

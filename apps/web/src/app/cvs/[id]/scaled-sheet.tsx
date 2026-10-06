@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import type { CvDraft } from "@/lib/api/cvs";
+import type { CvDraft } from "@/entities/cv/schemas";
 import { SHEET_WIDTH_PX, sheetScale } from "@/lib/cv/preview-zoom";
 import { CvDocument } from "./cv-document";
 

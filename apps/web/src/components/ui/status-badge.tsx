@@ -1,4 +1,4 @@
-import type { DisplayStatus, GenerationStatus } from "@/lib/api/cvs";
+import type { DisplayStatus, GenerationStatus } from "@/entities/cv/schemas";
 
 // "Forma / Status badge": 6px radius, 5px dot, 12px medium label. The label carries the meaning;
 // the colour only reinforces it.

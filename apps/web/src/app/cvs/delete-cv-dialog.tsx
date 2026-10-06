@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/shared/ui/button";
-import { deleteCv } from "@/lib/api/cvs";
+import { deleteCv } from "@/features/cv-delete/api";
 import { deleteOutcome } from "@/lib/cv/delete-flow";
 import { CVS_QUERY_KEY } from "@/lib/cv/query-keys";
 

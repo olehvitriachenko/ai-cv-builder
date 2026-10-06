@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { apiFetch } from "../../shared/api/fetcher";
 
 // Mirrors specs/002-cv-ai-generation/contracts/cv-generation-api.md. Every response is parsed
 // with these schemas, so nothing from the network is trusted by type alone.
@@ -100,34 +99,6 @@ export const cvResultSchema = z.object({
 });
 export type CvResult = z.infer<typeof cvResultSchema>;
 
-/** `POST /api/cvs`: exactly one source, free text. The owner comes from the session cookie. */
-export function createCvFromText(input: { targetRole: string; sourceText: string }): Promise<CvStatus> {
-  return apiFetch("/cvs", { method: "POST", body: input, schema: cvStatusSchema });
-}
-
-/** `POST /api/cvs/upload`: exactly one source, a PDF (multipart). */
-export function uploadCvPdf(input: { targetRole: string; file: File }): Promise<CvStatus> {
-  const form = new FormData();
-  form.append("targetRole", input.targetRole);
-  form.append("file", input.file);
-  return apiFetch("/cvs/upload", { method: "POST", body: form, schema: cvStatusSchema });
-}
-
-/** `GET /api/cvs/:id`: the polling target. `cookie` is only for server-side calls. */
-export function getCvStatus(id: string, cookie?: string): Promise<CvStatus> {
-  return apiFetch(`/cvs/${encodeURIComponent(id)}`, { schema: cvStatusSchema, cookie });
-}
-
-/** `GET /api/cvs/:id/result`: the draft with its clarification questions; 409 until COMPLETED. */
-export function getCvResult(id: string, cookie?: string): Promise<CvResult> {
-  return apiFetch(`/cvs/${encodeURIComponent(id)}/result`, { schema: cvResultSchema, cookie });
-}
-
-/** `POST /api/cvs/:id/retry`: only for a FAILED CV; 409 `GENERATION_NOT_RETRYABLE` otherwise. */
-export function retryCv(id: string): Promise<CvStatus> {
-  return apiFetch(`/cvs/${encodeURIComponent(id)}/retry`, { method: "POST", schema: cvStatusSchema });
-}
-
 export const displayStatusSchema = z.enum(["PROCESSING", "FAILED", "DRAFT", "COMPLETED"]);
 export type DisplayStatus = z.infer<typeof displayStatusSchema>;
 
@@ -149,56 +120,7 @@ export type CvListItem = z.infer<typeof cvListItemSchema>;
 export const cvListSchema = z.object({ items: z.array(cvListItemSchema) });
 export type CvList = z.infer<typeof cvListSchema>;
 
-/** `GET /api/cvs`: the caller's CVs, newest update first. `cookie` is only for server-side calls. */
-export function listCvs(cookie?: string): Promise<CvList> {
-  return apiFetch("/cvs", { schema: cvListSchema, cookie });
-}
-
-/** `DELETE /api/cvs/:id`: 204. 409 `CV_GENERATION_ACTIVE` while generating; 404 when missing. */
-export function deleteCv(id: string): Promise<void> {
-  return apiFetch(`/cvs/${encodeURIComponent(id)}`, { method: "DELETE" });
-}
-
 export const draftSaveSchema = z.object({
   revision: z.number().int().nonnegative(),
   updatedAt: z.string(),
 });
-
-/**
- * `PUT /api/cvs/:id/draft`: replaces the draft of a COMPLETED CV. `revision` is the one the edit is
- * based on; a stale one is `409 REVISION_CONFLICT` and nothing is stored. `targetRole`, when given,
- * is saved in the same write.
- */
-export function saveDraft(id: string, input: { revision: number; draft: CvDraft; targetRole?: string }): Promise<{ revision: number }> {
-  return apiFetch(`/cvs/${encodeURIComponent(id)}/draft`, { method: "PUT", body: input, schema: draftSaveSchema });
-}
-
-/** `PUT /api/cvs/:id/questions/:questionId/answer`: saves the answer; the CV content is unchanged. */
-export function answerQuestion(cvId: string, questionId: string, answer: string): Promise<ClarificationQuestion> {
-  return apiFetch(`/cvs/${encodeURIComponent(cvId)}/questions/${encodeURIComponent(questionId)}/answer`, {
-    method: "PUT",
-    body: { answer },
-    schema: clarificationQuestionSchema,
-  });
-}
-
-/** `POST /api/cvs/:id/questions/:questionId/dismiss`: closes a question without changing the CV. */
-export function dismissQuestion(cvId: string, questionId: string): Promise<ClarificationQuestion> {
-  return apiFetch(`/cvs/${encodeURIComponent(cvId)}/questions/${encodeURIComponent(questionId)}/dismiss`, {
-    method: "POST",
-    schema: clarificationQuestionSchema,
-  });
-}
-
-/**
- * `POST /api/cvs/:id/questions/:questionId/apply`: writes an answered question into the CV and
- * marks it applied, atomically. `revision` is the one the person is looking at. Returns the new
- * result (draft, revision, questions); the server's reply replaces the client's state.
- */
-export function applyQuestion(cvId: string, questionId: string, revision: number): Promise<CvResult> {
-  return apiFetch(`/cvs/${encodeURIComponent(cvId)}/questions/${encodeURIComponent(questionId)}/apply`, {
-    method: "POST",
-    body: { revision },
-    schema: cvResultSchema,
-  });
-}

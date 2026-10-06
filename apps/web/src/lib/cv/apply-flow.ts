@@ -1,4 +1,4 @@
-import type { CvResult } from "@/lib/api/cvs";
+import type { CvResult } from "@/entities/cv/schemas";
 import { isApiError } from "@/shared/api/fetcher";
 import type { SaveState } from "./autosave";
 

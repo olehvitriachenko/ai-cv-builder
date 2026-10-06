@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { ClarificationQuestion, CvDraft } from "@/lib/api/cvs";
+import type { ClarificationQuestion, CvDraft } from "@/entities/cv/schemas";
 import {
   answerFormSchema,
   answerHelper,

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { CvListItem } from "@/lib/api/cvs";
+import type { CvListItem } from "@/entities/cv/schemas";
 import { cardActions, cardMessage, cardName, formatUpdated } from "./card-copy";
 
 function item(overrides: Partial<CvListItem>): CvListItem {

@@ -1,4 +1,4 @@
-import type { FailureReason } from "@/lib/api/cvs";
+import type { FailureReason } from "@/entities/cv/schemas";
 
 /**
  * What the user reads when a generation failed. Written from the safe failure *category* only:

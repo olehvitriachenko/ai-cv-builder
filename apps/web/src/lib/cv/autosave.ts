@@ -1,4 +1,4 @@
-import type { CvDraft } from "@/lib/api/cvs";
+import type { CvDraft } from "@/entities/cv/schemas";
 import { isApiError } from "@/shared/api/fetcher";
 
 /**

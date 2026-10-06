@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { ClarificationQuestion, CvDraft } from "@/lib/api/cvs";
+import type { ClarificationQuestion, CvDraft } from "@/entities/cv/schemas";
 
 export const MAX_ANSWER_CHARS = 1000;
 

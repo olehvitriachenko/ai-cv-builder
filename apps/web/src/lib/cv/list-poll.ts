@@ -1,4 +1,4 @@
-import type { CvListItem } from "@/lib/api/cvs";
+import type { CvListItem } from "@/entities/cv/schemas";
 
 /** About every 5 seconds, only while at least one listed CV is generating. */
 export const LIST_POLL_INTERVAL_MS = 5000;

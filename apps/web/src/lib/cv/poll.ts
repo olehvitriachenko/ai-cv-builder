@@ -1,4 +1,4 @@
-import type { GenerationStatus } from "@/lib/api/cvs";
+import type { GenerationStatus } from "@/entities/cv/schemas";
 
 /** Gentle on the API: one indexed row read every 2 seconds, only while work is in progress. */
 export const POLL_INTERVAL_MS = 2000;

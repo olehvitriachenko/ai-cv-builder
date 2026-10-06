@@ -9,7 +9,7 @@ import { Button } from "@/shared/ui/button";
 import { Card } from "@/shared/ui/card";
 import { TextField, TextareaField } from "@/shared/ui/field";
 import { ApiError } from "@/shared/api/fetcher";
-import { createCvFromText, uploadCvPdf } from "@/lib/api/cvs";
+import { createCvFromText, uploadCvPdf } from "@/features/cv-generation/api";
 import {
   createCvFormSchema,
   type CreateCvFormValues,

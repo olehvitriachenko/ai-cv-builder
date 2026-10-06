@@ -1,4 +1,4 @@
-import type { SkillCategory } from "@/lib/api/cvs";
+import type { SkillCategory } from "@/entities/cv/schemas";
 import { FALLBACK_CATEGORY } from "./skill-catalogue";
 
 export interface SkillLine {

@@ -3,7 +3,7 @@
 import { Sparkles } from "lucide-react";
 import { useCallback, useState } from "react";
 import { Card } from "@/shared/ui/card";
-import type { ClarificationQuestion, CvDraft } from "@/lib/api/cvs";
+import type { ClarificationQuestion, CvDraft } from "@/entities/cv/schemas";
 import { assistantSummary, questionAlreadyFilled, questionView } from "@/lib/cv/question-form";
 import { QuestionCard } from "./question-card";
 import { useEditorMotion } from "@/shared/lib/use-editor-motion";

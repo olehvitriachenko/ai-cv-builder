@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { FormProvider } from "react-hook-form";
-import type { CvResult } from "@/lib/api/cvs";
+import type { CvResult } from "@/entities/cv/schemas";
 import { ANSWER_APPLIED_NOTICE } from "@/lib/cv/action-feedback";
 import { ActionNotice } from "./action-notice";
 import { prepareDownload } from "@/lib/cv/download-flow";

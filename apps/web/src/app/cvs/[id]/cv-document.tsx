@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import type { CvDraft, EducationEntry, ExperienceEntry } from "@/lib/api/cvs";
+import type { CvDraft, EducationEntry, ExperienceEntry } from "@/entities/cv/schemas";
 import { isCurrentlyStudying, isPresent } from "@/lib/cv/draft-form";
 import { skillLines } from "@/lib/cv/skill-lines";
 

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "@/shared/api/fetcher";
-import type { CvDraft } from "@/lib/api/cvs";
+import type { CvDraft } from "@/entities/cv/schemas";
 import { DraftAutosaver, type SaveState, type SavePayload } from "./autosave";
 
 function draftOf(summary: string): CvDraft {

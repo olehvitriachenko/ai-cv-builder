@@ -1,5 +1,8 @@
 import { cookies } from "next/headers";
-import { getCvResult, getCvStatus, listCvs, type CvList, type CvResult, type CvStatus } from "@/lib/api/cvs";
+import { getCvResult } from "@/features/cv-editor/api/draft";
+import { getCvStatus } from "@/features/cv-generation/api";
+import { listCvs } from "@/features/cv-list/api";
+import { type CvList, type CvResult, type CvStatus } from "@/entities/cv/schemas";
 
 /**
  * Server-side only: the first status for the CV page, loaded with the visitor's session cookie.

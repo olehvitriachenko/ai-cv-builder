@@ -1,4 +1,4 @@
-import type { CvListItem } from "@/lib/api/cvs";
+import type { CvListItem } from "@/entities/cv/schemas";
 import { isApiError } from "@/shared/api/fetcher";
 import { cardName } from "./card-copy";
 

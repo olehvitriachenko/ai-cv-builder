@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import type { CvResult } from "@/lib/api/cvs";
+import type { CvResult } from "@/entities/cv/schemas";
 import { ApiError } from "@/shared/api/fetcher";
 import type { SaveState } from "./autosave";
 import { APPLY_ACTION_LABELS, ApplyBlockedError, applyAnswer, applyErrorOutcome } from "./apply-flow";

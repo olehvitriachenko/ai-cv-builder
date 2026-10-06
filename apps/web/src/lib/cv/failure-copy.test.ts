@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { failureReasonSchema } from "@/lib/api/cvs";
+import { failureReasonSchema } from "@/entities/cv/schemas";
 import { failureMessage } from "./failure-copy";
 
 describe("failureMessage", () => {
