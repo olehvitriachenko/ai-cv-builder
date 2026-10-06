@@ -289,51 +289,90 @@ const email = z
   .max(254, "Email must be at most 254 characters.")
   .refine((value) => value === "" || z.email().safeParse(value).success, "Enter a valid email address.");
 
-const experienceEntry = z
-  .object({
-    id: z.string().min(1),
-    employer: text(200, "Employer"),
-    title: text(200, "Job title"),
-    location: text(120, "Location"),
-    startDate: text(40, "Start date"),
-    endDate: text(40, "End date"),
-    bullets: z.array(listItem(300, "A bullet point")).max(12, "At most 12 bullet points per role."),
-  })
-  .superRefine((entry, context) => {
-    validateDates(entry, context, false);
-    if (entry.employer === "" && entry.title === "") {
-      context.addIssue({ code: "custom", path: ["employer"], message: "Add an employer or a job title." });
-    }
-  });
+/**
+ * The dates the server already stored, keyed by entry id and field. Generation copies dates exactly
+ * as the source writes them ("Sept 2019", "now"), which the date picker may not read; the server
+ * accepted them, so while such a value is unchanged it never blocks saving the rest of the CV. A
+ * date the person changes is validated normally.
+ */
+export type SavedDates = ReadonlyMap<string, string>;
 
-const educationEntry = z
-  .object({
-    id: z.string().min(1),
-    institution: text(200, "Institution"),
-    qualification: text(200, "Qualification"),
-    startDate: text(40, "Start date"),
-    endDate: text(40, "End date"),
-    details: text(300, "Details"),
-  })
-  .superRefine((entry, context) => {
-    validateDates(entry, context, true);
-    if (entry.institution === "" && entry.qualification === "") {
-      context.addIssue({ code: "custom", path: ["institution"], message: "Add an institution or a qualification." });
-    }
-  });
+const savedDateKey = (entryId: string, field: string): string => `${entryId}:${field}`;
 
-function validateDates(entry: { startDate: string; endDate: string }, context: z.RefinementCtx, education: boolean) {
+export function savedDatesOf(draft: CvDraft): SavedDates {
+  const dates = new Map<string, string>();
+  const add = (entryId: string, field: string, value: string | null) => {
+    if (value !== null) dates.set(savedDateKey(entryId, field), value);
+  };
+  for (const entry of [...draft.experience, ...draft.education]) {
+    add(entry.id, "startDate", entry.startDate);
+    add(entry.id, "endDate", entry.endDate);
+  }
+  for (const entry of draft.certifications) {
+    add(entry.id, "date", entry.date);
+  }
+  return dates;
+}
+
+function isSavedDate(saved: SavedDates, entryId: string, field: string, value: string): boolean {
+  const trimmed = value.trim();
+  return trimmed !== "" && saved.get(savedDateKey(entryId, field)) === trimmed;
+}
+
+function validateDates(
+  entry: { id: string; startDate: string; endDate: string },
+  context: z.RefinementCtx,
+  education: boolean,
+  saved: SavedDates,
+) {
+  const unchanged = (field: "startDate" | "endDate") => isSavedDate(saved, entry.id, field, entry[field]);
   for (const field of ["startDate", "endDate"] as const) {
-    if (field === "endDate" && isPresent(entry[field])) continue;
+    if (unchanged(field) || (field === "endDate" && isPresent(entry[field]))) continue;
     const message = dateError(entry[field], education && field === "endDate");
     if (message) context.addIssue({ code: "custom", path: [field], message });
   }
+  if (unchanged("startDate") && unchanged("endDate")) return;
   const start = parseCvDate(entry.startDate);
   const end = parseCvDate(entry.endDate);
   if (start && end && reversedDateRange(start, end)) {
     context.addIssue({ code: "custom", path: ["endDate"], message: "End date must be on or after the start date." });
   }
 }
+
+const experienceEntry = (saved: SavedDates) =>
+  z
+    .object({
+      id: z.string().min(1),
+      employer: text(200, "Employer"),
+      title: text(200, "Job title"),
+      location: text(120, "Location"),
+      startDate: text(40, "Start date"),
+      endDate: text(40, "End date"),
+      bullets: z.array(listItem(300, "A bullet point")).max(12, "At most 12 bullet points per role."),
+    })
+    .superRefine((entry, context) => {
+      validateDates(entry, context, false, saved);
+      if (entry.employer === "" && entry.title === "") {
+        context.addIssue({ code: "custom", path: ["employer"], message: "Add an employer or a job title." });
+      }
+    });
+
+const educationEntry = (saved: SavedDates) =>
+  z
+    .object({
+      id: z.string().min(1),
+      institution: text(200, "Institution"),
+      qualification: text(200, "Qualification"),
+      startDate: text(40, "Start date"),
+      endDate: text(40, "End date"),
+      details: text(300, "Details"),
+    })
+    .superRefine((entry, context) => {
+      validateDates(entry, context, true, saved);
+      if (entry.institution === "" && entry.qualification === "") {
+        context.addIssue({ code: "custom", path: ["institution"], message: "Add an institution or a qualification." });
+      }
+    });
 
 const MAX_SKILL_CATEGORIES = 12;
 const MAX_SKILLS = 60;
@@ -370,21 +409,22 @@ const languageEntry = z
     }
   });
 
-const certificationEntry = z
-  .object({
-    id: z.string().min(1),
-    name: text(120, "The certification name"),
-    issuer: text(120, "The issuer"),
-    date: text(40, "The date"),
-    link: link("link"),
-  })
-  .superRefine((entry, context) => {
-    if (entry.name === "" && (entry.issuer !== "" || entry.date !== "" || entry.link !== "")) {
-      context.addIssue({ code: "custom", path: ["name"], message: "Enter the certification name." });
-    }
-    const message = dateError(entry.date, false);
-    if (message) context.addIssue({ code: "custom", path: ["date"], message });
-  });
+const certificationEntry = (saved: SavedDates) =>
+  z
+    .object({
+      id: z.string().min(1),
+      name: text(120, "The certification name"),
+      issuer: text(120, "The issuer"),
+      date: text(40, "The date"),
+      link: link("link"),
+    })
+    .superRefine((entry, context) => {
+      if (entry.name === "" && (entry.issuer !== "" || entry.date !== "" || entry.link !== "")) {
+        context.addIssue({ code: "custom", path: ["name"], message: "Enter the certification name." });
+      }
+      const message = isSavedDate(saved, entry.id, "date", entry.date) ? null : dateError(entry.date, false);
+      if (message) context.addIssue({ code: "custom", path: ["date"], message });
+    });
 
 const portfolioEntry = z
   .object({
@@ -411,37 +451,38 @@ const customSection = z
     }
   });
 
-const cvFormObject = z.object({
-  targetRole: z
-    .string()
-    .trim()
-    .min(1, "Enter the role you’re targeting.")
-    .max(MAX_TARGET_ROLE_CHARS, `Keep the role under ${MAX_TARGET_ROLE_CHARS} characters.`),
-  contact: z.object({
-    fullName: text(120, "Name"),
-    email,
-    phone: text(40, "Phone"),
-    location: text(120, "Location"),
-    linkedin: link("linkedin"),
-    portfolio: link("portfolio"),
-    extraLinks: z.array(z.object({ value: link("link") })),
-  }),
-  summary: text(1200, "The summary"),
-  experience: z.array(experienceEntry).max(30, "At most 30 roles."),
-  education: z.array(educationEntry).max(10, "At most 10 education entries."),
-  skillCategories: z.array(skillCategory).max(MAX_SKILL_CATEGORIES, `At most ${MAX_SKILL_CATEGORIES} skill categories.`),
-  languages: z.array(languageEntry).max(MAX_LANGUAGES, `At most ${MAX_LANGUAGES} languages.`),
-  certifications: z.array(certificationEntry).max(MAX_CERTIFICATIONS, `At most ${MAX_CERTIFICATIONS} certifications.`),
-  portfolio: z.array(portfolioEntry).max(MAX_PORTFOLIO, `At most ${MAX_PORTFOLIO} projects.`),
-  hobbies: z.array(listItem(60, "A hobby")).max(MAX_HOBBIES, `At most ${MAX_HOBBIES} hobbies.`),
-  customSections: z.array(customSection).max(MAX_CUSTOM_SECTIONS, `At most ${MAX_CUSTOM_SECTIONS} custom sections.`),
-});
+const cvFormObject = (saved: SavedDates) =>
+  z.object({
+    targetRole: z
+      .string()
+      .trim()
+      .min(1, "Enter the role you’re targeting.")
+      .max(MAX_TARGET_ROLE_CHARS, `Keep the role under ${MAX_TARGET_ROLE_CHARS} characters.`),
+    contact: z.object({
+      fullName: text(120, "Name"),
+      email,
+      phone: text(40, "Phone"),
+      location: text(120, "Location"),
+      linkedin: link("linkedin"),
+      portfolio: link("portfolio"),
+      extraLinks: z.array(z.object({ value: link("link") })),
+    }),
+    summary: text(1200, "The summary"),
+    experience: z.array(experienceEntry(saved)).max(30, "At most 30 roles."),
+    education: z.array(educationEntry(saved)).max(10, "At most 10 education entries."),
+    skillCategories: z.array(skillCategory).max(MAX_SKILL_CATEGORIES, `At most ${MAX_SKILL_CATEGORIES} skill categories.`),
+    languages: z.array(languageEntry).max(MAX_LANGUAGES, `At most ${MAX_LANGUAGES} languages.`),
+    certifications: z.array(certificationEntry(saved)).max(MAX_CERTIFICATIONS, `At most ${MAX_CERTIFICATIONS} certifications.`),
+    portfolio: z.array(portfolioEntry).max(MAX_PORTFOLIO, `At most ${MAX_PORTFOLIO} projects.`),
+    hobbies: z.array(listItem(60, "A hobby")).max(MAX_HOBBIES, `At most ${MAX_HOBBIES} hobbies.`),
+    customSections: z.array(customSection).max(MAX_CUSTOM_SECTIONS, `At most ${MAX_CUSTOM_SECTIONS} custom sections.`),
+  });
 
 /**
  * Mirrors the server's write rules for skill categories: a named category when it holds skills,
  * unique category names, a skill listed once in the whole CV (case-insensitive), 60 skills at most.
  */
-export const cvFormSchema = cvFormObject.superRefine((values, context) => {
+function validateCollections(values: z.output<ReturnType<typeof cvFormObject>>, context: z.RefinementCtx) {
   const names = new Set<string>();
   const skills = new Set<string>();
   let total = 0;
@@ -510,4 +551,12 @@ export const cvFormSchema = cvFormObject.superRefine((values, context) => {
   if (total > MAX_SKILLS) {
     context.addIssue({ code: "custom", path: ["skillCategories"], message: `At most ${MAX_SKILLS} skills in total.` });
   }
-});
+}
+
+/** The editor's schema for one stored draft: its stored dates stay valid while unchanged. */
+export function createCvFormSchema(saved: SavedDates = new Map()) {
+  return cvFormObject(saved).superRefine(validateCollections);
+}
+
+/** Without stored dates: every date must be one the date picker reads. */
+export const cvFormSchema = createCvFormSchema();

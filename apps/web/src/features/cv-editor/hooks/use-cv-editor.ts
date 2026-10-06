@@ -12,7 +12,8 @@ import { ApplyBlockedError, ApplyFailureError, applyAnswer, applyErrorOutcome } 
 import { questionTargetName, sectionLabel } from "@/features/cv-editor/model/question-form";
 import { DraftAutosaver, type SavePayload } from "@/features/cv-editor/model/autosave";
 import {
-  cvFormSchema,
+  createCvFormSchema,
+  savedDatesOf,
   toDraft,
   toFormValues,
   toTargetRole,
@@ -47,10 +48,13 @@ export function useCvEditor({
       }),
   );
   const saveState = useSyncExternalStore(autosaver.subscribe, autosaver.getState, autosaver.getState);
+  // Dates the server stored stay valid while unchanged, so a source date such as "Sept 2019" never
+  // blocks saving other fields. The editor remounts for every replaced result, so this is current.
+  const [schema] = useState(() => createCvFormSchema(savedDatesOf(result.draft)));
 
   const form = useForm<DraftFormValues>({
     defaultValues: toFormValues(result.draft, result.targetRole),
-    resolver: zodResolver(cvFormSchema),
+    resolver: zodResolver(schema),
     mode: "onChange",
   });
   // Subscribes the editor to every form change, so each keystroke re-renders the preview.
@@ -69,7 +73,7 @@ export function useCvEditor({
   // The saved shape and the validity are derived from the form on every render, never stored.
   const values = form.getValues();
   const payload = payloadOf(values);
-  const valid = cvFormSchema.safeParse(values).success;
+  const valid = schema.safeParse(values).success;
   const invalid = !valid;
 
   // A valid change goes to the autosaver; an invalid form is never sent, so the server keeps the

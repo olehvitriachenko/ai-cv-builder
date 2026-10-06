@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { CvDraft } from "@/entities/cv/schemas";
 import {
+  createCvFormSchema,
   cvFormSchema,
   expectedGraduation,
   isCurrentlyStudying,
@@ -13,6 +14,7 @@ import {
   newPortfolioEntry,
   newSkillCategory,
   PRESENT,
+  savedDatesOf,
   toDraft,
   toFormValues,
   toTargetRole,
@@ -278,6 +280,83 @@ describe("end dates", () => {
     expect(isCurrentlyStudying("2019", today)).toBe(false);
     expect(isCurrentlyStudying("", today)).toBe(false);
     expect(isCurrentlyStudying("Summer 2030", today)).toBe(false);
+  });
+});
+
+describe("dates the server already stored", () => {
+  // Generation copies dates exactly as the source writes them, so a stored draft can hold dates the
+  // date picker cannot read. Those must not block saving the rest of the CV.
+  function generated(start: string, end: string | null): CvDraft {
+    const base = draft();
+    return {
+      ...base,
+      experience: [{ ...base.experience[0]!, startDate: start, endDate: end }],
+      education: [{ ...base.education[0]!, startDate: "Summer 2017", endDate: "18" }],
+      certifications: [{ id: "cert-1", name: "CKA", issuer: null, date: "Jun '21", link: null }],
+    };
+  }
+
+  it.each([
+    ["Sept 2019", "now"],
+    ["Summer 2017", "Aug 2019"],
+    ["Jan '21", "Present"],
+    ["autumn 2022", null],
+    ["Mar 2019", "2021"],
+  ])("keeps a stored %s – %s valid while it is unchanged", (start, end) => {
+    const stored = generated(start, end);
+    const schema = createCvFormSchema(savedDatesOf(stored));
+    expect(schema.safeParse(toFormValues(stored, ROLE)).success).toBe(true);
+  });
+
+  it("lets an unrelated summary edit save and leaves the stored dates exactly as they were", () => {
+    const stored = generated("Sept 2019", "now");
+    const schema = createCvFormSchema(savedDatesOf(stored));
+    const values = toFormValues(stored, ROLE);
+    values.summary = "Edited summary.";
+
+    expect(schema.safeParse(values).success).toBe(true);
+    const saved = toDraft(values);
+    expect(saved.summary).toBe("Edited summary.");
+    expect(saved.experience[0]).toMatchObject({ startDate: "Sept 2019", endDate: "now" });
+    expect(saved.education[0]).toMatchObject({ startDate: "Summer 2017", endDate: "18" });
+    expect(saved.certifications[0]?.date).toBe("Jun '21");
+  });
+
+  it("still validates a date the person changed, on that date field", () => {
+    const stored = generated("Sept 2019", "now");
+    const schema = createCvFormSchema(savedDatesOf(stored));
+    const values = toFormValues(stored, ROLE);
+    values.experience[0]!.startDate = "Sometime 2019";
+
+    const result = schema.safeParse(values);
+    expect(result.success).toBe(false);
+    expect(result.error?.issues.map((issue) => issue.path.join("."))).toEqual(["experience.0.startDate"]);
+  });
+
+  it("validates a changed date range even when the other end is a stored date", () => {
+    const stored = generated("2019", "2021");
+    const schema = createCvFormSchema(savedDatesOf(stored));
+    const values = toFormValues(stored, ROLE);
+    values.experience[0]!.endDate = "2018";
+
+    expect(schema.safeParse(values).error?.issues.map((issue) => issue.path.join("."))).toEqual(["experience.0.endDate"]);
+  });
+
+  it("accepts a stored date only for the entry and field it was stored in", () => {
+    const stored = generated("Sept 2019", "now");
+    const schema = createCvFormSchema(savedDatesOf(stored));
+    const values = toFormValues(stored, ROLE);
+    values.experience.push({ ...newExperienceEntry(), employer: "Kernel", startDate: "Sept 2019" });
+    values.experience[0]!.startDate = "now";
+
+    expect(schema.safeParse(values).error?.issues.map((issue) => issue.path.join("."))).toEqual([
+      "experience.0.startDate",
+      "experience.1.startDate",
+    ]);
+  });
+
+  it("without stored dates (a new value) keeps the picker's strict format", () => {
+    expect(cvFormSchema.safeParse(toFormValues(generated("Sept 2019", "now"), ROLE)).success).toBe(false);
   });
 });
 
