@@ -32,6 +32,21 @@ function draft(): CvDraft {
 }
 
 describe("toFormValues / toDraft", () => {
+  it("saves and clears manually edited work location and education details", () => {
+    const values = toFormValues(draft(), ROLE);
+    values.experience[0]!.location = "  Kyiv, Ukraine  ";
+    values.education[0]!.details = "  Graduated with honours.  ";
+    expect(cvFormSchema.safeParse(values).success).toBe(true);
+    const saved = toDraft(values);
+    expect(saved.experience[0]?.location).toBe("Kyiv, Ukraine");
+    expect(saved.education[0]?.details).toBe("Graduated with honours.");
+    const reopened = toFormValues(saved, ROLE);
+    reopened.experience[0]!.location = "";
+    reopened.education[0]!.details = "";
+    expect(toDraft(reopened).experience[0]?.location).toBeNull();
+    expect(toDraft(reopened).education[0]?.details).toBeNull();
+  });
+
   it("round-trips a draft unchanged", () => {
     expect(toDraft(toFormValues(draft(), ROLE))).toEqual(draft());
   });

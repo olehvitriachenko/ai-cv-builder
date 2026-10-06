@@ -18,8 +18,7 @@ const PLACEHOLDER = "placeholder:text-muted!";
  * One role (05.1/06.3): company and dates as its heading, title, company, a **Start date** and an
  * **End date** picker (the End date reads `Present`, locked, while the **Currently working here**
  * switch under it is on),
- * the highlights and an immediate **Remove experience**. The employer's location stays in the draft untouched (the design
- * has no field for it).
+ * the highlights and an immediate **Remove experience**. Location uses the same autosave flow as the other fields.
  */
 export function ExperienceEntry({
   index,
@@ -42,14 +41,14 @@ export function ExperienceEntry({
   const endBounds = dateBounds({ future: false, after: parseCvDate(entry.startDate) });
 
   return (
-    <div ref={motionRef} className="flex flex-col gap-4">
+    <div ref={motionRef} className="flex flex-col gap-3 sm:gap-4">
       <div className="order-first flex items-center justify-between gap-3">
         <p className="min-w-0 text-[13px] leading-[normal] font-semibold text-ink [overflow-wrap:anywhere]">
           {showHeading || entry.employer.trim() !== "" ? experienceHeading(entry) : ""}
         </p>
         <RemoveButton label={`Remove ${experienceHeading(entry)}`} onClick={onRemove} />
       </div>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-3">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3">
         <DatePicker
           label="Start date"
           value={entry.startDate}
@@ -68,7 +67,7 @@ export function ExperienceEntry({
               error={errors?.endDate?.message}
             />
           </div>
-          <SwitchRow label="Currently working here" hint="Turn off to set an end date" checked={present} onChange={setPresent} />
+          <SwitchRow label="Currently working here" hint={present ? "Turn off to select an end date" : undefined} checked={present} onChange={setPresent} />
         </div>
       </div>
       <div className="flex flex-col gap-4 sm:-order-1">
@@ -87,6 +86,15 @@ export function ExperienceEntry({
           className={PLACEHOLDER}
           error={errors?.employer?.message}
           {...register(`experience.${index}.employer`)}
+        />
+        <TextField
+          label="Location"
+          placeholder="Enter work location"
+          autoComplete="off"
+          className={PLACEHOLDER}
+          maxLength={120}
+          error={errors?.location?.message}
+          {...register(`experience.${index}.location`)}
         />
       </div>
       {duration ? <p className="text-xs leading-normal text-muted">Duration: {duration}</p> : null}

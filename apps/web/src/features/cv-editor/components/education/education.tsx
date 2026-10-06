@@ -4,7 +4,7 @@ import { GraduationCap } from "lucide-react";
 import { useState } from "react";
 import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
 import { Button } from "@/shared/ui/button";
-import { TextField } from "@/shared/ui/field";
+import { TextareaField, TextField } from "@/shared/ui/field";
 import {
   PRESENT,
   expectedGraduation,
@@ -50,15 +50,15 @@ function EducationEntry({
   const thisYear = new Date().getFullYear();
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3 sm:gap-4">
       <div className="order-first flex items-center justify-between gap-3">
         <p className="min-w-0 text-[13px] leading-[normal] font-semibold text-ink [overflow-wrap:anywhere]">
           {showHeading ? educationHeading(entry) : ""}
         </p>
         <RemoveButton label={`Remove ${educationHeading(entry)}`} onClick={onRemove} />
       </div>
-      <div ref={dateMotionRef} className="flex flex-col gap-4">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-3">
+      <div ref={dateMotionRef} className="flex flex-col gap-2 sm:gap-4">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3">
           <DatePicker
             label="Start year"
             precision="year"
@@ -73,7 +73,7 @@ function EducationEntry({
                 label="End year"
                 precision="year"
                 value={entry.endDate}
-                lockedText={studying ? <><span className="max-sm:hidden">Not applicable</span><span className="sm:hidden">—</span></> : undefined}
+                lockedText={studying ? "Not applicable" : undefined}
                 onChange={(value) => setDate("endDate", value)}
                 bounds={dateBounds({ future: false, after: start })}
                 error={errors?.endDate?.message}
@@ -81,7 +81,7 @@ function EducationEntry({
             </div>
             <SwitchRow
               label="Currently studying here"
-              hint="Turn off to set a graduation year"
+              hint={studying ? "No end year required" : undefined}
               checked={studying}
               onChange={(checked) => {
                 setStudying(checked);
@@ -91,16 +91,16 @@ function EducationEntry({
           </div>
         </div>
         {studying ? (
-          <div className="flex flex-col gap-1.5 max-sm:border-t max-sm:border-line max-sm:pt-1.5">
+          <div className="flex flex-col gap-1.5">
             <DatePicker
-              label="Expected graduation year"
+              label="Expected graduation (optional)"
               precision="year"
               value={expected}
               onChange={(value) => setDate("endDate", value === "" ? PRESENT : value)}
               bounds={dateBounds({ future: true, after: { year: Math.max(thisYear, start?.year ?? thisYear), month: null } })}
               error={errors?.endDate?.message}
             />
-            <p className="text-[11px] leading-normal text-muted">Forecast year shown on CV · Not a confirmed end date</p>
+            <p className="hidden text-[11px] leading-normal text-muted sm:block">Forecast year shown on CV · Not a confirmed end date</p>
           </div>
         ) : null}
       </div>
@@ -122,6 +122,14 @@ function EducationEntry({
           {...register(`education.${index}.qualification`)}
         />
       </div>
+      <TextareaField
+        label="Details"
+        placeholder="Add education details you can confirm"
+        rows={3}
+        maxLength={300}
+        error={errors?.details?.message}
+        {...register(`education.${index}.details`)}
+      />
     </div>
   );
 }

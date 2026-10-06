@@ -26,9 +26,9 @@ export function SwitchRow({
     >
       <span
         aria-hidden
-        className={`flex h-[26px] w-11 shrink-0 items-center rounded-full px-[3px] transition-colors sm:h-5 sm:w-[34px] sm:px-0.5 ${checked ? "justify-end bg-accent" : "justify-start bg-[#d0d5dd]"}`}
+        className={`flex h-[26px] w-11 shrink-0 items-center rounded-full px-[3px] motion-safe:transition-colors motion-safe:duration-160 sm:h-5 sm:w-[34px] sm:px-0.5 ${checked ? "bg-accent" : "bg-[#d0d5dd]"}`}
       >
-        <span className="size-5 rounded-full bg-surface shadow-sm sm:size-4" />
+        <span className={`size-5 rounded-full bg-surface shadow-sm motion-safe:transition-transform motion-safe:duration-160 motion-safe:ease-out sm:size-4 ${checked ? "translate-x-[18px] sm:translate-x-[14px]" : "translate-x-0"}`} />
       </span>
       <span className="flex min-w-0 flex-col gap-0.5">
         <span className="text-[13px] leading-[normal] font-medium text-ink sm:text-xs sm:leading-normal sm:font-normal sm:text-muted">

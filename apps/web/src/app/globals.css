@@ -74,6 +74,9 @@ body {
 
   .cv-editor-motion :where([role="alert"], [role="status"]):not(.sr-only),
   .cv-editor-motion [role="listbox"],
+  .cv-editor-motion [data-date-picker-panel],
+  .cv-editor-motion [data-date-picker-backdrop],
+  .cv-editor-motion [data-date-picker-grid],
   .cv-editor-motion [data-sortable-category],
   .cv-editor-motion dialog[open],
   dialog.cv-editor-motion[open] {
@@ -110,6 +113,13 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .cv-editor-motion [data-sortable-category] {
     transition: none !important;
+  }
+}
+
+@media (max-width: 639px) {
+  :is(#cv-section-experience, #cv-section-education) {
+    gap: 12px;
+    padding: 12px;
   }
 }
 

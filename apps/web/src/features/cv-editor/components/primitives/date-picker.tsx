@@ -71,15 +71,15 @@ export function DatePicker({
   const shown = value.trim();
 
   if (lockedText !== undefined) {
-    // Locked fields are dimmed as a whole on a phone (Figma 06.7) and filled grey from `sm` up.
+    // Current work is dimmed; education keeps its label and a grey not-applicable field.
     return (
-      <div className="max-sm:opacity-45">
+      <div className={precision === "month" ? "max-sm:opacity-45" : undefined}>
         <FieldFrame label={label} controlId={id} hint={hint} error={error}>
           <button
             id={id}
             type="button"
             disabled
-            className="flex h-11 w-full cursor-not-allowed items-center rounded-lg border border-line bg-surface px-3 text-left text-sm text-muted sm:bg-canvas"
+            className={`flex h-11 w-full cursor-not-allowed items-center rounded-lg border border-line px-3 text-left text-sm text-muted ${precision === "year" ? "bg-canvas" : "bg-surface sm:bg-canvas"}`}
           >
             {lockedText}
           </button>
@@ -238,10 +238,11 @@ function DatePickerPanel({
 
   return (
     <>
-      <div aria-hidden className="fixed inset-0 z-40 bg-[rgba(24,34,48,0.4)] sm:hidden" />
+      <div aria-hidden data-date-picker-backdrop className="fixed inset-0 z-40 bg-[rgba(24,34,48,0.4)] sm:hidden" />
       <div
         ref={panelRef}
         role="dialog"
+        data-date-picker-panel
         aria-labelledby={headingId}
         className={`z-50 flex flex-col gap-3 border border-line bg-surface p-4 shadow-[0_8px_28px_rgba(40,51,71,0.08)] max-sm:fixed max-sm:inset-x-0 max-sm:bottom-0 max-sm:gap-2.5 max-sm:rounded-t-xl max-sm:border-b-0 max-sm:pt-2 max-sm:pb-[max(1rem,env(safe-area-inset-bottom))] sm:absolute sm:left-0 sm:w-[328px] sm:rounded-xl ${
           placement === "above" ? "sm:bottom-full sm:mb-2" : "sm:top-full sm:mt-2"
@@ -274,7 +275,7 @@ function DatePickerPanel({
               className="flex h-11 min-w-0 flex-1 items-center justify-center gap-2 rounded-lg border border-line bg-surface text-sm font-semibold text-ink hover:bg-canvas focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
             >
               {inYears ? `${pageStart}–${pageStart + YEARS_PER_PAGE - 1}` : year}
-              <ChevronDown aria-hidden className={`size-3.5 transition-transform ${inYears ? "rotate-180" : ""}`} strokeWidth={1.75} />
+              <ChevronDown aria-hidden className={`size-3.5 motion-safe:transition-transform motion-safe:duration-160 ${inYears ? "rotate-180" : ""}`} strokeWidth={1.75} />
             </button>
           )}
           <button type="button" aria-label={inYears ? "Next years" : "Next year"} disabled={!canForward} onClick={() => step(1)} className={navButton}>
@@ -282,7 +283,7 @@ function DatePickerPanel({
           </button>
         </div>
 
-        <div className="grid grid-cols-3 gap-2">
+        <div key={`${view}-${inYears ? pageStart : year}`} data-date-picker-grid className="grid grid-cols-3 gap-2">
           {inYears
             ? yearsOnPage(pageStart).map((candidate) => (
                 <button
