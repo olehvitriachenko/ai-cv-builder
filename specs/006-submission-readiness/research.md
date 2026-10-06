@@ -31,9 +31,9 @@
 
 ## R6. PDF preparation message
 
-- **Decision**: an overlay inside the full-screen preview's own dialog (so it sits above the document in the top layer): a soft dimming, a centred surface with a spinner, "Preparing your PDF…", "We're formatting your CV for download." and the file name. The navigation action reads "Preparing…" and is disabled. It appears after 300 ms of preparing and stays at least 700 ms; it announces itself politely, never takes focus, and does not prevent closing the preview (the download completes in the background).
+- **Decision**: an overlay inside the full-screen preview's own dialog (so it sits above the document in the top layer): a soft dimming, a centred surface with a spinner, "Preparing your PDF…", "We're formatting your CV for download." and the file name. The navigation action reads "Preparing…" and is disabled. It appears at once and stays at least 700 ms; it announces itself politely, never takes focus, and does not prevent closing the preview (the download completes in the background).
 - **File name**: shown from the candidate name and target role by the same rule the server uses for the real name (`<Name>-<Role>.pdf`, letters, digits and single dashes, at most 80 characters), so the shown name equals the delivered one in normal cases.
-- **Rationale**: Figma 10.5; the delay avoids a flash on fast downloads; no focus steal keeps keyboard flow intact.
+- **Rationale**: Figma 10.5; the minimum time avoids a flash on fast downloads (owner decision: always show it); no focus steal keeps keyboard flow intact.
 - **Alternatives**: showing the file name from the response header (unknown until the request ends); a blocking modal (would trap the person).
 
 ## R7. Code organisation by feature

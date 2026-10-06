@@ -3,9 +3,9 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
-/** A very fast download needs no dialog: it appears only if preparing takes longer than this. */
-const SHOW_AFTER_MS = 300;
-/** Once shown it stays at least this long, so it never flashes. */
+/** The message appears as soon as the person presses the button. */
+const SHOW_AFTER_MS = 0;
+/** Once shown it stays at least this long, so a fast download does not make it flash. */
 const MIN_VISIBLE_MS = 700;
 
 /**

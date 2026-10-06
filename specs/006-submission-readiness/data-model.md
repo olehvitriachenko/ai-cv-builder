@@ -11,8 +11,8 @@ The settings a reviewer provides; see [contracts/run-configuration.md](./contrac
 | State | Meaning | Visible |
 |-------|---------|---------|
 | idle | no download running | nothing |
-| preparing (short) | the request started less than 300 ms ago | the navigation action reads "Preparing…" and is disabled |
-| preparing (shown) | still running after 300 ms | plus the dimmed preview and the message |
+| preparing | the request has started | the button is disabled and the message is shown at once |
+| preparing (finished early) | the response came before 700 ms | the message stays until 700 ms have passed |
 | finishing | the file arrived or the request failed | the message stays until it has been visible for 700 ms, then goes |
 
 Transitions: idle → preparing on Download PDF (only one at a time); preparing → idle when the file arrives (the download starts) or when it fails (the existing failure message is shown). Closing the preview does not cancel the request. The state is local to the preview and is never stored or sent.

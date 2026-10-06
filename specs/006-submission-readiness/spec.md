@@ -55,9 +55,9 @@ While a person downloads a PDF (from the full-screen preview, the editor or My C
 
 **Acceptance Scenarios**:
 
-1. **Given** the full-screen preview, **When** the person presses Download PDF and preparing takes noticeable time, **Then** the preview is softly dimmed and a centred message with a progress indicator shows "Preparing your PDF…", the line "We're formatting your CV for download." and the file name; the navigation button reads "Preparing…" and cannot be pressed again.
+1. **Given** the full-screen preview, **When** the person presses Download PDF, **Then** the preview is softly dimmed and a centred message with a progress indicator shows "Preparing your PDF…", the line "We're formatting your CV for download." and the file name; the navigation button reads "Preparing…" and cannot be pressed again.
 2. **Given** the message is shown, **When** the file is ready, **Then** the download starts and the message disappears.
-3. **Given** a download that finishes almost at once, **Then** no message flashes on screen.
+3. **Given** a download that finishes almost at once, **Then** the message still shows, for at least 0.7 seconds, so it never flashes and disappears.
 4. **Given** the message is shown, **When** the person closes the preview, **Then** the preview closes and the download still completes.
 5. **Given** the download fails, **Then** the message disappears and the person is told what happened, as before this feature, and can try again.
 6. **Given** a phone-sized screen, **Then** the message fits the screen width and the dimming covers the preview.
@@ -101,7 +101,7 @@ A reviewer browsing the web code finds each product area (sign-in, My CVs, gener
 - **FR-007**: The README MUST explain the architecture, the major decisions, how hallucination is prevented and its limits, what was simplified, what would change with more time and how AI coding tools were used.
 - **FR-008**: The README MUST state the accepted trade-offs of the earlier features that a reviewer could mistake for defects.
 - **FR-009**: While a PDF is being prepared in the full-screen preview, the system MUST show a dimmed preview with a centred message ("Preparing your PDF…", "We're formatting your CV for download.", the file name) and a progress indicator, and the navigation action MUST read "Preparing…" and be unavailable.
-- **FR-010**: The preparing message MUST appear only when preparing takes noticeable time, MUST NOT flash for a fast download, MUST NOT take keyboard focus, and MUST NOT stop the person closing the preview or the download completing.
+- **FR-010**: The preparing message MUST appear at once when the person presses Download PDF, MUST stay at least 0.7 seconds, even for a fast download, MUST NOT take keyboard focus, and MUST NOT stop the person closing the preview or the download completing.
 - **FR-011**: The file name shown MUST be the name the downloaded file will have.
 - **FR-012**: When the download completes or fails, the message MUST disappear; a failure MUST be reported as it was before this feature.
 - **FR-013**: Each product area of the web app MUST keep its screens, rules and server calls together, with shared parts separate, and the reorganisation MUST NOT change behaviour.
@@ -120,7 +120,7 @@ A reviewer browsing the web code finds each product area (sign-in, My CVs, gener
 - **SC-002**: With no key supplied, 100% of non-generation features work and 100% of generation attempts end in a clear failed state within the generation time limit.
 - **SC-003**: After a stop and start, 100% of previously created CVs are still available.
 - **SC-004**: The README answers each of the eight questions of the constitution (run, test, architecture, decisions, hallucination prevention, simplifications, next steps, AI tool use), checked by reading it once.
-- **SC-005**: In the full-screen preview, the preparing message appears for 100% of downloads that take longer than 0.5 seconds and for none that finish faster than 0.2 seconds.
+- **SC-005**: In the full-screen preview, the preparing message appears for 100% of downloads, and stays at least 0.7 seconds.
 - **SC-006**: 0 repeated downloads start while one is being prepared.
 - **SC-007**: 100% of the full automated check suite passes with no real AI request.
 
@@ -131,4 +131,4 @@ A reviewer browsing the web code finds each product area (sign-in, My CVs, gener
 - The web code reorganisation and the stack files are being produced on this branch in parallel; this specification states the outcome they must reach, not how.
 - The preparing message appears for every Download PDF button (the full-screen preview, the editor header, My CVs); the full-screen preview is the only frame designed, so the others reuse its message over their own page. Their button keeps its busy state as before.
 - The "ready" and "failed" states of the download are not new designs: ready is the file arriving, failed keeps the existing error message.
-- The preparing message's timing (appears after about 0.3 s, stays at least 0.7 s) is a default chosen for the design; the design does not specify it.
+- The preparing message's timing (appears at once, stays at least 0.7 s) is a default chosen for the design; the design does not specify it.

@@ -28,7 +28,7 @@ Scenarios that prove the spec. Details: [plan.md](./plan.md), [contracts/run-con
 
 ## 5. PDF preparation message (US3, SC-005, SC-006)
 
-1. Open a CV, open the full-screen preview, press Download PDF. With the request delayed (browser network throttling or a slow response): after about 0.3 s the preview dims and the message shows "Preparing your PDF…", the line, the file name; the button reads "Preparing…" and ignores clicks.
+1. Open a CV, open the full-screen preview, press Download PDF. Press at once, even without any delay: the preview dims and the message shows "Preparing your PDF…", the line, the file name; the button reads "Preparing…" and ignores clicks.
 2. When the file arrives: it downloads and the message goes (after at least 0.7 s of being shown).
 3. A fast response: no message appears. Failure (stop the API): the message goes and the usual error shows. Close the preview while preparing: it closes and the file still downloads.
 4. At 390 px and 320 px the message fits the width.
