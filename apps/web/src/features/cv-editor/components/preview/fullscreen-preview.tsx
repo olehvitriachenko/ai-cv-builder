@@ -25,7 +25,7 @@ import { ZoomControls } from "./zoom-controls";
  * The full-screen preview (Figma 10.2 to 10.4) on a native modal `<dialog>`: the browser traps
  * focus, closes it on Esc and blurs/dims the editor behind it through `::backdrop`. It keeps its
  * own zoom (the inline preview is untouched) and reuses the editor's Download PDF flow, so pending
- * edits are saved first. Render it only while open: each opening starts fitted to the screen.
+ * edits are saved first. Render it only while open: each opening starts at the sheet width (100% on a wide screen).
  */
 export function FullscreenPreview({
   cvId,
@@ -77,9 +77,11 @@ export function FullscreenPreview({
     return () => observer.disconnect();
   }, []);
 
-  // "Fit page" shows the whole page: the smaller of the width fit and the height fit.
-  const fit = Math.min(fitScale(area.width - 32, A4_WIDTH_PX), fitScale(area.height - 24, A4_HEIGHT_PX));
-  const zoom = manualZoom ?? fit;
+  // The preview opens at the full sheet width (100% when the screen is wide enough) and scrolls
+  // down the pages; "Fit page" shows the whole page: the smaller of the width fit and the height fit.
+  const fitWidth = fitScale(area.width - 32, A4_WIDTH_PX);
+  const fitWholePage = Math.min(fitWidth, fitScale(area.height - 24, A4_HEIGHT_PX));
+  const zoom = manualZoom ?? fitWidth;
   const pages = estimatePages(height, PAGE_HEIGHT);
   const status = previewStatus({ saveStatus, invalid });
   const onHeight = useCallback((next: number) => setHeight(next), []);
@@ -90,7 +92,7 @@ export function FullscreenPreview({
       variant="secondary"
       size="compact"
       stretch={false}
-      onClick={() => setManualZoom(null)}
+      onClick={() => setManualZoom(fitWholePage)}
       className="max-sm:h-11 max-sm:border-accent-line max-sm:bg-accent-tint max-sm:px-4 max-sm:text-sm max-sm:text-accent"
     >
       Fit page
