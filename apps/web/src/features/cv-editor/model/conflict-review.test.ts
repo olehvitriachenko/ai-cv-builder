@@ -21,6 +21,7 @@ function version(): VersionContent {
     education: [
       { id: "d1", institution: "State University", qualification: "Software Engineering", startDate: "2025", endDate: "2029", details: null },
     ],
+    languages: [], certifications: [], portfolio: [], hobbies: [], customSections: [],
     skillCategories: [
       { id: "c1", name: "Programming Languages", skills: ["TypeScript"] },
       { id: "c2", name: "Frameworks", skills: ["React", "NestJS"] },
@@ -121,6 +122,46 @@ describe("diffSections", () => {
 
     expect(summary?.local.lines).toEqual(["Local summary."]);
     expect(summary?.saved.lines).toEqual(["Saved summary."]);
+  });
+});
+
+describe("diffSections with optional sections", () => {
+  it("adds no section for a version pair that has none (existing CVs compare as before)", () => {
+    expect(diffSections(version(), version()).map((section) => section.key)).toEqual(["personal", "summary", "experience:e1", "education:d1", "skills"]);
+  });
+
+  it("shows a predefined section as changed when only one version holds entries", () => {
+    const mine = copy(version());
+    mine.draft.languages = [{ id: "l1", name: "English", level: "C1" }];
+
+    const sections = diffSections(mine, version());
+
+    const languages = sections.find((section) => section.key === "languages");
+    expect(languages?.changed).toBe(true);
+    expect(languages?.local.lines).toEqual(["English — C1"]);
+    expect(languages?.saved.lines).toEqual([]);
+  });
+
+  it("says unchanged when both versions hold the same entries", () => {
+    const mine = copy(version());
+    mine.draft.hobbies = ["Chess"];
+    const theirs = copy(mine);
+
+    expect(diffSections(mine, theirs).find((section) => section.key === "hobbies")?.changed).toBe(false);
+  });
+
+  it("compares a custom section by id and names it by its title", () => {
+    const mine = copy(version());
+    mine.draft.customSections = [{ id: "s1", title: "Volunteering", content: "Food bank" }];
+    const theirs = copy(mine);
+    theirs.draft.customSections = [{ id: "s1", title: "Volunteering", content: "Mentoring" }];
+
+    const section = diffSections(mine, theirs).find((item) => item.key === "custom:s1");
+
+    expect(section?.title).toBe("Volunteering");
+    expect(section?.changed).toBe(true);
+    expect(section?.local.lines).toEqual(["Volunteering", "Food bank"]);
+    expect(section?.saved.lines).toEqual(["Volunteering", "Mentoring"]);
   });
 });
 

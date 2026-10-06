@@ -5,8 +5,12 @@ import {
   expectedGraduation,
   isCurrentlyStudying,
   isPresent,
+  newCertificationEntry,
+  newCustomSection,
   newEducationEntry,
   newExperienceEntry,
+  newLanguageEntry,
+  newPortfolioEntry,
   newSkillCategory,
   PRESENT,
   toDraft,
@@ -27,6 +31,7 @@ function draft(): CvDraft {
     education: [
       { id: "edu-1", institution: "State University", qualification: null, startDate: null, endDate: "2015", details: null },
     ],
+    languages: [], certifications: [], portfolio: [], hobbies: [], customSections: [],
     skillCategories: [{ id: "cat-1", name: "Backend", skills: ["Node.js", "SQL"] }],
   };
 }
@@ -358,3 +363,122 @@ describe("entries", () => {
     expect(result.success ? [] : result.error.issues.map((issue) => issue.path.join("."))).toContain("experience.1.employer");
   });
 });
+
+describe("optional sections in the form", () => {
+  const sections = () => ({
+    languages: [
+      { id: "l1", name: "English", level: "C1" as const },
+      { id: "l2", name: "German", level: null },
+    ],
+    certifications: [{ id: "c1", name: "AWS SAA", issuer: "Amazon", date: "Jun 2024", link: "https://aws.amazon.com/v" }],
+    portfolio: [{ id: "p1", name: "CV Builder", link: "example.com/cv", description: "A CV tool" }],
+    hobbies: ["Chess", "Climbing"],
+    customSections: [{ id: "s1", title: "Volunteering", content: "Food bank\nMentoring" }],
+  });
+
+  it("round-trips every section unchanged", () => {
+    const full = { ...draft(), ...sections() };
+
+    expect(toDraft(toFormValues(full, ROLE))).toEqual(full);
+  });
+
+  it("reads a draft with no sections as empty lists and writes them back empty", () => {
+    const values = toFormValues(draft(), ROLE);
+
+    expect(values.languages).toEqual([]);
+    expect(values.hobbies).toEqual([]);
+    expect(toDraft(values).languages).toEqual([]);
+  });
+
+  it("leaves out a section card that was added and never filled, so it is not stored", () => {
+    const values = toFormValues(draft(), ROLE);
+    values.languages = [newLanguageEntry()];
+    values.certifications = [newCertificationEntry()];
+    values.portfolio = [newPortfolioEntry()];
+    values.hobbies = [{ value: "  " }];
+    values.customSections = [newCustomSection()];
+
+    const saved = toDraft(values);
+
+    expect(saved.languages).toEqual([]);
+    expect(saved.certifications).toEqual([]);
+    expect(saved.portfolio).toEqual([]);
+    expect(saved.hobbies).toEqual([]);
+    expect(saved.customSections).toEqual([]);
+    expect(cvFormSchema.safeParse(values).success).toBe(true);
+  });
+
+  it("trims values, stores blank optional values as null and keeps the order", () => {
+    const values = toFormValues(draft(), ROLE);
+    values.languages = [{ id: "l", name: "  French ", level: "" }];
+    values.certifications = [{ id: "c", name: " ISTQB ", issuer: " ", date: "", link: "" }];
+    values.hobbies = [{ value: " Chess " }, { value: "" }, { value: "Go" }];
+
+    const saved = toDraft(values);
+
+    expect(saved.languages).toEqual([{ id: "l", name: "French", level: null }]);
+    expect(saved.certifications).toEqual([{ id: "c", name: "ISTQB", issuer: null, date: null, link: null }]);
+    expect(saved.hobbies).toEqual(["Chess", "Go"]);
+  });
+
+  it("stores a custom section only with both a title and content", () => {
+    const values = toFormValues(draft(), ROLE);
+    values.customSections = [
+      { id: "a", title: "Only title", content: "" },
+      { id: "b", title: "", content: "Only content" },
+      { id: "c", title: "Both", content: "  text  " },
+    ];
+
+    expect(toDraft(values).customSections).toEqual([{ id: "c", title: "Both", content: "text" }]);
+  });
+
+  describe("validation", () => {
+    const messages = (change: (values: ReturnType<typeof toFormValues>) => void): string[] => {
+      const values = toFormValues(draft(), ROLE);
+      change(values);
+      const result = cvFormSchema.safeParse(values);
+      return result.success ? [] : result.error.issues.map((issue) => `${issue.path.join(".")}: ${issue.message}`);
+    };
+
+    it("asks for a language name when only a level is chosen", () => {
+      expect(messages((v) => (v.languages = [{ id: "l", name: "", level: "A2" }]))).toContain("languages.0.name: Enter the language.");
+    });
+
+    it("rejects a language listed twice ignoring case, and a repeated hobby", () => {
+      expect(
+        messages((v) => (v.languages = [{ id: "a", name: "English", level: "" }, { id: "b", name: "english", level: "" }])),
+      ).toContain("languages.1.name: This language is already listed.");
+      expect(messages((v) => (v.hobbies = [{ value: "Chess" }, { value: "CHESS" }]))).toContain("hobbies.1.value: This hobby is already listed.");
+    });
+
+    it("rejects a certification link that is not a web address and a future date", () => {
+      const found = messages((v) => (v.certifications = [{ id: "c", name: "N", issuer: "", date: "Jan 2999", link: "not a link" }]));
+      expect(found.some((message) => message.startsWith("certifications.0.link"))).toBe(true);
+      expect(found.some((message) => message.startsWith("certifications.0.date"))).toBe(true);
+    });
+
+    it("asks for a certification or project name when other fields are filled", () => {
+      expect(messages((v) => (v.certifications = [{ id: "c", name: "", issuer: "Amazon", date: "", link: "" }]))).toContain(
+        "certifications.0.name: Enter the certification name.",
+      );
+      expect(messages((v) => (v.portfolio = [{ id: "p", name: "", link: "", description: "text" }]))).toContain(
+        "portfolio.0.name: Enter the project name.",
+      );
+    });
+
+    it("asks for a title when a custom section has content", () => {
+      expect(messages((v) => (v.customSections = [{ id: "s", title: "", content: "text" }]))).toContain(
+        "customSections.0.title: Give this section a title.",
+      );
+    });
+
+    it("enforces the limits of the server", () => {
+      const many = <T,>(count: number, make: (index: number) => T): T[] => Array.from({ length: count }, (_, index) => make(index));
+      expect(messages((v) => (v.languages = many(13, (i) => ({ id: `l${i}`, name: `L${i}`, level: "" as const }))))).toContain("languages: At most 12 languages.");
+      expect(messages((v) => (v.hobbies = many(16, (i) => ({ value: `H${i}` }))))).toContain("hobbies: At most 15 hobbies.");
+      expect(messages((v) => (v.customSections = many(4, (i) => ({ id: `s${i}`, title: `T${i}`, content: "x" }))))).toContain("customSections: At most 3 custom sections.");
+      expect(messages((v) => (v.customSections = [{ id: "s", title: "T", content: "x".repeat(1201) }])).length).toBeGreaterThan(0);
+    });
+  });
+});
+

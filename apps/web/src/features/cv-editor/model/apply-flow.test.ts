@@ -15,6 +15,7 @@ const RESULT: CvResult = {
     summary: null,
     experience: [],
     education: [],
+    languages: [], certifications: [], portfolio: [], hobbies: [], customSections: [],
     skillCategories: [],
   },
   questions: [],

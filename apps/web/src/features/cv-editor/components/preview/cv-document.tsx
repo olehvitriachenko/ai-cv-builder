@@ -1,7 +1,8 @@
 import type { ReactNode } from "react";
-import type { CvDraft, EducationEntry, ExperienceEntry } from "@/entities/cv/schemas";
+import type { CertificationEntry, CvDraft, EducationEntry, ExperienceEntry, PortfolioEntry } from "@/entities/cv/schemas";
 import { isCurrentlyStudying, isPresent } from "@/features/cv-editor/model/draft-form";
 import { skillLines } from "@/features/cv-editor/lib/skill-lines";
+import { certificationLine, contentLines, hobbiesLine, languagesLine } from "@/features/cv-editor/lib/optional-section-text";
 
 // The A4 document surface from Figma 05.1: Lora body, Inter section headings, 1px rules, white
 // sheet on a light stage. Read-only in this feature. Facts the source did not support are null
@@ -76,6 +77,26 @@ function Education({ entry }: { entry: EducationEntry }) {
       {studying ? <p className="text-[10px] text-paper-muted">Currently studying</p> : null}
     </article>
   );
+}
+
+/** A certification or a project: a bold name, a muted line, an optional link and description. */
+function TitledEntry({ title, line, link, description }: { title: string; line?: string | null; link?: string | null; description?: string | null }) {
+  return (
+    <article className="flex flex-col gap-1.5 leading-[normal]">
+      <h4 className="text-xs font-semibold break-words text-paper-ink">{title}</h4>
+      {line ? <p className="font-serif text-xs break-words text-paper-muted">{line}</p> : null}
+      {link ? <p className="font-serif text-xs break-all text-paper-muted">{link}</p> : null}
+      {description ? <p className="font-serif text-xs break-words text-paper-muted">{description}</p> : null}
+    </article>
+  );
+}
+
+function CertificationItem({ entry }: { entry: CertificationEntry }) {
+  return <TitledEntry title={entry.name} line={certificationLine(entry)} link={entry.link} />;
+}
+
+function PortfolioItem({ entry }: { entry: PortfolioEntry }) {
+  return <TitledEntry title={entry.name} link={entry.link} description={entry.description} />;
 }
 
 /**
@@ -176,6 +197,50 @@ export function CvDocument({
             </div>
           </DocSection>
         ) : null}
+
+        {draft.certifications.length > 0 ? (
+          <DocSection title="Certifications" gap={12}>
+            <div className="flex flex-col gap-3">
+              {draft.certifications.map((entry) => (
+                <CertificationItem key={entry.id} entry={entry} />
+              ))}
+            </div>
+          </DocSection>
+        ) : null}
+
+        {draft.languages.length > 0 ? (
+          <DocSection title="Languages" gap={10}>
+            <p className="font-serif text-xs leading-[1.65] break-words">{languagesLine(draft.languages)}</p>
+          </DocSection>
+        ) : null}
+
+        {draft.portfolio.length > 0 ? (
+          <DocSection title="Portfolio" gap={12}>
+            <div className="flex flex-col gap-3">
+              {draft.portfolio.map((entry) => (
+                <PortfolioItem key={entry.id} entry={entry} />
+              ))}
+            </div>
+          </DocSection>
+        ) : null}
+
+        {draft.hobbies.length > 0 ? (
+          <DocSection title="Hobbies" gap={10}>
+            <p className="font-serif text-xs leading-[1.65] break-words">{hobbiesLine(draft.hobbies)}</p>
+          </DocSection>
+        ) : null}
+
+        {draft.customSections.map((section) => (
+          <DocSection key={section.id} title={section.title} gap={10}>
+            <div className="flex flex-col gap-1">
+              {contentLines(section).map((line, index) => (
+                <p key={index} className="font-serif text-xs leading-[1.65] break-words">
+                  {line}
+                </p>
+              ))}
+            </div>
+          </DocSection>
+        ))}
       </div>
     </A4Sheet>
   );

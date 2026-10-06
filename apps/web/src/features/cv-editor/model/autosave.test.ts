@@ -10,6 +10,7 @@ function draftOf(summary: string): CvDraft {
     summary,
     experience: [],
     education: [],
+    languages: [], certifications: [], portfolio: [], hobbies: [], customSections: [],
     skillCategories: [],
   };
 }

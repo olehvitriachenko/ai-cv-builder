@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { CvDraft } from "@/entities/cv/schemas";
+import { LANGUAGE_LEVELS, type CvDraft, type LanguageLevel } from "@/entities/cv/schemas";
 import { MAX_TARGET_ROLE_CHARS } from "@/entities/cv/limits";
 import { MAX_LINKS, linkError, mergeLinks, splitLinks } from "../lib/links";
 import { dateError, parseCvDate, reversedDateRange } from "../lib/dates";
@@ -38,6 +38,34 @@ export interface SkillCategoryFormEntry {
   skills: ListItem[];
 }
 
+export interface LanguageFormEntry {
+  id: string;
+  name: string;
+  /** "" while no level is chosen. */
+  level: LanguageLevel | "";
+}
+
+export interface CertificationFormEntry {
+  id: string;
+  name: string;
+  issuer: string;
+  date: string;
+  link: string;
+}
+
+export interface PortfolioFormEntry {
+  id: string;
+  name: string;
+  link: string;
+  description: string;
+}
+
+export interface CustomSectionFormEntry {
+  id: string;
+  title: string;
+  content: string;
+}
+
 export interface DraftFormValues {
   /** The role the CV targets; saved with the draft (same revision). Never empty in a saved CV. */
   targetRole: string;
@@ -55,6 +83,12 @@ export interface DraftFormValues {
   experience: ExperienceFormEntry[];
   education: EducationFormEntry[];
   skillCategories: SkillCategoryFormEntry[];
+  // Optional sections. An empty list means the section is absent from the saved CV.
+  languages: LanguageFormEntry[];
+  certifications: CertificationFormEntry[];
+  portfolio: PortfolioFormEntry[];
+  hobbies: ListItem[];
+  customSections: CustomSectionFormEntry[];
 }
 
 const orEmpty = (value: string | null): string => value ?? "";
@@ -101,6 +135,22 @@ export function toFormValues(draft: CvDraft, targetRole: string): DraftFormValue
       name: category.name,
       skills: category.skills.map((value) => ({ value })),
     })),
+    languages: draft.languages.map((entry) => ({ id: entry.id, name: entry.name, level: entry.level ?? "" })),
+    certifications: draft.certifications.map((entry) => ({
+      id: entry.id,
+      name: entry.name,
+      issuer: orEmpty(entry.issuer),
+      date: orEmpty(entry.date),
+      link: orEmpty(entry.link),
+    })),
+    portfolio: draft.portfolio.map((entry) => ({
+      id: entry.id,
+      name: entry.name,
+      link: orEmpty(entry.link),
+      description: orEmpty(entry.description),
+    })),
+    hobbies: draft.hobbies.map((value) => ({ value })),
+    customSections: draft.customSections.map((entry) => ({ id: entry.id, title: entry.title, content: entry.content })),
   };
 }
 
@@ -167,6 +217,32 @@ export function toDraft(values: DraftFormValues): CvDraft {
     skillCategories: values.skillCategories
       .map((category) => ({ id: category.id, name: category.name.trim(), skills: nonBlank(category.skills) }))
       .filter((category) => category.skills.length > 0),
+    // An optional section holds only entries that have what the server requires; one that is
+    // entirely blank (a card the person added and never filled) is left out, so it is not stored.
+    languages: values.languages
+      .filter((entry) => entry.name.trim() !== "")
+      .map((entry) => ({ id: entry.id, name: entry.name.trim(), level: entry.level === "" ? null : entry.level })),
+    certifications: values.certifications
+      .filter((entry) => entry.name.trim() !== "")
+      .map((entry) => ({
+        id: entry.id,
+        name: entry.name.trim(),
+        issuer: orNull(entry.issuer),
+        date: orNull(entry.date),
+        link: orNull(entry.link),
+      })),
+    portfolio: values.portfolio
+      .filter((entry) => entry.name.trim() !== "")
+      .map((entry) => ({
+        id: entry.id,
+        name: entry.name.trim(),
+        link: orNull(entry.link),
+        description: orNull(entry.description),
+      })),
+    hobbies: nonBlank(values.hobbies),
+    customSections: values.customSections
+      .map((entry) => ({ id: entry.id, title: entry.title.trim(), content: entry.content.trim() }))
+      .filter((entry) => entry.title !== "" && entry.content !== ""),
   };
 }
 
@@ -184,6 +260,22 @@ export function newEducationEntry(): EducationFormEntry {
 
 export function newSkillCategory(): SkillCategoryFormEntry {
   return { id: newId(), name: "", skills: [] };
+}
+
+export function newLanguageEntry(): LanguageFormEntry {
+  return { id: newId(), name: "", level: "" };
+}
+
+export function newCertificationEntry(): CertificationFormEntry {
+  return { id: newId(), name: "", issuer: "", date: "", link: "" };
+}
+
+export function newPortfolioEntry(): PortfolioFormEntry {
+  return { id: newId(), name: "", link: "", description: "" };
+}
+
+export function newCustomSection(): CustomSectionFormEntry {
+  return { id: newId(), title: "", content: "" };
 }
 
 const text = (max: number, label: string) =>
@@ -260,6 +352,65 @@ const link = (kind: "linkedin" | "portfolio" | "link") =>
     }
   });
 
+const MAX_LANGUAGES = 12;
+const MAX_CERTIFICATIONS = 15;
+const MAX_PORTFOLIO = 8;
+const MAX_HOBBIES = 15;
+export const MAX_CUSTOM_SECTIONS = 3;
+
+const languageEntry = z
+  .object({
+    id: z.string().min(1),
+    name: text(60, "A language"),
+    level: z.enum([...LANGUAGE_LEVELS, ""]),
+  })
+  .superRefine((entry, context) => {
+    if (entry.name === "" && entry.level !== "") {
+      context.addIssue({ code: "custom", path: ["name"], message: "Enter the language." });
+    }
+  });
+
+const certificationEntry = z
+  .object({
+    id: z.string().min(1),
+    name: text(120, "The certification name"),
+    issuer: text(120, "The issuer"),
+    date: text(40, "The date"),
+    link: link("link"),
+  })
+  .superRefine((entry, context) => {
+    if (entry.name === "" && (entry.issuer !== "" || entry.date !== "" || entry.link !== "")) {
+      context.addIssue({ code: "custom", path: ["name"], message: "Enter the certification name." });
+    }
+    const message = dateError(entry.date, false);
+    if (message) context.addIssue({ code: "custom", path: ["date"], message });
+  });
+
+const portfolioEntry = z
+  .object({
+    id: z.string().min(1),
+    name: text(120, "The project name"),
+    link: link("link"),
+    description: text(300, "The description"),
+  })
+  .superRefine((entry, context) => {
+    if (entry.name === "" && (entry.link !== "" || entry.description !== "")) {
+      context.addIssue({ code: "custom", path: ["name"], message: "Enter the project name." });
+    }
+  });
+
+const customSection = z
+  .object({
+    id: z.string().min(1),
+    title: text(60, "The section title"),
+    content: z.string().trim().max(1200, "The content must be at most 1200 characters."),
+  })
+  .superRefine((entry, context) => {
+    if (entry.title === "" && entry.content !== "") {
+      context.addIssue({ code: "custom", path: ["title"], message: "Give this section a title." });
+    }
+  });
+
 const cvFormObject = z.object({
   targetRole: z
     .string()
@@ -279,6 +430,11 @@ const cvFormObject = z.object({
   experience: z.array(experienceEntry).max(30, "At most 30 roles."),
   education: z.array(educationEntry).max(10, "At most 10 education entries."),
   skillCategories: z.array(skillCategory).max(MAX_SKILL_CATEGORIES, `At most ${MAX_SKILL_CATEGORIES} skill categories.`),
+  languages: z.array(languageEntry).max(MAX_LANGUAGES, `At most ${MAX_LANGUAGES} languages.`),
+  certifications: z.array(certificationEntry).max(MAX_CERTIFICATIONS, `At most ${MAX_CERTIFICATIONS} certifications.`),
+  portfolio: z.array(portfolioEntry).max(MAX_PORTFOLIO, `At most ${MAX_PORTFOLIO} projects.`),
+  hobbies: z.array(listItem(60, "A hobby")).max(MAX_HOBBIES, `At most ${MAX_HOBBIES} hobbies.`),
+  customSections: z.array(customSection).max(MAX_CUSTOM_SECTIONS, `At most ${MAX_CUSTOM_SECTIONS} custom sections.`),
 });
 
 /**
@@ -329,6 +485,26 @@ export const cvFormSchema = cvFormObject.superRefine((values, context) => {
       skills.add(key);
     }
     total += held.length;
+  });
+
+  const languageNames = new Set<string>();
+  values.languages.forEach((entry, index) => {
+    const key = entry.name.trim().toLowerCase();
+    if (key === "") return;
+    if (languageNames.has(key)) {
+      context.addIssue({ code: "custom", path: ["languages", index, "name"], message: "This language is already listed." });
+    }
+    languageNames.add(key);
+  });
+
+  const hobbyNames = new Set<string>();
+  values.hobbies.forEach((item, index) => {
+    const key = item.value.trim().toLowerCase();
+    if (key === "") return;
+    if (hobbyNames.has(key)) {
+      context.addIssue({ code: "custom", path: ["hobbies", index, "value"], message: "This hobby is already listed." });
+    }
+    hobbyNames.add(key);
   });
 
   if (total > MAX_SKILLS) {

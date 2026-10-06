@@ -18,6 +18,7 @@ function complete(): DraftFormValues {
       { id: "e1", employer: "Acme", title: "Engineer", location: null, startDate: "2016", endDate: null, bullets: [] },
     ],
     education: [{ id: "d1", institution: "State University", qualification: null, startDate: null, endDate: null, details: null }],
+    languages: [], certifications: [], portfolio: [], hobbies: [], customSections: [],
     skillCategories: [{ id: "c1", name: "Backend", skills: ["Node.js", "SQL", "Go", "Rust", "Docker"] }],
   };
   return toFormValues(draft, "Backend Engineer");

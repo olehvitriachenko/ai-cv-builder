@@ -1,4 +1,5 @@
-import type { CvDraft, EducationEntry, ExperienceEntry } from "@/entities/cv/schemas";
+import type { CustomSection, CvDraft, EducationEntry, ExperienceEntry } from "@/entities/cv/schemas";
+import { certificationLine, contentLines, hobbiesLine, languageText } from "../lib/optional-section-text";
 import { isCurrentlyStudying, isPresent } from "./draft-form";
 
 // "Review conflicting versions" (Figma 09.3 to 09.5): the document the person is editing and the
@@ -166,6 +167,28 @@ function skillLines(draft: CvDraft): string[] {
 const skillCount = (draft: CvDraft): number =>
   draft.skillCategories.reduce((count, category) => count + category.skills.filter((skill) => clean(skill) !== "").length, 0);
 
+const CUSTOM_FIELDS: readonly Field<CustomSection>[] = [
+  { label: "title", read: (s) => clean(s.title) },
+  { label: "content", read: (s) => contentLines(s).join("\n") },
+];
+
+/** The lines of each predefined optional section, in document order; empty when the draft has none. */
+const OPTIONAL_SECTIONS: readonly { key: string; title: string; lines: (draft: CvDraft) => string[] }[] = [
+  {
+    key: "certifications",
+    title: "Certifications",
+    lines: (draft) =>
+      draft.certifications.map((entry) => present([entry.name, certificationLine(entry), entry.link]).join(" · ")),
+  },
+  { key: "languages", title: "Languages", lines: (draft) => draft.languages.map(languageText) },
+  {
+    key: "portfolio",
+    title: "Portfolio",
+    lines: (draft) => draft.portfolio.map((entry) => present([entry.name, entry.link, entry.description]).join(" · ")),
+  },
+  { key: "hobbies", title: "Hobbies", lines: (draft) => (draft.hobbies.length > 0 ? [hobbiesLine(draft.hobbies)] : []) },
+];
+
 /** Compares the two versions section by section: personal details, summary, each role, each study, skills. */
 export function diffSections(local: VersionContent, saved: VersionContent): ReviewSection[] {
   const sections: ReviewSection[] = [];
@@ -212,6 +235,25 @@ export function diffSections(local: VersionContent, saved: VersionContent): Revi
     title: "Skills",
     ...sides(mineSkills.join("\n") === theirSkills.join("\n") ? [] : ["categories and skills"], skillCountText, mineSkills, theirSkills),
   });
+
+  for (const optional of OPTIONAL_SECTIONS) {
+    const mine = optional.lines(local.draft);
+    const theirs = optional.lines(saved.draft);
+    if (mine.length === 0 && theirs.length === 0) continue;
+    sections.push({
+      key: optional.key,
+      title: optional.title,
+      ...sides(mine.join("\n") === theirs.join("\n") ? [] : ["entries"], "Unchanged in both versions", mine, theirs),
+    });
+  }
+
+  const customIds = [...new Set([...local.draft.customSections, ...saved.draft.customSections].map((section) => section.id))];
+  for (const id of customIds) {
+    const mine = local.draft.customSections.find((section) => section.id === id);
+    const theirs = saved.draft.customSections.find((section) => section.id === id);
+    const name = clean(mine?.title) || clean(theirs?.title) || "Untitled section";
+    sections.push(entrySection(`custom:${id}`, name, mine, theirs, CUSTOM_FIELDS, (section) => [clean(section.title), ...contentLines(section)]));
+  }
 
   return sections;
 }

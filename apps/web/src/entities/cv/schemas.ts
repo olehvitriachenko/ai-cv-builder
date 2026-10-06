@@ -54,6 +54,36 @@ export const skillCategorySchema = z.object({
   skills: z.array(z.string()),
 });
 
+export const LANGUAGE_LEVELS = ["A1", "A2", "B1", "B2", "C1", "C2", "Native speaker"] as const;
+export type LanguageLevel = (typeof LANGUAGE_LEVELS)[number];
+
+const languageEntrySchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  level: z.enum(LANGUAGE_LEVELS).nullable(),
+});
+
+const certificationEntrySchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  issuer: z.string().nullable(),
+  date: z.string().nullable(),
+  link: z.string().nullable(),
+});
+
+const portfolioEntrySchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  link: z.string().nullable(),
+  description: z.string().nullable(),
+});
+
+const customSectionSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  content: z.string(),
+});
+
 export const cvDraftSchema = z.object({
   schemaVersion: z.literal(2),
   contact: z.object({
@@ -67,8 +97,18 @@ export const cvDraftSchema = z.object({
   experience: z.array(experienceEntrySchema),
   education: z.array(educationEntrySchema),
   skillCategories: z.array(skillCategorySchema),
+  // Optional sections: a draft stored before they existed reads as having none.
+  languages: z.array(languageEntrySchema).default([]),
+  certifications: z.array(certificationEntrySchema).default([]),
+  portfolio: z.array(portfolioEntrySchema).default([]),
+  hobbies: z.array(z.string()).default([]),
+  customSections: z.array(customSectionSchema).default([]),
 });
 export type CvDraft = z.infer<typeof cvDraftSchema>;
+export type LanguageEntry = z.infer<typeof languageEntrySchema>;
+export type CertificationEntry = z.infer<typeof certificationEntrySchema>;
+export type PortfolioEntry = z.infer<typeof portfolioEntrySchema>;
+export type CustomSection = z.infer<typeof customSectionSchema>;
 export type SkillCategory = z.infer<typeof skillCategorySchema>;
 export type ExperienceEntry = z.infer<typeof experienceEntrySchema>;
 export type EducationEntry = z.infer<typeof educationEntrySchema>;

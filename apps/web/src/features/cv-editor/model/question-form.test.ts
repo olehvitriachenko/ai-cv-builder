@@ -31,6 +31,7 @@ const draft: CvDraft = {
   summary: null,
   experience: [{ id: "exp-1", employer: "Northstar Labs", title: "Engineer", location: null, startDate: null, endDate: null, bullets: [] }],
   education: [{ id: "edu-1", institution: null, qualification: "BSc", startDate: null, endDate: null, details: null }],
+  languages: [], certifications: [], portfolio: [], hobbies: [], customSections: [],
   skillCategories: [],
 };
 
