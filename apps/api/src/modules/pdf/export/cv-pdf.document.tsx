@@ -5,6 +5,7 @@ import type {
   ExperienceEntry,
   SkillCategory,
 } from '../../cv/generation/draft.schema.js';
+import { educationStatus } from './education-status.js';
 import { SANS, SERIF } from './cv-pdf.fonts.js';
 
 /**
@@ -249,7 +250,9 @@ function ExperienceTail({ entry, last }: { entry: ExperienceEntry; last: boolean
 }
 
 function Education({ entry, last }: { entry: EducationEntry; last: boolean }) {
-  const dates = dateRange(entry.startDate, entry.endDate);
+  const { studying, expected } = educationStatus(entry.endDate);
+  const range = dateRange(entry.startDate, entry.endDate);
+  const dates = range !== null && expected ? `${range} (expected)` : range;
   return (
     <View
       style={last ? [styles.educationEntry, styles.lastEntry] : styles.educationEntry}
@@ -268,6 +271,7 @@ function Education({ entry, last }: { entry: EducationEntry; last: boolean }) {
         <Prose text={entry.institution} style={styles.subline} />
       ) : null}
       {entry.details ? <Prose text={entry.details} style={styles.subline} /> : null}
+      {studying ? <Text style={styles.meta}>Currently studying</Text> : null}
     </View>
   );
 }

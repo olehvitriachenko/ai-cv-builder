@@ -116,6 +116,18 @@ const HEADINGS = ['profile', 'experience', 'education', 'skills'];
 describe('CvPdfRenderer', () => {
   const renderer = new CvPdfRenderer();
 
+  it.each([
+    ['Present', true, false],
+    [String(new Date().getFullYear() + 3), true, true],
+    ['2015', false, false],
+  ] as const)('preserves education semantics for %s', async (endDate, studying, expected) => {
+    const draft = typicalDraft();
+    draft.education[0]!.endDate = endDate;
+    const pdf = await readPdf(await renderer.render({ draft, targetRole: 'Backend Engineer' }));
+    expect(pdf.flat.includes('Currently studying')).toBe(studying);
+    expect(pdf.flat.includes('(expected)')).toBe(expected);
+  });
+
   it('produces a PDF whose every page is A4 portrait', async () => {
     const bytes = await renderer.render({ draft: typicalDraft(), targetRole: 'Backend Engineer' });
 
